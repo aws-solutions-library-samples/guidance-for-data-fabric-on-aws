@@ -1,6 +1,6 @@
-<mxfile host="Electron" modified="2024-01-19T17:53:44.422Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.1.18 Chrome/120.0.6099.199 Electron/28.1.2 Safari/537.36" etag="-Le1dYQgCdJrM8tsTaBe" version="22.1.18" type="device" pages="8">
+<mxfile host="app.diagrams.net" modified="2024-01-23T00:22:03.210Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" etag="J4nJ2gl5E_xnlkOwyAvK" version="22.1.17" type="device" pages="8">
   <diagram name="conceptual" id="bdLx2JXkv08kS9B4quFy">
-    <mxGraphModel dx="2582" dy="823" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+    <mxGraphModel dx="2534" dy="786" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -1091,7 +1091,7 @@
         <mxCell id="rCnRJTXwvfj8q36gEGPU-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-13" source="rCnRJTXwvfj8q36gEGPU-23" target="rCnRJTXwvfj8q36gEGPU-18" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="rCnRJTXwvfj8q36gEGPU-21" value="2.3. Verify authorization" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="rCnRJTXwvfj8q36gEGPU-20" vertex="1" connectable="0">
+        <mxCell id="rCnRJTXwvfj8q36gEGPU-21" value="1.3. Verify authorization" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="rCnRJTXwvfj8q36gEGPU-20" vertex="1" connectable="0">
           <mxGeometry x="-0.5" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -1106,18 +1106,27 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="rCnRJTXwvfj8q36gEGPU-25" value="2.2. Authenticate JWT" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="rCnRJTXwvfj8q36gEGPU-24" vertex="1" connectable="0">
+        <mxCell id="rCnRJTXwvfj8q36gEGPU-25" value="1.2. Authenticate JWT" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="rCnRJTXwvfj8q36gEGPU-24" vertex="1" connectable="0">
           <mxGeometry x="-0.5" relative="1" as="geometry">
             <mxPoint x="15" y="26" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="rCnRJTXwvfj8q36gEGPU-55" value="Amazon DynamoDB&lt;br&gt;(grant audit)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" parent="rCnRJTXwvfj8q36gEGPU-13" vertex="1">
-          <mxGeometry x="282" y="260" width="78" height="78" as="geometry" />
+          <mxGeometry x="292" y="430" width="78" height="78" as="geometry" />
         </mxCell>
         <mxCell id="DACPQL_lWFCRrJPMRnS6-1" value="AWS Lambda&lt;br&gt;(Auditor)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" parent="rCnRJTXwvfj8q36gEGPU-13" vertex="1">
-          <mxGeometry x="460" y="260" width="78" height="78" as="geometry" />
+          <mxGeometry x="470" y="430" width="78" height="78" as="geometry" />
         </mxCell>
         <mxCell id="DACPQL_lWFCRrJPMRnS6-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-13" source="DACPQL_lWFCRrJPMRnS6-1" target="rCnRJTXwvfj8q36gEGPU-55" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Ks_DKYG-tYekE2i1eJMJ-1" value="AWS Lambda&lt;br&gt;(Assset Controller)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="rCnRJTXwvfj8q36gEGPU-13">
+          <mxGeometry x="470" y="230" width="78" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="Ks_DKYG-tYekE2i1eJMJ-2" value="Amazon DynamoDB&lt;br&gt;(Asset Credential mapping)" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="rCnRJTXwvfj8q36gEGPU-13">
+          <mxGeometry x="292" y="230" width="78" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="Ks_DKYG-tYekE2i1eJMJ-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="rCnRJTXwvfj8q36gEGPU-13" source="Ks_DKYG-tYekE2i1eJMJ-1" target="Ks_DKYG-tYekE2i1eJMJ-2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="rCnRJTXwvfj8q36gEGPU-26" value="Consumer" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#232F3D;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.user;" parent="1" vertex="1">
@@ -1144,14 +1153,15 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DACPQL_lWFCRrJPMRnS6-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="rCnRJTXwvfj8q36gEGPU-45" target="DACPQL_lWFCRrJPMRnS6-6" edge="1">
+        <mxCell id="DACPQL_lWFCRrJPMRnS6-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="rCnRJTXwvfj8q36gEGPU-30" target="DACPQL_lWFCRrJPMRnS6-6" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="250" y="1390" />
+              <mxPoint x="190" y="738" />
+              <mxPoint x="190" y="1390" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="DACPQL_lWFCRrJPMRnS6-17" value="4.1. consume&lt;br style=&quot;border-color: var(--border-color);&quot;&gt;customer granted" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="DACPQL_lWFCRrJPMRnS6-16" vertex="1" connectable="0">
+        <mxCell id="DACPQL_lWFCRrJPMRnS6-17" value="5.1. consume&lt;br style=&quot;border-color: var(--border-color);&quot;&gt;consumer granted" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="DACPQL_lWFCRrJPMRnS6-16" vertex="1" connectable="0">
           <mxGeometry x="-0.7512" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -1170,7 +1180,7 @@
         <mxCell id="rCnRJTXwvfj8q36gEGPU-32" value="Data Producer AWS Account" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud_alt;strokeColor=#232F3E;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#232F3E;dashed=0;" parent="1" vertex="1">
           <mxGeometry x="268" y="570" width="498" height="650" as="geometry" />
         </mxCell>
-        <mxCell id="rCnRJTXwvfj8q36gEGPU-50" value="1.6. Consume&lt;br&gt;new subscription" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-32" source="rCnRJTXwvfj8q36gEGPU-45" target="rCnRJTXwvfj8q36gEGPU-47" edge="1">
+        <mxCell id="rCnRJTXwvfj8q36gEGPU-50" value="1.8. Consume&lt;br&gt;grant credentials" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-32" source="rCnRJTXwvfj8q36gEGPU-45" target="rCnRJTXwvfj8q36gEGPU-47" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="80" y="110" />
@@ -1181,10 +1191,10 @@
         <mxCell id="rCnRJTXwvfj8q36gEGPU-45" value="Event Bridge" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;" parent="rCnRJTXwvfj8q36gEGPU-32" vertex="1">
           <mxGeometry x="-40" y="90" width="78" height="78" as="geometry" />
         </mxCell>
-        <mxCell id="rCnRJTXwvfj8q36gEGPU-52" value="2.1. get&lt;br&gt;metadata" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-32" source="rCnRJTXwvfj8q36gEGPU-47" target="rCnRJTXwvfj8q36gEGPU-51" edge="1">
+        <mxCell id="rCnRJTXwvfj8q36gEGPU-52" value="3.1. get&lt;br&gt;metadata" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-32" source="rCnRJTXwvfj8q36gEGPU-47" target="rCnRJTXwvfj8q36gEGPU-51" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="rCnRJTXwvfj8q36gEGPU-57" value="2.2. Configure&amp;nbsp;&lt;br&gt;consumer access" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-32" source="rCnRJTXwvfj8q36gEGPU-47" target="rCnRJTXwvfj8q36gEGPU-53" edge="1">
+        <mxCell id="rCnRJTXwvfj8q36gEGPU-57" value="3.2. Configure&amp;nbsp;&lt;br&gt;consumer access" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-32" source="rCnRJTXwvfj8q36gEGPU-47" target="rCnRJTXwvfj8q36gEGPU-53" edge="1">
           <mxGeometry x="0.4332" y="25" relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="220" y="295" />
@@ -1192,7 +1202,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rCnRJTXwvfj8q36gEGPU-59" value="2.3 Store consumer&lt;br&gt;credentials" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-32" source="rCnRJTXwvfj8q36gEGPU-47" target="rCnRJTXwvfj8q36gEGPU-54" edge="1">
+        <mxCell id="rCnRJTXwvfj8q36gEGPU-59" value="3.3 Store consumer&lt;br&gt;credentials" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="rCnRJTXwvfj8q36gEGPU-32" source="rCnRJTXwvfj8q36gEGPU-47" target="rCnRJTXwvfj8q36gEGPU-54" edge="1">
           <mxGeometry x="0.5599" y="17" relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="190" y="437" />
@@ -1208,7 +1218,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="rCnRJTXwvfj8q36gEGPU-62" value="2.4. Publish&lt;br style=&quot;border-color: var(--border-color);&quot;&gt;consumer granted" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="rCnRJTXwvfj8q36gEGPU-61" vertex="1" connectable="0">
+        <mxCell id="rCnRJTXwvfj8q36gEGPU-62" value="3.4. Publish&lt;br style=&quot;border-color: var(--border-color);&quot;&gt;consumer granted" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="rCnRJTXwvfj8q36gEGPU-61" vertex="1" connectable="0">
           <mxGeometry x="0.2623" y="1" relative="1" as="geometry">
             <mxPoint x="19" y="19" as="offset" />
           </mxGeometry>
@@ -1225,8 +1235,14 @@
         <mxCell id="rCnRJTXwvfj8q36gEGPU-54" value="AWS Secrets Manager" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.secrets_manager;" parent="rCnRJTXwvfj8q36gEGPU-32" vertex="1">
           <mxGeometry x="330" y="398" width="78" height="78" as="geometry" />
         </mxCell>
-        <mxCell id="DACPQL_lWFCRrJPMRnS6-3" value="3. consume&lt;br&gt;customer granted /&lt;br&gt;5. consume&lt;br&gt;consumer secret" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="rCnRJTXwvfj8q36gEGPU-30" target="DACPQL_lWFCRrJPMRnS6-1" edge="1">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="DACPQL_lWFCRrJPMRnS6-3" value="4. consume&lt;br&gt;consumer granted /&lt;br&gt;6. consume&lt;br&gt;consumer secret" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;edgeStyle=orthogonalEdgeStyle;exitX=0;exitY=0.75;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="rCnRJTXwvfj8q36gEGPU-30" target="DACPQL_lWFCRrJPMRnS6-1" edge="1">
+          <mxGeometry x="0.7652" y="1" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="50" y="719" />
+              <mxPoint x="50" y="1039" />
+            </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="rCnRJTXwvfj8q36gEGPU-46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="rCnRJTXwvfj8q36gEGPU-30" target="rCnRJTXwvfj8q36gEGPU-45" edge="1">
           <mxGeometry relative="1" as="geometry">
@@ -1250,7 +1266,7 @@
         <mxCell id="DACPQL_lWFCRrJPMRnS6-18" value="AWS Secrets Manager" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.secrets_manager;" parent="DACPQL_lWFCRrJPMRnS6-4" vertex="1">
           <mxGeometry x="70" y="70" width="78" height="78" as="geometry" />
         </mxCell>
-        <mxCell id="DACPQL_lWFCRrJPMRnS6-22" value="4.3. Store&lt;br&gt;secret" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="DACPQL_lWFCRrJPMRnS6-4" source="DACPQL_lWFCRrJPMRnS6-19" target="DACPQL_lWFCRrJPMRnS6-18" edge="1">
+        <mxCell id="DACPQL_lWFCRrJPMRnS6-22" value="5.3. Store&lt;br&gt;secret" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="DACPQL_lWFCRrJPMRnS6-4" source="DACPQL_lWFCRrJPMRnS6-19" target="DACPQL_lWFCRrJPMRnS6-18" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="DACPQL_lWFCRrJPMRnS6-19" value="Data Asset&lt;br&gt;Grantor" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];gradientDirection=north;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#1E262E;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.general;" parent="DACPQL_lWFCRrJPMRnS6-4" vertex="1">
@@ -1274,7 +1290,7 @@
         <mxCell id="DACPQL_lWFCRrJPMRnS6-6" value="Event Bridge" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;" parent="1" vertex="1">
           <mxGeometry x="-102" y="1330" width="78" height="78" as="geometry" />
         </mxCell>
-        <mxCell id="DACPQL_lWFCRrJPMRnS6-21" value="4.2. Read secret" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="DACPQL_lWFCRrJPMRnS6-19" target="rCnRJTXwvfj8q36gEGPU-54" edge="1">
+        <mxCell id="DACPQL_lWFCRrJPMRnS6-21" value="5.2. Read secret" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="DACPQL_lWFCRrJPMRnS6-19" target="rCnRJTXwvfj8q36gEGPU-54" edge="1">
           <mxGeometry x="-0.8543" y="10" relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="-291" y="1470" />
@@ -1283,12 +1299,34 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DACPQL_lWFCRrJPMRnS6-23" value="4.4 Publish&lt;br&gt;consumer secret" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="DACPQL_lWFCRrJPMRnS6-19" target="DACPQL_lWFCRrJPMRnS6-6" edge="1">
+        <mxCell id="DACPQL_lWFCRrJPMRnS6-23" value="5.4 Publish&lt;br&gt;consumer secret" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="DACPQL_lWFCRrJPMRnS6-19" target="DACPQL_lWFCRrJPMRnS6-6" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="-180" y="1360" />
               <mxPoint x="-180" y="1360" />
             </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Ks_DKYG-tYekE2i1eJMJ-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="rCnRJTXwvfj8q36gEGPU-30" target="Ks_DKYG-tYekE2i1eJMJ-1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-50" y="830" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="30" y="699" />
+              <mxPoint x="30" y="800" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Ks_DKYG-tYekE2i1eJMJ-7" value="1.6. Consume&lt;br style=&quot;border-color: var(--border-color);&quot;&gt;new subscription/&lt;br&gt;5. consume &lt;br&gt;consumer granted" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Ks_DKYG-tYekE2i1eJMJ-6">
+          <mxGeometry x="0.1957" y="2" relative="1" as="geometry">
+            <mxPoint x="-32" y="-32" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Ks_DKYG-tYekE2i1eJMJ-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="Ks_DKYG-tYekE2i1eJMJ-1" target="rCnRJTXwvfj8q36gEGPU-30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Ks_DKYG-tYekE2i1eJMJ-9" value="1.7. Publish &lt;br&gt;grant credentials/&lt;br&gt;2. Publish &lt;br&gt;Consumer granted&amp;nbsp;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Ks_DKYG-tYekE2i1eJMJ-8">
+          <mxGeometry x="0.4931" y="1" relative="1" as="geometry">
+            <mxPoint x="-69" y="38" as="offset" />
           </mxGeometry>
         </mxCell>
       </root>
