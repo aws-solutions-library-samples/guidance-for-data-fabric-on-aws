@@ -1,10 +1,7 @@
-import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import * as cdk from 'aws-cdk-lib';
 import {
 	AccountRecovery,
-	CfnUserPoolGroup,
-	CfnUserPoolUser,
-	CfnUserPoolUserToGroupAttachment,
 	ClientAttributes,
 	StandardAttributesMask,
 	StringAttribute,
@@ -17,18 +14,15 @@ import {
 import { Construct } from 'constructs';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
-import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
-import path from 'path';
-import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
-import { RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { fileURLToPath } from 'url';
-import { StringParameter } from 'aws-cdk-lib/aws-ssm';
-import { Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+// import { OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
+// import path from 'path';
+// import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
-import { getLambdaArchitecture } from '@sif/cdk-common';
+// import { getLambdaArchitecture } from '@sdf/cdk-common';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 export interface CognitoConstructProperties {
 	tenantId: string;
@@ -43,12 +37,12 @@ export interface CognitoConstructProperties {
 	enableOpenLCA: boolean;
 }
 
-export const userPoolIdParameter = (tenantId: string, environment: string) => `/sdf/${environment}/shared/userPoolId`;
-export const userPoolArnParameter = (tenantId: string, environment: string) => `/sdf/${environment}/shared/userPoolArn`;
-export const userPoolClientIdParameter = (tenantId: string, environment: string) => `/sdf/${environment}/shared/userPoolClientId`;
-export const adminUserParameter = (tenantId: string, environment: string) => `/sdf/${environment}/shared/adminUser`;
-export const preTokenGenerationFunctionNameParameter = (tenantId: string, environment: string) => `/sdf/${environment}/shared/preTokenGenerationFunctionName`;
-export const preTokenGenerationFunctionArnParameter = (tenantId: string, environment: string) => `/sdf/${environment}/shared/preTokenGenerationFunctionArn`;
+export const userPoolIdParameter = (environment: string) => `/sdf/${environment}/shared/userPoolId`;
+export const userPoolArnParameter = (environment: string) => `/sdf/${environment}/shared/userPoolArn`;
+export const userPoolClientIdParameter = (environment: string) => `/sdf/${environment}/shared/userPoolClientId`;
+export const adminUserParameter = (environment: string) => `/sdf/${environment}/shared/adminUser`;
+export const preTokenGenerationFunctionNameParameter = (environment: string) => `/sdf/${environment}/shared/preTokenGenerationFunctionName`;
+export const preTokenGenerationFunctionArnParameter = (environment: string) => `/sdf/${environment}/shared/preTokenGenerationFunctionArn`;
 
 export class Cognito extends Construct {
 	public readonly userPoolId: string;
@@ -56,78 +50,78 @@ export class Cognito extends Construct {
 	constructor(scope: Construct, id: string, props: CognitoConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `sif-${props.tenantId}-${props.environment}`;
+		const namePrefix = `sdf-${props.tenantId}-${props.environment}`;
 
-		const commonBundlingOptions = {
-			minify: true,
-			format: OutputFormat.ESM,
-			target: 'node18.16',
-			sourceMap: false,
-			sourcesContent: false,
-			banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-			externalModules: ['aws-sdk']
-		};
+		// const commonBundlingOptions = {
+		// 	minify: true,
+		// 	format: OutputFormat.ESM,
+		// 	target: 'node18.16',
+		// 	sourceMap: false,
+		// 	sourcesContent: false,
+		// 	banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+		// 	externalModules: ['aws-sdk']
+		// };
 
-		const depsLockFilePath = path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml');
+		//const depsLockFilePath = path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml');
 
-		const accessManagementApiFunctionName = `${namePrefix}-accessManagementApi`;
+		//const accessControlApiFunctionName = `${namePrefix}-accessControlApi`;
 
-		const preTokenGenerationLambdaTrigger = new NodejsFunction(this, 'PreTokenGenerationLambdaTrigger', {
-			functionName: `${namePrefix}-preTokenGenerationLambdaTrigger`,
-			description: `Cognito Construct Pre Token Generation Lambda Trigger: Tenant ${props.tenantId}`,
-			entry: path.join(__dirname, './triggers/preTokenGeneration.trigger.ts'),
-			runtime: Runtime.NODEJS_18_X,
-			tracing: Tracing.ACTIVE,
-			memorySize: 512,
-			logRetention: RetentionDays.ONE_WEEK,
-			timeout: Duration.seconds(15),
-			bundling: commonBundlingOptions,
-			environment: {
-				// Access Management Api would not be ready
-				ACCESS_MANAGEMENT_FUNCTION_NAME: accessManagementApiFunctionName,
-				NODE_ENV: props.environment,
-				TENANT_ID: props.tenantId
-			},
-			depsLockFilePath,
-			architecture: getLambdaArchitecture(scope),
-		});
+		// const preTokenGenerationLambdaTrigger = new NodejsFunction(this, 'PreTokenGenerationLambdaTrigger', {
+		// 	functionName: `${namePrefix}-preTokenGenerationLambdaTrigger`,
+		// 	description: `Cognito Construct Pre Token Generation Lambda Trigger: Tenant ${props.tenantId}`,
+		// 	entry: path.join(__dirname, './triggers/preTokenGeneration.trigger.ts'),
+		// 	runtime: Runtime.NODEJS_18_X,
+		// 	tracing: Tracing.ACTIVE,
+		// 	memorySize: 512,
+		// 	logRetention: RetentionDays.ONE_WEEK,
+		// 	timeout: Duration.seconds(15),
+		// 	bundling: commonBundlingOptions,
+		// 	environment: {
+		// 		// Access Management Api would not be ready
+		// 		ACCESS_MANAGEMENT_FUNCTION_NAME: accessControlApiFunctionName,
+		// 		NODE_ENV: props.environment,
+		// 		TENANT_ID: props.tenantId
+		// 	},
+		// 	depsLockFilePath,
+		// 	architecture: getLambdaArchitecture(scope),
+		// });
 
-		const invokeLambdaPolicy = new PolicyStatement({
-			actions: ['lambda:InvokeFunction'],
-			resources: [`arn:aws:lambda:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:function:${accessManagementApiFunctionName}`]
-		});
+		// const invokeLambdaPolicy = new PolicyStatement({
+		// 	actions: ['lambda:InvokeFunction'],
+		// 	resources: [`arn:aws:lambda:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:function:${accessControlApiFunctionName}`]
+		// });
 
-		// 👇 add the policy to the Function's role
-		preTokenGenerationLambdaTrigger.role?.attachInlinePolicy(
-			new Policy(this, 'invoke-lambda-policy', {
-				statements: [invokeLambdaPolicy]
-			})
-		);
+		// // 👇 add the policy to the Function's role
+		// preTokenGenerationLambdaTrigger.role?.attachInlinePolicy(
+		// 	new Policy(this, 'invoke-lambda-policy', {
+		// 		statements: [invokeLambdaPolicy]
+		// 	})
+		// );
 
-		NagSuppressions.addResourceSuppressions(preTokenGenerationLambdaTrigger,
-			[
-				{
-					id: 'AwsSolutions-IAM4',
-					appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
-					reason: 'This managed policy is added by CDK by default'
+		// NagSuppressions.addResourceSuppressions(preTokenGenerationLambdaTrigger,
+		// 	[
+		// 		{
+		// 			id: 'AwsSolutions-IAM4',
+		// 			appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+		// 			reason: 'This managed policy is added by CDK by default'
 
-				},
-				{
-					id: 'AwsSolutions-IAM5',
-					appliesTo: ['Resource::*'],
-					reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments.'
-				}],
-			true);
+		// 		},
+		// 		{
+		// 			id: 'AwsSolutions-IAM5',
+		// 			appliesTo: ['Resource::*'],
+		// 			reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments.'
+		// 		}],
+		// 	true);
 
-		new StringParameter(this, 'preTokenGenerationFunctionNameParameter', {
-			parameterName: preTokenGenerationFunctionNameParameter(props.tenantId, props.environment),
-			stringValue: preTokenGenerationLambdaTrigger.functionName
-		});
+		// new StringParameter(this, 'preTokenGenerationFunctionNameParameter', {
+		// 	parameterName: preTokenGenerationFunctionNameParameter( props.environment),
+		// 	stringValue: preTokenGenerationLambdaTrigger.functionName
+		// });
 
-		new StringParameter(this, 'preTokenGenerationFunctionArnParameter', {
-			parameterName: preTokenGenerationFunctionArnParameter(props.tenantId, props.environment),
-			stringValue: preTokenGenerationLambdaTrigger.functionArn
-		});
+		// new StringParameter(this, 'preTokenGenerationFunctionArnParameter', {
+		// 	parameterName: preTokenGenerationFunctionArnParameter(props.environment),
+		// 	stringValue: preTokenGenerationLambdaTrigger.functionArn
+		// });
 
 		const userPoolEmailSettings: UserPoolEmail | undefined = props.userPoolEmail
 			? cognito.UserPoolEmail.withSES({
@@ -156,7 +150,7 @@ export class Cognito extends Construct {
 				role: new StringAttribute({ mutable: true })
 			},
 			lambdaTriggers: {
-				preTokenGeneration: preTokenGenerationLambdaTrigger
+				// preTokenGeneration: preTokenGenerationLambdaTrigger
 			},
 			passwordPolicy: {
 				minLength: 6,
@@ -185,12 +179,12 @@ export class Cognito extends Construct {
 		this.userPoolId = userPool.userPoolId;
 
 		new ssm.StringParameter(this, 'cognitoUserPoolIdParameter', {
-			parameterName: userPoolIdParameter(props.tenantId, props.environment),
+			parameterName: userPoolIdParameter(props.environment),
 			stringValue: userPool.userPoolId
 		});
 
 		new ssm.StringParameter(this, 'cognitoUserPoolArnParameter', {
-			parameterName: userPoolArnParameter(props.tenantId, props.environment),
+			parameterName: userPoolArnParameter(props.environment),
 			stringValue: userPool.userPoolArn
 		});
 
@@ -238,83 +232,9 @@ export class Cognito extends Construct {
 		userPoolClient.node.addDependency(userPool);
 
 		new ssm.StringParameter(this, 'cognitoClientIdParameter', {
-			parameterName: userPoolClientIdParameter(props.tenantId, props.environment),
+			parameterName: userPoolClientIdParameter(props.environment),
 			stringValue: userPoolClient.userPoolClientId
 		});
-
-		/**
-		 * Seed the default roles/groups for the built in global (/) group
-		 */
-
-		const adminGroup = new CfnUserPoolGroup(this, 'GlobalAdminGroup', {
-			groupName: '/|||admin',
-			userPoolId: userPool.userPoolId
-		});
-		adminGroup.node.addDependency(userPool);
-
-		const contributorGroup = new CfnUserPoolGroup(this, 'GlobalContributorGroup', {
-			groupName: '/|||contributor',
-			userPoolId: userPool.userPoolId
-		});
-		contributorGroup.node.addDependency(userPool);
-
-		const readerGroup = new CfnUserPoolGroup(this, 'GlobalReaderGroup', {
-			groupName: '/|||reader',
-			userPoolId: userPool.userPoolId
-		});
-		readerGroup.node.addDependency(userPool);
-
-		/**
-		 * Seed the openLCA roles/groups for the built (/sif/openlca) group
-		 */
-		if (props.enableOpenLCA) {
-			const openLcaAdminGroup = new CfnUserPoolGroup(this, 'OpenLcaAdminGroup', {
-				groupName: '/sif/openlca|||admin',
-				userPoolId: userPool.userPoolId
-			});
-			openLcaAdminGroup.node.addDependency(userPool);
-
-			const openLcaContributorGroup = new CfnUserPoolGroup(this, 'OpenLcaContributorGroup', {
-				groupName: '/sif/openlca|||contributor',
-				userPoolId: userPool.userPoolId
-			});
-			openLcaContributorGroup.node.addDependency(userPool);
-
-			const openLcaReaderGroup = new CfnUserPoolGroup(this, 'OpenLcaReaderGroup', {
-				groupName: '/sif/openlca|||reader',
-				userPoolId: userPool.userPoolId
-			});
-			openLcaReaderGroup.node.addDependency(userPool);
-		}
-
-		/**
-		 * Seed the initial admin user
-		 */
-		const adminUser = new CfnUserPoolUser(this, 'GlobalAdminUser', {
-			userPoolId: userPool.userPoolId,
-			username: props.administratorEmail,
-			userAttributes: [
-				{
-					name: 'email',
-					value: props.administratorEmail
-				}
-			]
-		});
-		adminUser.node.addDependency(userPool);
-
-		const membership = new CfnUserPoolUserToGroupAttachment(this, 'AdminUserGroupMembership', {
-			groupName: adminGroup.groupName as string,
-			username: adminUser.username as string,
-			userPoolId: userPool.userPoolId
-		});
-
-		membership.node.addDependency(adminGroup);
-		membership.node.addDependency(adminUser);
-		membership.node.addDependency(userPool);
-
-		new ssm.StringParameter(this, 'adminUserParameter', {
-			parameterName: adminUserParameter(props.tenantId, props.environment),
-			stringValue: props.administratorEmail
-		});
+	
 	}
 }
