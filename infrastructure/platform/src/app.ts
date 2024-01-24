@@ -23,6 +23,13 @@ const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
 // user VPC config
 const useExistingVpc = tryGetBooleanContext(app, 'useExistingVpc', false);
 
+
+// SSO or IAM Identity center config 
+const ssoInstanceId =  getOrThrow(app, 'ssoInstanceId');
+// Optional requirements to specify the cognito SAML provider
+const ssoRegion=  app.node.tryGetContext('ssoRegion');
+const samlMetaDataUrl=  app.node.tryGetContext('samlMetaDataUrl');
+
 let userVpcId;
 let userIsolatedSubnetIds;
 let userPrivateSubnetIds;

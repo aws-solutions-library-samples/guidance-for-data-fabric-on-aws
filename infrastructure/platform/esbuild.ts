@@ -11,6 +11,7 @@ if (!existsSync(dist)) {
 // cjs output bundle
 esbuild
     .build({
+        outdir: 'dist/cjs',
         bundle: true,
         sourcemap: true,
         minify: false,
