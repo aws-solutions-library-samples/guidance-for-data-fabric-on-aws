@@ -8,7 +8,6 @@ import { CognitoIdpCreator } from './cognitoIdpCreator.construct.js';
 
 export type CognitoCustomStackProperties = StackProps & {
 	environment: string;
-	ssoInstanceArn?: string;
 	samlMetaDataUrl?: string;
 	ssoRegion: string;
 	userPoolIdParameter: string;

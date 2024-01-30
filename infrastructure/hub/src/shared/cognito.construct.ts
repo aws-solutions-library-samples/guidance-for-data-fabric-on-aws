@@ -26,11 +26,9 @@ export interface CognitoConstructProperties {
 }
 
 
-export const userPoolArnParameter = (environment: string) => `/sdf/${environment}/shared/userPoolArn`;
-export const userPoolClientIdParameter = (environment: string) => `/sdf/${environment}/shared/userPoolClientId`;
-export const adminUserParameter = (environment: string) => `/sdf/${environment}/shared/adminUser`;
-export const preTokenGenerationFunctionNameParameter = (environment: string) => `/sdf/${environment}/shared/preTokenGenerationFunctionName`;
-export const preTokenGenerationFunctionArnParameter = (environment: string) => `/sdf/${environment}/shared/preTokenGenerationFunctionArn`;
+export const userPoolArnParameter = (environment: string) => `/sdf/${environment}/shared/cognito/userPoolArn`;
+export const userPoolClientIdParameter = (environment: string) => `/sdf/${environment}/shared/cognito/userPoolClientId`;
+export const userPoolDomainParameter = (environment: string) => `/sdf/${environment}/shared/cognito/userPoolDomain`;
 
 export class Cognito extends Construct {
 	public readonly userPoolId: string;
@@ -105,13 +103,17 @@ export class Cognito extends Construct {
 			stringValue: userPool.userPoolArn
 		});
 
-		new UserPoolDomain(this, 'UserPoolDomain', {
+		const domain = new UserPoolDomain(this, 'UserPoolDomain', {
 			userPool: userPool,
 			cognitoDomain: {
 				domainPrefix: `sdf-${props.environment}-${cdk.Stack.of(this).account}`
 			}
 		});
-	
+
+		new ssm.StringParameter(this, 'userPoolDomainParameter', {
+			parameterName: userPoolDomainParameter(props.environment),
+			stringValue: domain.domainName
+		});	
 	
 	}
 }

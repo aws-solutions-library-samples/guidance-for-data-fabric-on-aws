@@ -24,15 +24,11 @@ const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
 
 // user VPC config
 const useExistingVpc = tryGetBooleanContext(app, 'useExistingVpc', false);
-
-
-// SSO or IAM Identity center config 
-const ssoInstanceArn =  getOrThrow(app, 'ssoInstanceArn');
-
 // Optional requirements to specify the cognito SAML provider
-const ssoRegion=  app.node.tryGetContext('ssoRegion');
-const adminEmail=  app.node.tryGetContext('adminEmail');
-const samlMetaDataUrl=  app.node.tryGetContext('samlMetaDataUrl');
+const ssoInstanceArn = app.node.tryGetContext('ssoInstanceArn');
+const ssoRegion = app.node.tryGetContext('ssoRegion');
+const adminEmail = app.node.tryGetContext('adminEmail');
+const samlMetaDataUrl = app.node.tryGetContext('samlMetaDataUrl');
 export const userPoolIdParameter = (environment: string) => `/sdf/${environment}/shared/cognito/userPoolId`;
 
 let userVpcId;
@@ -63,7 +59,7 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
 		environment,
 		userVpcConfig: useExistingVpc ? { vpcId: userVpcId, isolatedSubnetIds: userIsolatedSubnetIds, privateSubnetIds: userPrivateSubnetIds, publicSubnetIds: [] } : undefined,
 		deleteBucket,
-		userPoolIdParameter:userPoolIdParameter(environment),
+		userPoolIdParameter: userPoolIdParameter(environment),
 		env: {
 			// The SDF_REGION environment variable
 			region: process.env?.['SDF_REGION'] || callerEnvironment?.region,
@@ -71,27 +67,30 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
 		}
 	});
 
-	const cognitoCustomStack = new CognitoCustomStack(app,'CognitoCustomStack',{
-		stackName: stackName('CognitoCustomStack'),
-		description: platformStackDescription('CognitoCustomStack'),
-		environment,
-		ssoInstanceArn,
-		ssoRegion,
-		samlMetaDataUrl,
-		userPoolIdParameter:userPoolIdParameter(environment),
-	});
-	cognitoCustomStack.node.addDependency(platformStack);
+	if (samlMetaDataUrl) {
+		const cognitoCustomStack = new CognitoCustomStack(app, 'CognitoCustomStack', {
+			stackName: stackName('CognitoCustomStack'),
+			description: platformStackDescription('CognitoCustomStack'),
+			environment,
+			ssoRegion,
+			samlMetaDataUrl,
+			userPoolIdParameter: userPoolIdParameter(environment),
+		});
+		cognitoCustomStack.node.addDependency(platformStack);
+	}
 
-	const ssoCustomStack = new SsoCustomStack(app,'SsoCustomStack',{
-		stackName: stackName('SsoCustomStack'),
-		description: platformStackDescription('SsoCustomStack'),
-		environment,
-		ssoInstanceArn,
-		ssoRegion,
-		adminEmail,
-		samlMetaDataUrl
-	});
-	ssoCustomStack.node.addDependency(platformStack);
+	if (ssoInstanceArn && adminEmail) {
+		const ssoCustomStack = new SsoCustomStack(app, 'SsoCustomStack', {
+			stackName: stackName('SsoCustomStack'),
+			description: platformStackDescription('SsoCustomStack'),
+			environment,
+			ssoInstanceArn,
+			ssoRegion,
+			adminEmail,
+			samlMetaDataUrl
+		});
+		ssoCustomStack.node.addDependency(platformStack);
+	}
 };
 
 
