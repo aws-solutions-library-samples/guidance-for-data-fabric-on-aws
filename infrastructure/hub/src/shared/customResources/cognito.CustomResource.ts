@@ -2,24 +2,23 @@ import { CognitoIdentityProviderClient, DescribeIdentityProviderCommand, CreateI
 import { SSMClient,GetParameterCommand, PutParameterCommand, DescribeActivationsCommandOutput,GetParametersCommandOutput } from '@aws-sdk/client-ssm';
 
 
-const { USE_POOL_ID_PARAMETER, SDF_ENVIRONMENT, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER  } = process.env;
 
 const cognitoClient = new CognitoIdentityProviderClient({});
 const ssmClient = new SSMClient({});
 
-const addFederatedIdentityProvider = async ():Promise<string | undefined> => {
-	const providerName = `sdf-${SDF_ENVIRONMENT}-sso-provider`;
+const addFederatedIdentityProvider = async (userPoolIdParameter:string|undefined, sdfDomain:string|undefined, idpNameParameter:string|undefined, metadataUrlParameter:string|undefined, cognitoClientIdParameter:string|undefined, callbackUrls:string|undefined ):Promise<string | undefined> => {
+	const providerName = `sdf-${sdfDomain}-sso-provider`;
 
 	// GET User Pool ID that has already been created
 	const userPoolParam = await ssmClient.send (new GetParameterCommand({
-		Name:USE_POOL_ID_PARAMETER
+		Name: userPoolIdParameter
 	}));
 
 	let provider:DescribeActivationsCommandOutput|undefined = undefined;
 	// GET Federated Identity Provider ID if one has already been created
 	try {
 		const providerNameParam = await ssmClient.send (new GetParameterCommand({
-			Name:IDENTITY_PROVIDER_NAME_PARAMETER
+			Name: idpNameParameter
 		}));
 		
 		provider = await cognitoClient.send(new DescribeIdentityProviderCommand({
@@ -38,9 +37,9 @@ const addFederatedIdentityProvider = async ():Promise<string | undefined> => {
 	if (!provider){
 
 		const metaDataUrl = await ssmClient.send (new GetParameterCommand({
-			Name: METADATA_URL_PARAMETER
+			Name: metadataUrlParameter
 		}));
-		
+
 		if (metaDataUrl.Parameter?.Value) {
 			try {
 				await cognitoClient.send( new CreateIdentityProviderCommand({
@@ -64,8 +63,8 @@ const addFederatedIdentityProvider = async ():Promise<string | undefined> => {
 			}
 
 			await ssmClient.send( new PutParameterCommand({
-				Name: IDENTITY_PROVIDER_NAME_PARAMETER,
-				Value:providerName,
+				Name: idpNameParameter,
+				Value: providerName,
 				Type:'String'
 			}));
 			
@@ -77,7 +76,7 @@ const addFederatedIdentityProvider = async ():Promise<string | undefined> => {
 		let clientIdParameter: GetParametersCommandOutput|undefined =undefined;
 		try {
 			 clientIdParameter= await ssmClient.send (new GetParameterCommand({
-				Name:COGNITO_CLIENT_ID_PARAMETER
+				Name: cognitoClientIdParameter
 			}));
 		}catch (e){
 			if(e.name === 'ParameterNotFound'){
@@ -90,17 +89,15 @@ const addFederatedIdentityProvider = async ():Promise<string | undefined> => {
 		if(!clientIdParameter){
 			const client = await cognitoClient.send(new CreateUserPoolClientCommand({
 				UserPoolId: userPoolParam.Parameter?.Value,
-				ClientName:`sdf-${SDF_ENVIRONMENT}-sso-client`,
+				ClientName:`sdf-${sdfDomain}-sso-client`,
 				SupportedIdentityProviders: [providerName],
-				CallbackURLs:[
-					'http://localhost:8080'
-				],
+				CallbackURLs: callbackUrls?.split(','),
 				AllowedOAuthFlows:['implicit'],
 				AllowedOAuthScopes:['openid','email']
 			}));
 	
 			await ssmClient.send( new PutParameterCommand({
-				Name: COGNITO_CLIENT_ID_PARAMETER,
+				Name: cognitoClientIdParameter,
 				Value:client.UserPoolClient?.ClientId,
 				Type:'String'
 			}));
@@ -113,13 +110,16 @@ const addFederatedIdentityProvider = async ():Promise<string | undefined> => {
 
 export const handler = async (event: any): Promise<any> => {
 	console.log(`cognito.customResource > handler > in : ${JSON.stringify(event)}`);
+
+	const { USE_POOL_ID_PARAMETER, SDF_DOMAIN, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER, CALLBACK_URLS } = process.env;
+
 	try {
 		switch (event.RequestType) {
 			case 'Create': {
-				return await addFederatedIdentityProvider();
+				return await addFederatedIdentityProvider(USE_POOL_ID_PARAMETER, SDF_DOMAIN, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER, CALLBACK_URLS );
 			}
 			case 'Update': {
-				return await addFederatedIdentityProvider();
+				return await addFederatedIdentityProvider(USE_POOL_ID_PARAMETER, SDF_DOMAIN, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER, CALLBACK_URLS);
 			}
 			case 'Delete': {
 				console.log(`nothing to do on delete`);

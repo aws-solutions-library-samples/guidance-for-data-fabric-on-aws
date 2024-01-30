@@ -8,7 +8,7 @@ import type { Construct } from 'constructs';
 
 
 export type SharedHubStackProperties = StackProps & {
-	environment: string;
+	domain: string;
 	deleteBucket?: boolean;
 	userVpcConfig?: SdfVpcConfig;
 	userPoolIdParameter: string;
@@ -21,23 +21,23 @@ export class SharedHubInfrastructureStack extends Stack {
 		super(scope, id, props);
 
 		// validation
-		if (props.environment === undefined) {
-			throw new Error('environment is required');
+		if (props.domain === undefined) {
+			throw new Error('domain is required');
 		}
 
 		new Network(this, 'Network', {
-			environment: props.environment,
+			domain: props.domain,
 			deleteBucket: props.deleteBucket,
 			userVpcConfig: props.userVpcConfig ? props.userVpcConfig : undefined
 		});
 
 		new Cognito(this, 'Cognito',{
-			environment: props.environment,
+			domain: props.domain,
 			userPoolIdParameter: props.userPoolIdParameter,
 		});
 
 		new Bus(this, 'EventBus',{
-			environment: props.environment
+			domain: props.domain
 		})
 
 

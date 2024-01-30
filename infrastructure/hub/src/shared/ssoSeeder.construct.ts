@@ -16,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export interface SsoSeederConstructProperties {
-	environment: string;
+	domain: string;
 	ssoRegion: string;
 	ssoInstanceArn:string;
 	adminEmail: string;
@@ -32,7 +32,7 @@ export class SsoSeeder extends Construct {
 		super(scope, id);
 
 		const accountId = cdk.Stack.of(this).account;
-		const namePrefix = `sdf-${props.environment}`;
+		const namePrefix = `sdf-${props.domain}`;
 		const instanceId = props.ssoInstanceArn.split('/')[1];
 
 		const iamPolicy = new Policy(this, 'iam-policy', {
@@ -93,7 +93,7 @@ export class SsoSeeder extends Construct {
 			environment: {
 				SSO_INSTANCE_ARN: props.ssoInstanceArn,
 				SSO_REGION:props.ssoRegion,
-				SDF_ENVIRONMENT: props.environment,
+				DOMAIN: props.domain,
 				ADMIN_EMAIL: props.adminEmail
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),

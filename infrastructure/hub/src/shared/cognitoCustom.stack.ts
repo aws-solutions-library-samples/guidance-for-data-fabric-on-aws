@@ -7,10 +7,11 @@ import { CognitoIdpCreator } from './cognitoIdpCreator.construct.js';
 
 
 export type CognitoCustomStackProperties = StackProps & {
-	environment: string;
+	domain: string;
 	samlMetaDataUrl: string;
 	ssoRegion: string;
 	userPoolIdParameter: string;
+	callbackUrls: string;
 };
 
 
@@ -19,16 +20,17 @@ export class CognitoCustomStack extends Stack {
 		super(scope, id, props);
 
 		// validation
-		if (props.environment === undefined) {
-			throw new Error('environment is required');
+		if (props.domain === undefined) {
+			throw new Error('domain is required');
 		}
 	
 			// SAML metadata available deploy federated cognito
 
 			new CognitoIdpCreator(this,'CognitoIdpCreator',{
-				environment: props.environment,
+				domain: props.domain,
 				userPoolIdParameter: props.userPoolIdParameter,
-				samlMetaDataUrl: props.samlMetaDataUrl
+				samlMetaDataUrl: props.samlMetaDataUrl,
+				callbackUrls: props.callbackUrls
 			});
 		
 

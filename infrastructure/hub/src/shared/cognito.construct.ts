@@ -15,7 +15,7 @@ import { NagSuppressions } from 'cdk-nag';
 
 
 export interface CognitoConstructProperties {
-	environment: string;
+	domain: string;
 	userPoolIdParameter: string;
 	userPoolEmail?: {
 		fromEmail: string;
@@ -26,9 +26,9 @@ export interface CognitoConstructProperties {
 }
 
 
-export const userPoolArnParameter = (environment: string) => `/sdf/${environment}/shared/cognito/userPoolArn`;
-export const userPoolClientIdParameter = (environment: string) => `/sdf/${environment}/shared/cognito/userPoolClientId`;
-export const userPoolDomainParameter = (environment: string) => `/sdf/${environment}/shared/cognito/userPoolDomain`;
+export const userPoolArnParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolArn`;
+export const userPoolClientIdParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolClientId`;
+export const userPoolDomainParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolDomain`;
 
 export class Cognito extends Construct {
 	public readonly userPoolId: string;
@@ -36,7 +36,7 @@ export class Cognito extends Construct {
 	constructor(scope: Construct, id: string, props: CognitoConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `sdf-${props.environment}`;
+		const namePrefix = `sdf-${props.domain}`;
 
 		const userPoolEmailSettings: UserPoolEmail | undefined = props.userPoolEmail
 			? cognito.UserPoolEmail.withSES({
@@ -96,19 +96,19 @@ export class Cognito extends Construct {
 		});
 
 		new ssm.StringParameter(this, 'cognitoUserPoolArnParameter', {
-			parameterName: userPoolArnParameter(props.environment),
+			parameterName: userPoolArnParameter(props.domain),
 			stringValue: userPool.userPoolArn
 		});
 
 		const domain = new UserPoolDomain(this, 'UserPoolDomain', {
 			userPool: userPool,
 			cognitoDomain: {
-				domainPrefix: `sdf-${props.environment}-${cdk.Stack.of(this).account}`
+				domainPrefix: `sdf-${props.domain}-${cdk.Stack.of(this).account}`
 			}
 		});
 
 		new ssm.StringParameter(this, 'userPoolDomainParameter', {
-			parameterName: userPoolDomainParameter(props.environment),
+			parameterName: userPoolDomainParameter(props.domain),
 			stringValue: domain.domainName
 		});	
 	

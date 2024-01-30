@@ -18,7 +18,7 @@ const __dirname = path.dirname(__filename);
 const app = new cdk.App();
 
 // mandatory requirements
-const environment = getOrThrow(app, 'environment');
+const domain = getOrThrow(app, 'domain');
 
 const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
 
@@ -30,7 +30,8 @@ const ssoInstanceArn = app.node.tryGetContext('ssoInstanceArn');
 const ssoRegion = app.node.tryGetContext('ssoRegion');
 const adminEmail = app.node.tryGetContext('adminEmail');
 const samlMetaDataUrl = app.node.tryGetContext('samlMetaDataUrl');
-export const userPoolIdParameter = (environment: string) => `/sdf/${environment}/shared/cognito/userPoolId`;
+const callbackUrls = app.node.tryGetContext('callbackUrls');
+export const userPoolIdParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolId`;
 
 let userVpcId;
 let userIsolatedSubnetIds;
@@ -40,11 +41,11 @@ if (useExistingVpc) {
 }
 
 // tags the entire platform with cost allocation tags
-cdk.Tags.of(app).add('sdf:environment', environment);
+cdk.Tags.of(app).add('sdf:domain', domain);
 
 Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
 
-const stackNamePrefix = `sdf-shared-${environment}`;
+const stackNamePrefix = `sdf-shared-${domain}`;
 
 const stackName = (suffix: string) => `${stackNamePrefix}-${suffix}`;
 const platformStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
@@ -55,25 +56,26 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
 	const platformStack = new SharedHubInfrastructureStack(app, 'SharedHubStack', {
 		stackName: stackName('hub'),
 		description: platformStackDescription('SharedHub'),
-		environment,
+		domain,
 		userVpcConfig: useExistingVpc ? { vpcId: userVpcId, isolatedSubnetIds: userIsolatedSubnetIds } : undefined,
 		deleteBucket,
-		userPoolIdParameter: userPoolIdParameter(environment),
+		userPoolIdParameter: userPoolIdParameter(domain),
 		env: {
-			// The SDF_REGION environment variable
+			// The SDF_REGION domain variable
 			region: process.env?.['SDF_REGION'] || callerEnvironment?.region,
 			account: callerEnvironment?.accountId
 		}
 	});
 
-	if (samlMetaDataUrl) {
+	if (samlMetaDataUrl && callbackUrls) {
 		const cognitoCustomStack = new CognitoCustomStack(app, 'CognitoCustomStack', {
 			stackName: stackName('CognitoCustomStack'),
 			description: platformStackDescription('CognitoCustomStack'),
-			environment,
+			domain,
 			ssoRegion,
 			samlMetaDataUrl,
-			userPoolIdParameter: userPoolIdParameter(environment),
+			userPoolIdParameter: userPoolIdParameter(domain),
+			callbackUrls
 		});
 		cognitoCustomStack.node.addDependency(platformStack);
 	}
@@ -82,7 +84,7 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
 		const ssoCustomStack = new SsoCustomStack(app, 'SsoCustomStack', {
 			stackName: stackName('SsoCustomStack'),
 			description: platformStackDescription('SsoCustomStack'),
-			environment,
+			domain,
 			ssoInstanceArn,
 			ssoRegion,
 			adminEmail

@@ -4,11 +4,11 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as cdk from 'aws-cdk-lib';
 
 export interface EventBusConstructProperties {
-	environment: string;
+	domain: string;
 }
 
-export const eventBusNameParameter = (environment: string) => `/sdf/${environment}/shared/eventBusName`;
-export const eventBusArnParameter = (environment: string) => `/sdf/${environment}/shared/eventBusArn`;
+export const eventBusNameParameter = (domain: string) => `/sdf/${domain}/shared/eventBusName`;
+export const eventBusArnParameter = (domain: string) => `/sdf/${domain}/shared/eventBusArn`;
 
 export class Bus extends Construct {
 	public readonly eventBusName: string;
@@ -17,7 +17,7 @@ export class Bus extends Construct {
 		super(scope, id);
 
 		const accountId = cdk.Stack.of(this).account;
-		const namePrefix = `sdf-${props.environment}`;
+		const namePrefix = `sdf-${props.domain}`;
 
 		const bus = new EventBus(this, 'bus', {
 			eventBusName: `${namePrefix}-${accountId}`,
@@ -26,11 +26,11 @@ export class Bus extends Construct {
 		this.eventBusName = bus.eventBusName;
 
 		new ssm.StringParameter(this, 'eventBusNameParameter', {
-			parameterName: eventBusNameParameter(props.environment),
+			parameterName: eventBusNameParameter(props.domain),
 			stringValue: bus.eventBusName,
 		});
 		new ssm.StringParameter(this, 'eventBusArnParameter', {
-			parameterName: eventBusArnParameter(props.environment),
+			parameterName: eventBusArnParameter(props.domain),
 			stringValue: bus.eventBusArn,
 		});
 	}

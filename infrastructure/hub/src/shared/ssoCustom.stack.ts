@@ -7,7 +7,7 @@ import { SsoSeeder } from './ssoSeeder.construct.js';
 
 
 export type SsoCustomStackProperties = StackProps & {
-	environment: string;
+	domain: string;
 	ssoInstanceArn: string;
 	adminEmail:string;
 	ssoRegion: string;
@@ -18,12 +18,12 @@ export class SsoCustomStack extends Stack {
 		super(scope, id, props);
 
 		// validation
-		if (props.environment === undefined) {
-			throw new Error('environment is required');
+		if (props.domain === undefined) {
+			throw new Error('domain is required');
 		}
 
 			new SsoSeeder(this, 'SsoSeeder', {
-				environment: props.environment,
+				domain: props.domain,
 				ssoInstanceArn:props.ssoInstanceArn,
 				ssoRegion:props.ssoRegion,
 				adminEmail: props.adminEmail

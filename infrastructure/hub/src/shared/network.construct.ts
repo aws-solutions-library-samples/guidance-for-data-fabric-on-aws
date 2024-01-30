@@ -14,15 +14,15 @@ export interface SdfVpcConfig {
 }
 
 export interface NetworkConstructProperties {
-	environment: string;
+	domain: string;
 	deleteBucket?: boolean;
 	userVpcConfig?: SdfVpcConfig;
 }
 
-export const accessLogBucketNameParameter = (environment: string) => `/sdf/shared/${environment}/s3/accessLogBucketName`;
-export const vpcIdParameter = (environment: string) => `/sdf/shared/${environment}/network/vpcId`;
-export const isolatedSubnetIdsParameter = (environment: string) => `/sdf/shared/${environment}/network/isolatedSubnets`;
-export const isolatedSubnetIdListParameter = (environment: string) => `/sdf/shared/${environment}/network/isolatedSubnetList`;
+export const accessLogBucketNameParameter = (domain: string) => `/sdf/shared/${domain}/s3/accessLogBucketName`;
+export const vpcIdParameter = (domain: string) => `/sdf/shared/${domain}/network/vpcId`;
+export const isolatedSubnetIdsParameter = (domain: string) => `/sdf/shared/${domain}/network/isolatedSubnets`;
+export const isolatedSubnetIdListParameter = (domain: string) => `/sdf/shared/${domain}/network/isolatedSubnetList`;
 
 export class Network extends Construct {
 	public vpc: IVpc;
@@ -31,7 +31,7 @@ export class Network extends Construct {
 	constructor(scope: Construct, id: string, props: NetworkConstructProperties) {
 		super(scope, id);
 
-		const accessLogBucketName = `sdf-access-logs-${props.environment}-${cdk.Stack.of(this).account}-${cdk.Stack.of(this).region}`;
+		const accessLogBucketName = `sdf-access-logs-${props.domain}-${cdk.Stack.of(this).account}-${cdk.Stack.of(this).region}`;
 
 		const accessLogBucket = new s3.Bucket(this, 's3AccessLog', {
 			bucketName: accessLogBucketName,
@@ -51,7 +51,7 @@ export class Network extends Construct {
 		});
 
 		new ssm.StringParameter(this, 'accessLogBucketNameParameter', {
-			parameterName: accessLogBucketNameParameter(props.environment),
+			parameterName: accessLogBucketNameParameter(props.domain),
 			stringValue: accessLogBucket.bucketName
 		});
 
@@ -76,7 +76,7 @@ export class Network extends Construct {
 
 
 
-			const bucketName = `sdf-vpc-logs-${props.environment}-${cdk.Stack.of(this).account}-${cdk.Stack.of(this).region}`;
+			const bucketName = `sdf-vpc-logs-${props.domain}-${cdk.Stack.of(this).account}-${cdk.Stack.of(this).region}`;
 
 			// Create log bucket.
 			const s3LogBucket = new s3.Bucket(this, 's3LogBucket', {
@@ -99,7 +99,7 @@ export class Network extends Construct {
 
 			});
 
-			const flowLogName = `sdf-${props.environment}-flowlogs`;
+			const flowLogName = `sdf-${props.domain}-flowlogs`;
 
 			// Add flow logs.
 			const vpcFlowLogRole = new iam.Role(this, 'vpcFlowLogRole', {
@@ -112,7 +112,7 @@ export class Network extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					reason: 'The role an only modify to a specific flowlog.',
-					appliesTo: ['Action::s3:Abort*', 'Action::s3:DeleteObject*', `Resource::<Networks3LogBucketD8B712E9.Arn>/sdf-${props.environment}-flowlogs/*`]
+					appliesTo: ['Action::s3:Abort*', 'Action::s3:DeleteObject*', `Resource::<Networks3LogBucketD8B712E9.Arn>/sdf-${props.domain}-flowlogs/*`]
 				}
 			], true);
 
@@ -128,18 +128,18 @@ export class Network extends Construct {
 			this.vpc = vpc;
 
 			new ssm.StringParameter(this, 'vpcIdParameter', {
-				parameterName: vpcIdParameter(props.environment),
+				parameterName: vpcIdParameter(props.domain),
 				stringValue: this.vpc.vpcId
 			});
 
 			new ssm.StringParameter(this, 'isolatedSubnetIdsParameter', {
-				parameterName: isolatedSubnetIdsParameter(props.environment),
+				parameterName: isolatedSubnetIdsParameter(props.domain),
 				description: 'Isolated subnet IDs used for SDF.',
 				stringValue: this.vpc.selectSubnets({ subnetGroupName: 'isolated-subnet' }).subnets.map((o) => o.subnetId).join(',')
 			});
 
 			new ssm.StringListParameter(this, 'isolatedSubnetIdListParameter', {
-				parameterName: isolatedSubnetIdListParameter(props.environment),
+				parameterName: isolatedSubnetIdListParameter(props.domain),
 				description: 'Isolated subnet IDs used for SDF.',
 				stringListValue: this.vpc.selectSubnets({ subnetGroupName: 'isolated-subnet' }).subnets.map((o) => o.subnetId)
 			});
@@ -155,19 +155,19 @@ export class Network extends Construct {
 			this.vpc = ec2.Vpc.fromLookup(this, 'vpc', { vpcId: props.userVpcConfig?.vpcId });
 
 			new ssm.StringParameter(this, 'vpcIdParameter', {
-				parameterName: vpcIdParameter(props.environment),
+				parameterName: vpcIdParameter(props.domain),
 				stringValue: this.vpc.vpcId
 			});
 
 			new ssm.StringParameter(this, 'isolatedSubnetIdsParameter', {
-				parameterName: isolatedSubnetIdsParameter(props.environment),
+				parameterName: isolatedSubnetIdsParameter(props.domain),
 				description: 'Isolated subnet IDs used for SDF.',
 				stringValue: props.userVpcConfig.isolatedSubnetIds.join(',')
 			});
 
 
 			new ssm.StringListParameter(this, 'isolatedSubnetIdListParameter', {
-				parameterName: isolatedSubnetIdListParameter(props.environment),
+				parameterName: isolatedSubnetIdListParameter(props.domain),
 				description: 'Isolated subnet IDs used for SDF.',
 				stringListValue: props.userVpcConfig.isolatedSubnetIds
 			});

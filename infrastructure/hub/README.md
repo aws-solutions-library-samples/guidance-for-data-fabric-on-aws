@@ -17,7 +17,7 @@ Sample command to deploy the CDK stack:
 ```
 npm run cdk -- deploy \
 --require-approval never --concurrency=10 \
--c environment=<enter your environment> \
+-c domain=<enter your domain> \
 --app "npx ts-node --esm --prefer-ts-exts src/app.ts"
 ``` 
 
@@ -27,8 +27,8 @@ After deployment grab the cognito domain and userPoolId created during the stack
 
 Sample cli command:
 ```
-aws ssm get-parameter --name "/sdf/<enter environment>/shared/cognito/userPoolDomain"
-aws ssm get-parameter --name "/sdf/<enter environment>/shared/cognito/userPoolId"
+aws ssm get-parameter --name "/sdf/<enter domain>/shared/cognito/userPoolDomain"
+aws ssm get-parameter --name "/sdf/<enter domain>/shared/cognito/userPoolId"
 
 ```
 
@@ -71,9 +71,10 @@ Format: Basic
 ```
 npm run cdk -- deploy \
     --all  --require-approval never --concurrency=10 \
-    -c environment=<enter your environment> \
+    -c domain=<enter your domain> \
     -c ssoInstanceArn=<enter your IAM Identity center Instance ARN> \
-    -c samlMetaDataUrl=<enter you SAML 2.0 application metadata url> \
+    -c samlMetaDataUrl=<enter your SAML 2.0 application metadata url> \
+    -c callbackUrls=<enter a comma separated list of urls>
     -c adminEmail=<enter the admin email you want to be used>\
     --app "npx ts-node --esm --prefer-ts-exts src/app.ts"
 ```
