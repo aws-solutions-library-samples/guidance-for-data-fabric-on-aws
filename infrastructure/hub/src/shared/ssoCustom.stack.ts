@@ -8,9 +8,8 @@ import { SsoSeeder } from './ssoSeeder.construct.js';
 
 export type SsoCustomStackProperties = StackProps & {
 	environment: string;
-	ssoInstanceArn?: string;
-	adminEmail?:string;
-	samlMetaDataUrl?: string;
+	ssoInstanceArn: string;
+	adminEmail:string;
 	ssoRegion: string;
 };
 
@@ -23,9 +22,6 @@ export class SsoCustomStack extends Stack {
 			throw new Error('environment is required');
 		}
 
-		
-		// SSO Instance ID Found create SSO Application for cogito
-		if (props.ssoInstanceArn && props.adminEmail) {
 			new SsoSeeder(this, 'SsoSeeder', {
 				environment: props.environment,
 				ssoInstanceArn:props.ssoInstanceArn,
@@ -33,7 +29,7 @@ export class SsoCustomStack extends Stack {
 				adminEmail: props.adminEmail
 			});
 
-		}
+	
 		
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [

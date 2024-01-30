@@ -1,6 +1,7 @@
 import { EventBus } from 'aws-cdk-lib/aws-events';
 import { Construct } from 'constructs';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as cdk from 'aws-cdk-lib';
 
 export interface EventBusConstructProperties {
 	environment: string;
@@ -15,10 +16,11 @@ export class Bus extends Construct {
 	constructor(scope: Construct, id: string, props: EventBusConstructProperties) {
 		super(scope, id);
 
+		const accountId = cdk.Stack.of(this).account;
 		const namePrefix = `sdf-${props.environment}`;
 
 		const bus = new EventBus(this, 'bus', {
-			eventBusName: namePrefix,
+			eventBusName: `${namePrefix}-${accountId}`,
 		});
 
 		this.eventBusName = bus.eventBusName;

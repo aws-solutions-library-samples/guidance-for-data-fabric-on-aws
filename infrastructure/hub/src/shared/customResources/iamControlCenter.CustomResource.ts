@@ -39,7 +39,6 @@ const seedSso = async (): Promise<void> => {
 				}
 			}));
 			groupId = group.GroupId as string;
-			groupId = 'd9dec4d8-0031-7027-9534-dcfcb5003c7d';
 
 		} else {
 			throw (e);

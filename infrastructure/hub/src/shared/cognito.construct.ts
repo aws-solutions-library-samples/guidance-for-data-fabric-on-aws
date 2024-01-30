@@ -64,9 +64,6 @@ export class Cognito extends Construct {
 			customAttributes: {
 				role: new StringAttribute({ mutable: true })
 			},
-			lambdaTriggers: {
-				// preTokenGeneration: preTokenGenerationLambdaTrigger
-			},
 			passwordPolicy: {
 				minLength: 6,
 				requireLowercase: true,

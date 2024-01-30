@@ -40,7 +40,7 @@ const addFederatedIdentityProvider = async ():Promise<string | undefined> => {
 		const metaDataUrl = await ssmClient.send (new GetParameterCommand({
 			Name: METADATA_URL_PARAMETER
 		}));
-		console.log(`metaDataUrl: ${JSON.stringify(metaDataUrl)}`);
+		
 		if (metaDataUrl.Parameter?.Value) {
 			try {
 				await cognitoClient.send( new CreateIdentityProviderCommand({

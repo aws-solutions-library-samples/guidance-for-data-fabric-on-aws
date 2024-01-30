@@ -8,7 +8,7 @@ import { CognitoIdpCreator } from './cognitoIdpCreator.construct.js';
 
 export type CognitoCustomStackProperties = StackProps & {
 	environment: string;
-	samlMetaDataUrl?: string;
+	samlMetaDataUrl: string;
 	ssoRegion: string;
 	userPoolIdParameter: string;
 };
@@ -23,7 +23,6 @@ export class CognitoCustomStack extends Stack {
 			throw new Error('environment is required');
 		}
 	
-		if (props.samlMetaDataUrl){
 			// SAML metadata available deploy federated cognito
 
 			new CognitoIdpCreator(this,'CognitoIdpCreator',{
@@ -31,9 +30,6 @@ export class CognitoCustomStack extends Stack {
 				userPoolIdParameter: props.userPoolIdParameter,
 				samlMetaDataUrl: props.samlMetaDataUrl
 			});
-
-
-		}
 		
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [

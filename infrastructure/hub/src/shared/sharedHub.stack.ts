@@ -7,7 +7,7 @@ import type { Construct } from 'constructs';
 
 
 
-export type SharedPlatformStackProperties = StackProps & {
+export type SharedHubStackProperties = StackProps & {
 	environment: string;
 	deleteBucket?: boolean;
 	userVpcConfig?: SdfVpcConfig;
@@ -16,8 +16,8 @@ export type SharedPlatformStackProperties = StackProps & {
 };
 
 
-export class SharedPlatformInfrastructureStack extends Stack {
-	constructor(scope: Construct, id: string, props: SharedPlatformStackProperties) {
+export class SharedHubInfrastructureStack extends Stack {
+	constructor(scope: Construct, id: string, props: SharedHubStackProperties) {
 		super(scope, id, props);
 
 		// validation

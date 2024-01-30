@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import * as cdk from 'aws-cdk-lib';
-import { SharedPlatformInfrastructureStack } from './shared/sharedPlatform.stack.js';
+import { SharedHubInfrastructureStack } from './shared/sharedHub.stack.js';
 import { SsoCustomStack } from './shared/ssoCustom.stack.js';
 import { CognitoCustomStack } from './shared/cognitoCustom.stack.js';
 import { AwsSolutionsChecks } from 'cdk-nag';
@@ -24,6 +24,7 @@ const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
 
 // user VPC config
 const useExistingVpc = tryGetBooleanContext(app, 'useExistingVpc', false);
+
 // Optional requirements to specify the cognito SAML provider
 const ssoInstanceArn = app.node.tryGetContext('ssoInstanceArn');
 const ssoRegion = app.node.tryGetContext('ssoRegion');
@@ -33,11 +34,9 @@ export const userPoolIdParameter = (environment: string) => `/sdf/${environment}
 
 let userVpcId;
 let userIsolatedSubnetIds;
-let userPrivateSubnetIds;
 if (useExistingVpc) {
 	userVpcId = getOrThrow(app, 'existingVpcId');
 	userIsolatedSubnetIds = getOrThrow(app, 'existingIsolatedSubnetIds').toString().split(',');
-	userPrivateSubnetIds = getOrThrow(app, 'existingPrivateSubnetIds').toString().split(',');
 }
 
 // tags the entire platform with cost allocation tags
@@ -53,11 +52,11 @@ const platformStackDescription = (moduleName: string) => `Infrastructure for ${m
 const deployPlatform = (callerEnvironment?: { accountId?: string, region?: string }): void => {
 
 
-	const platformStack = new SharedPlatformInfrastructureStack(app, 'SharedPlatformStack', {
-		stackName: stackName('platform'),
-		description: platformStackDescription('SharedPlatform'),
+	const platformStack = new SharedHubInfrastructureStack(app, 'SharedHubStack', {
+		stackName: stackName('hub'),
+		description: platformStackDescription('SharedHub'),
 		environment,
-		userVpcConfig: useExistingVpc ? { vpcId: userVpcId, isolatedSubnetIds: userIsolatedSubnetIds, privateSubnetIds: userPrivateSubnetIds, publicSubnetIds: [] } : undefined,
+		userVpcConfig: useExistingVpc ? { vpcId: userVpcId, isolatedSubnetIds: userIsolatedSubnetIds } : undefined,
 		deleteBucket,
 		userPoolIdParameter: userPoolIdParameter(environment),
 		env: {
@@ -86,8 +85,7 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
 			environment,
 			ssoInstanceArn,
 			ssoRegion,
-			adminEmail,
-			samlMetaDataUrl
+			adminEmail
 		});
 		ssoCustomStack.node.addDependency(platformStack);
 	}
