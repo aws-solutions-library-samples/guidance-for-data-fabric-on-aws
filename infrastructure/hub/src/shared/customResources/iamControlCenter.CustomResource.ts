@@ -7,7 +7,7 @@ const { SSO_INSTANCE_ARN, SSO_REGION, ADMIN_EMAIL } = process.env;
 const ssoClient = new SSOAdminClient({ region: SSO_REGION });
 const identityStoreClient = new IdentitystoreClient({ region: SSO_REGION });
 
-const createCognitoSamlApplication = async (): Promise<void> => {
+const seedSso = async (): Promise<void> => {
 
 	const instance = await ssoClient.send(new DescribeInstanceCommand({
 		InstanceArn: SSO_INSTANCE_ARN
@@ -29,16 +29,16 @@ const createCognitoSamlApplication = async (): Promise<void> => {
 		if (e.name === 'ConflictException') {
 
 			//Groups already created get the id instead
-			// const group = await identityStoreClient.send(new GetGroupIdCommand({
-			// 	IdentityStoreId: identityStoreId,
-			// 	AlternateIdentifier: {
-			// 		UniqueAttribute: {
-			// 			AttributePath: "DisplayName",
-			// 			AttributeValue: "admin"
-			// 		}
-			// 	}
-			// }));
-			// groupId = group.GroupId as string;
+			const group = await identityStoreClient.send(new GetGroupIdCommand({
+				IdentityStoreId: identityStoreId,
+				AlternateIdentifier: {
+					UniqueAttribute: {
+						AttributePath: "DisplayName",
+						AttributeValue: "admin"
+					}
+				}
+			}));
+			groupId = group.GroupId as string;
 			groupId = 'd9dec4d8-0031-7027-9534-dcfcb5003c7d';
 
 		} else {
@@ -93,16 +93,6 @@ const createCognitoSamlApplication = async (): Promise<void> => {
 			}
 		}))
 
-
-		// const response= await client.send(new CreateApplicationCommand({ 
-		//     Name:`sdf-${SDF_ENVIRONMENT}-cognito-application`,
-		//     ApplicationProviderArn:'arn:aws:sso::aws:applicationProvider/custom-saml',
-		//     InstanceArn: SSO_INSTANCE_ARN,
-		//     Description: 'The SAML application for Cognito integration',
-		//     Status: 'ENABLED'
-		// }));
-
-		// return response.ApplicationArn;
 	};
 
 
@@ -111,10 +101,10 @@ const createCognitoSamlApplication = async (): Promise<void> => {
 		try {
 			switch (event.RequestType) {
 				case 'Create': {
-					return await createCognitoSamlApplication();
+					return await seedSso();
 				}
 				case 'Update': {
-					return await createCognitoSamlApplication();
+					return await seedSso();
 				}
 				case 'Delete': {
 					console.log(`nothing to do on delete`);
