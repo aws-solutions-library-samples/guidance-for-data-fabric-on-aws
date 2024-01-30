@@ -1,10 +1,13 @@
+import type { CustomResource } from './customResource';
+import type { CustomResourceEvent } from './customResource.model';
+import type { Logger } from 'pino';
 import { DescribeInstanceCommand, CreateApplicationCommand, SSOAdminClient } from '@aws-sdk/client-sso-admin';
 
 const { SSO_INSTANCE_ARN, SSO_REGION, SDF_ENVIRONMENT } = process.env;
 
 const client = new SSOAdminClient({region:SSO_REGION});
 
-const createSamlApplication = async () => {
+const createCognitoSamlApplication = async () => {
 
 	const instance = await client.send(new DescribeInstanceCommand({ InstanceArn: SSO_INSTANCE_ARN}));
     const instanceName = instance.Name;
@@ -23,11 +26,11 @@ export const handler = async (event: any): Promise<any> => {
 	try {
 		switch (event.RequestType) {
 			case 'Create': {
-				await createSamlApplication();
+				await createCognitoSamlApplication();
 				return;
 			}
 			case 'Update': {
-				await createSamlApplication();
+				await createCognitoSamlApplication();
 				return;
 			}
 			case 'Delete': {

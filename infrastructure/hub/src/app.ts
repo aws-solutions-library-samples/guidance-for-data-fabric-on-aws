@@ -2,6 +2,8 @@
 
 import * as cdk from 'aws-cdk-lib';
 import { SharedPlatformInfrastructureStack } from './shared/sharedPlatform.stack.js';
+import { SsoCustomStack } from './shared/ssoCustom.stack.js';
+import { CognitoCustomStack } from './shared/cognitoCustom.stack.js';
 import { AwsSolutionsChecks } from 'cdk-nag';
 import { getOrThrow } from './shared/stack.utils.js';
 import { Aspects } from 'aws-cdk-lib';
@@ -25,10 +27,13 @@ const useExistingVpc = tryGetBooleanContext(app, 'useExistingVpc', false);
 
 
 // SSO or IAM Identity center config 
-const ssoInstanceId =  getOrThrow(app, 'ssoInstanceId');
+const ssoInstanceArn =  getOrThrow(app, 'ssoInstanceArn');
+
 // Optional requirements to specify the cognito SAML provider
 const ssoRegion=  app.node.tryGetContext('ssoRegion');
+const adminEmail=  app.node.tryGetContext('adminEmail');
 const samlMetaDataUrl=  app.node.tryGetContext('samlMetaDataUrl');
+export const userPoolIdParameter = (environment: string) => `/sdf/${environment}/shared/cognito/userPoolId`;
 
 let userVpcId;
 let userIsolatedSubnetIds;
@@ -50,19 +55,45 @@ const stackName = (suffix: string) => `${stackNamePrefix}-${suffix}`;
 const platformStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
 
 const deployPlatform = (callerEnvironment?: { accountId?: string, region?: string }): void => {
-	new SharedPlatformInfrastructureStack(app, 'SharedPlatform', {
+
+
+	const platformStack = new SharedPlatformInfrastructureStack(app, 'SharedPlatformStack', {
 		stackName: stackName('platform'),
 		description: platformStackDescription('SharedPlatform'),
 		environment,
 		userVpcConfig: useExistingVpc ? { vpcId: userVpcId, isolatedSubnetIds: userIsolatedSubnetIds, privateSubnetIds: userPrivateSubnetIds, publicSubnetIds: [] } : undefined,
 		deleteBucket,
+		userPoolIdParameter:userPoolIdParameter(environment),
 		env: {
 			// The SDF_REGION environment variable
 			region: process.env?.['SDF_REGION'] || callerEnvironment?.region,
 			account: callerEnvironment?.accountId
 		}
 	});
+
+	const cognitoCustomStack = new CognitoCustomStack(app,'CognitoCustomStack',{
+		stackName: stackName('CognitoCustomStack'),
+		description: platformStackDescription('CognitoCustomStack'),
+		environment,
+		ssoInstanceArn,
+		ssoRegion,
+		samlMetaDataUrl,
+		userPoolIdParameter:userPoolIdParameter(environment),
+	});
+	cognitoCustomStack.node.addDependency(platformStack);
+
+	const ssoCustomStack = new SsoCustomStack(app,'SsoCustomStack',{
+		stackName: stackName('SsoCustomStack'),
+		description: platformStackDescription('SsoCustomStack'),
+		environment,
+		ssoInstanceArn,
+		ssoRegion,
+		adminEmail,
+		samlMetaDataUrl
+	});
+	ssoCustomStack.node.addDependency(platformStack);
 };
+
 
 const getCallerEnvironment = (): { accountId?: string, region?: string } | undefined => {
 	if (!fs.existsSync(`${__dirname}/predeploy.json`)) {

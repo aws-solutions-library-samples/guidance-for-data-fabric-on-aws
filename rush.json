@@ -367,8 +367,8 @@
 	 */
 	"projects": [
 		{
-			"packageName": "@sdf/infrastructure-platform",
-			"projectFolder": "infrastructure/platform",
+			"packageName": "@sdf/infrastructure-hub",
+			"projectFolder": "infrastructure/hub",
 			"reviewCategory": "production",
 			"shouldPublish": true
 		},
