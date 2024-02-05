@@ -1,25 +1,23 @@
 import * as cdk from 'aws-cdk-lib';
-import { Stack, StackProps, Fn } from 'aws-cdk-lib';
+import { Fn, Stack, StackProps } from 'aws-cdk-lib';
 import type { Construct } from 'constructs';
 import { AuroraDatabase } from './aurora.construct.js';
-import { MWAA } from './mwaa.construct.js';
-import { DataLineage } from './dataLineage.construct.js';
-import { isolatedSubnetIdListParameter, vpcIdParameter } from '../shared/network.construct.js';
+import { isolatedSubnetIdListParameter, privateSubnetIdListParameter, publicSubnetIdListParameter, vpcIdParameter } from '../shared/network.construct.js';
 import { Vpc } from 'aws-cdk-lib/aws-ec2';
 import { StringListParameter, StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
-
+import { clusterNameParameter } from "../shared/compute.construct.js";
+import { DataLineage } from './dataLineage.construct.js';
 
 export type DataLineageStackProperties = StackProps & {
     domain: string;
+    openlineageApiCpu: number;
+    openlineageApiMemory: number;
+    marquezTag: string;
 };
 
 // Parameters
 export const rdsClusterWriterEndpoint = (domain: string) => `/sdf/${domain}/dataLineage/aurora/rdsClusterWriterEndpoint`;
-export const rdsSecretNameParameter = (domain: string) => `/sdf/${domain}/dataLineage/aurora/rdsSecretName`;
-export const platformUsernameParameter = (domain: string) => `/sdf/${domain}/dataLineage/aurora/platformUsername`;
-export const auroraClusterStatusParameter = (domain: string) => `/sdf/${domain}/dataLineage/aurora/status`;
-
 export const openLineageUrlParameter = (domain: string) => `/sdf/${domain}/dataLineage/openLineageUrl`;
 export const openLineageAPIParameter = (domain: string) => `/sdf/${domain}/dataLineage/openLineageAPI`;
 export const airflowUrlParameter = (domain: string) => `/sdf/${domain}/dataLineage/airflowUrl`;
@@ -31,15 +29,20 @@ export class DataLineageStack extends Stack {
         const vpcId = StringParameter.valueForStringParameter(this, vpcIdParameter(props.domain));
         const isolatedSubnetIds = StringListParameter.valueForTypedListParameter(this, isolatedSubnetIdListParameter(props.domain));
 
-        // In network.construct we only specify 2 availability zones
-        const availabilityZones = cdk.Stack.of(this).availabilityZones.slice(0, 2);
+        const privateSubnetIds = StringListParameter.valueForTypedListParameter(this, privateSubnetIdListParameter(props.domain));
 
+        const publicSubnetIds = StringListParameter.valueForTypedListParameter(this, publicSubnetIdListParameter(props.domain));
+
+        const availabilityZones = cdk.Stack.of(this).availabilityZones;
 
         const vpc = Vpc.fromVpcAttributes(this, 'Vpc', {
             vpcId,
             availabilityZones,
             isolatedSubnetIds: availabilityZones.map((_, index) => Fn.select(index, isolatedSubnetIds)),
+            privateSubnetIds: availabilityZones.map((_, index) => Fn.select(index, privateSubnetIds)),
+            publicSubnetIds: availabilityZones.map((_, index) => Fn.select(index, publicSubnetIds))
         });
+
 
         const aurora = new AuroraDatabase(this, 'OpenLineageDatabase', {
             domain: props.domain,
@@ -50,112 +53,119 @@ export class DataLineageStack extends Stack {
             clusterDeletionProtection: true
         });
 
-        const airflow = new MWAA(this, 'MWAA', {
-            domain: props.domain,
-            isolatedSubnetIds,
-            airflowSg: ''
-        });
-
-        new DataLineage(this, 'DataLineage', {
-            domain: props.domain
-        });
-
-
-        // Set the SSM parameters
-
-        new StringParameter(this, 'rdsSecretName', {
-            parameterName: rdsSecretNameParameter(props.domain),
-            stringValue: aurora.rdsSecretName
-        });
-
         new StringParameter(this, 'rdsClusterWriterEndpoint', {
             parameterName: rdsClusterWriterEndpoint(props.domain),
             stringValue: aurora.rdsClusterWriterEndpoint
         });
 
-        new StringParameter(this, 'platformUsernameParameter', {
-            parameterName: platformUsernameParameter(props.domain),
-            stringValue: aurora.platformUsername
+        const clusterName = StringParameter.valueForStringParameter(this, clusterNameParameter(props.domain));
+
+        new DataLineage(this, 'DataLineage', {
+            vpc,
+            clusterName,
+            domain: props.domain,
+            openlineageApiCpu: props.openlineageApiCpu,
+            openlineageApiMemory: props.openlineageApiMemory,
+            marquezTag: props.marquezTag,
+            databaseCluster: aurora.databaseCluster,
+            databasePassword: aurora.databaseSecret,
+            databaseUsername: aurora.databaseUsername,
+            databaseSecurityGroup: aurora.databaseSecurityGroup
         });
 
-        new StringParameter(this, 'airflowUrlParameter', {
-            parameterName: airflowUrlParameter(props.domain),
-            stringValue: airflow.airflowUrl,
-        });
+        // const airflow = new MWAA(this, 'MWAA', {
+        //     domain: props.domain,
+        //     isolatedSubnetIds,
+        //     airflowSg: ''
+        // });
+        //
+
+        // new StringParameter(this, 'airflowUrlParameter', {
+        //     parameterName: airflowUrlParameter(props.domain),
+        //     stringValue: airflow.airflowUrl,
+        // });
+
+        NagSuppressions.addResourceSuppressionsByPath(this, [
+                '/DataLineageStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/Resource'
+            ],
+            [
+                {
+                    id: 'AwsSolutions-IAM4',
+                    reason: 'This only contains the policy the create and insert log to log group.',
+                    appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole']
+                }
+            ],
+            true);
+
+        // NagSuppressions.addResourceSuppressionsByPath(this, [
+        //         '/DataLineageStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/Resource'
+        //     ],
+        //     [
+        //         {
+        //             id: 'AwsSolutions-IAM4',
+        //             appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+        //             reason: 'This policy attached to the role is generated by CDK.'
+        //         }
+        //     ],
+        //     true);
 
 
         NagSuppressions.addResourceSuppressionsByPath(this, [
-            '/DataLineageStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/Resource'
-        ],
-            [
-                {
-                    id: 'AwsSolutions-IAM4',
-                    appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
-                    reason: 'This policy attached to the role is generated by CDK.'
-                }
-            ],
-            true);
-
-
-            NagSuppressions.addResourceSuppressionsByPath(this, [
                 '/DataLineageStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/DefaultPolicy/Resource'
             ],
-                [
-                    {
-                        id: 'AwsSolutions-IAM5',
-                        appliesTo: ['Resource::*'],
-                        reason: 'This policy attached to the role is generated by CDK.'
-                    }
-                ],
-                true);
-
-
-
-        NagSuppressions.addResourceSuppressionsByPath(this, '/DataLineageStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource',
             [
                 {
-                    id: 'AwsSolutions-IAM4',
-                    appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
-                    reason: 'This policy attached to the role is generated by CDK.'
-                },
-                {
-                    id: ' AwsSolutions-IAM5',
+                    id: 'AwsSolutions-IAM5',
                     appliesTo: ['Resource::*'],
-                    reason: 'This resource condition in the IAM policy is generated by CDK, this only applies to logs:DeleteRetentionPolicy and logs:PutRetentionPolicy actions.'
-
+                    reason: 'This policy attached to the role is generated by CDK.'
                 }
             ],
             true);
 
-            NagSuppressions.addResourceSuppressionsByPath(this, '/DataLineageStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource'
-            ,
-                [
-                    {
-                        id: 'AwsSolutions-IAM5',
-                        appliesTo: [
-                            'Resource::arn:<AWS::Partition>:s3:::cdk-hnb659fds-assets-<AWS::AccountId>-<AWS::Region>/*',
-                            'Resource::<MWAAmwaaBucket5CEF0B14.Arn>/*',
-                            'Action::s3:GetBucket*', 'Action::s3:GetObject*', 'Action::s3:List*', 'Action::s3:Abort*', 'Action::s3:DeleteObject*'],
-                        reason: 'This resource condition in the IAM policy is generated by CDK, this only applies to logs:DeleteRetentionPolicy and logs:PutRetentionPolicy actions.'
-    
-                    },
-                ],
-                true);
+        //
+        // NagSuppressions.addResourceSuppressionsByPath(this, '/DataLineageStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource',
+        //     [
+        //         {
+        //             id: 'AwsSolutions-IAM4',
+        //             appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+        //             reason: 'This policy attached to the role is generated by CDK.'
+        //         },
+        //         {
+        //             id: ' AwsSolutions-IAM5',
+        //             appliesTo: ['Resource::*'],
+        //             reason: 'This resource condition in the IAM policy is generated by CDK, this only applies to logs:DeleteRetentionPolicy and logs:PutRetentionPolicy actions.'
+        //
+        //         }
+        //     ],
+        //     true);
 
-                NagSuppressions.addResourceSuppressionsByPath(this, '/DataLineageStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource'
-            ,
-                [
-                    {
-                        id: 'AwsSolutions-L1',
-                        reason: 'The cr.Provider library is not maintained by this project.'
-    
-                    },
-                ],
-                true);
+        // NagSuppressions.addResourceSuppressionsByPath(this, '/DataLineageStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource'
+        //     ,
+        //     [
+        //         {
+        //             id: 'AwsSolutions-IAM5',
+        //             appliesTo: [
+        //                 'Resource::arn:<AWS::Partition>:s3:::cdk-hnb659fds-assets-<AWS::AccountId>-<AWS::Region>/*',
+        //                 'Resource::<MWAAmwaaBucket5CEF0B14.Arn>/*',
+        //                 'Action::s3:GetBucket*', 'Action::s3:GetObject*', 'Action::s3:List*', 'Action::s3:Abort*', 'Action::s3:DeleteObject*'],
+        //             reason: 'This resource condition in the IAM policy is generated by CDK, this only applies to logs:DeleteRetentionPolicy and logs:PutRetentionPolicy actions.'
+        //
+        //         },
+        //     ],
+        //     true);
+        //
+        // NagSuppressions.addResourceSuppressionsByPath(this, '/DataLineageStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource'
+        //     ,
+        //     [
+        //         {
+        //             id: 'AwsSolutions-L1',
+        //             reason: 'The cr.Provider library is not maintained by this project.'
+        //
+        //         },
+        //     ],
+        //     true);
 
     }
-
-
 
 
 }
