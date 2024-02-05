@@ -4,6 +4,7 @@ import * as cdk from 'aws-cdk-lib';
 import { SharedHubInfrastructureStack } from './shared/sharedHub.stack.js';
 import { SsoCustomStack } from './shared/ssoCustom.stack.js';
 import { CognitoCustomStack } from './shared/cognitoCustom.stack.js';
+import { DataLineageStack } from './dataLineage/dataLineage.stack.js';
 import { AwsSolutionsChecks } from 'cdk-nag';
 import { getOrThrow } from './shared/stack.utils.js';
 import { Aspects } from 'aws-cdk-lib';
@@ -48,14 +49,14 @@ Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
 const stackNamePrefix = `sdf-shared-${domain}`;
 
 const stackName = (suffix: string) => `${stackNamePrefix}-${suffix}`;
-const platformStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
+const stackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
 
 const deployPlatform = (callerEnvironment?: { accountId?: string, region?: string }): void => {
 
 
-	const platformStack = new SharedHubInfrastructureStack(app, 'SharedHubStack', {
+	const sharedStack = new SharedHubInfrastructureStack(app, 'SharedHubStack', {
 		stackName: stackName('hub'),
-		description: platformStackDescription('SharedHub'),
+		description: stackDescription('SharedHub'),
 		domain,
 		userVpcConfig: useExistingVpc ? { vpcId: userVpcId, isolatedSubnetIds: userIsolatedSubnetIds } : undefined,
 		deleteBucket,
@@ -70,27 +71,37 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
 	if (samlMetaDataUrl && callbackUrls) {
 		const cognitoCustomStack = new CognitoCustomStack(app, 'CognitoCustomStack', {
 			stackName: stackName('CognitoCustomStack'),
-			description: platformStackDescription('CognitoCustomStack'),
+			description: stackDescription('CognitoCustomStack'),
 			domain,
 			ssoRegion,
 			samlMetaDataUrl,
 			userPoolIdParameter: userPoolIdParameter(domain),
 			callbackUrls
 		});
-		cognitoCustomStack.node.addDependency(platformStack);
+		cognitoCustomStack.node.addDependency(sharedStack);
 	}
 
 	if (ssoInstanceArn && adminEmail) {
 		const ssoCustomStack = new SsoCustomStack(app, 'SsoCustomStack', {
 			stackName: stackName('SsoCustomStack'),
-			description: platformStackDescription('SsoCustomStack'),
+			description: stackDescription('SsoCustomStack'),
 			domain,
 			ssoInstanceArn,
 			ssoRegion,
 			adminEmail
 		});
-		ssoCustomStack.node.addDependency(platformStack);
+		ssoCustomStack.node.addDependency(sharedStack);
 	}
+
+	const dataLineage = new DataLineageStack(app,'DataLineageStack',{
+		stackName: stackName('DataLineageStack'),
+		description: stackDescription('DataLineage'),
+		domain
+
+
+	});
+	dataLineage.node.addDependency(sharedStack);
+
 };
 
 

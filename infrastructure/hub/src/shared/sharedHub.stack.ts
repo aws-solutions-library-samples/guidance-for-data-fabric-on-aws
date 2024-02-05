@@ -2,6 +2,7 @@ import { Stack, StackProps } from 'aws-cdk-lib';
 import { Network, SdfVpcConfig } from './network.construct.js';
 import { Cognito } from './cognito.construct.js';
 import { Bus } from './eventbus.construct.js';
+import { SSM } from './ssm.construct.js';
 import type { Construct } from 'constructs';
 
 
@@ -29,7 +30,7 @@ export class SharedHubInfrastructureStack extends Stack {
 			domain: props.domain,
 			deleteBucket: props.deleteBucket,
 			userVpcConfig: props.userVpcConfig ? props.userVpcConfig : undefined
-		});
+		});		
 
 		new Cognito(this, 'Cognito',{
 			domain: props.domain,
@@ -38,7 +39,11 @@ export class SharedHubInfrastructureStack extends Stack {
 
 		new Bus(this, 'EventBus',{
 			domain: props.domain
-		})
+		});
+
+		new SSM(this, 'ApiFunctionNameParameters', {
+			domain: props.domain
+		});
 
 
 	}

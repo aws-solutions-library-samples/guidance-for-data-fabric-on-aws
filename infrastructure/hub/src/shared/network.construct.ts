@@ -144,6 +144,8 @@ export class Network extends Construct {
 				stringListValue: this.vpc.selectSubnets({ subnetGroupName: 'isolated-subnet' }).subnets.map((o) => o.subnetId)
 			});
 
+			// TODO add MWAA endpoint
+
 
 			this.sdfVpcConfig = {
 				vpcId: this.vpc.vpcId,
