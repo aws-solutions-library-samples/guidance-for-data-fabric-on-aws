@@ -34,15 +34,20 @@ const adminEmail = app.node.tryGetContext('adminEmail');
 const samlMetaDataUrl = app.node.tryGetContext('samlMetaDataUrl');
 const callbackUrls = app.node.tryGetContext('callbackUrls');
 
-// Optional requirement for
+// Optional requirement for DataLineage
 const openlineageApiMemory = (app.node.tryGetContext('openlineageApiMemory') as number) ?? 8192;
 const openlineageApiCpu = (app.node.tryGetContext('openlineageApiCpu') as number) ?? 2048;
-const marquezTag = app.node.tryGetContext('marquezTag') ?? '0.43.1';
+const openlineageWebMemory = (app.node.tryGetContext('openlineageApiMemory') as number) ?? 2048;
+const openlineageWebCpu = (app.node.tryGetContext('openlineageApiCpu') as number) ?? 512;
+const marquezVersionTag = app.node.tryGetContext('marquezVersionTag') ?? '0.43.1';
+const loadBalancerCertificateArn = getOrThrow(app, 'loadBalancerCertificateArn');
 
 let userVpcId;
-let userIsolatedSubnetIds;
+let userIsolatedSubnetIds, userPrivateSubnetIds, userPublicSubnetIds;
 if (useExistingVpc) {
     userVpcId = getOrThrow(app, 'existingVpcId');
+    userPublicSubnetIds = getOrThrow(app, 'existingPublicSubnetIds').toString().split(',');
+    userPrivateSubnetIds = getOrThrow(app, 'existingPrivateSubnetIds').toString().split(',');
     userIsolatedSubnetIds = getOrThrow(app, 'existingIsolatedSubnetIds').toString().split(',');
 }
 
@@ -63,7 +68,12 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         stackName: stackName('hub'),
         description: stackDescription('SharedHub'),
         domain,
-        userVpcConfig: useExistingVpc ? {vpcId: userVpcId, isolatedSubnetIds: userIsolatedSubnetIds} : undefined,
+        userVpcConfig: useExistingVpc ? {
+            vpcId: userVpcId,
+            isolatedSubnetIds: userIsolatedSubnetIds,
+            privateSubnetIds: userPrivateSubnetIds,
+            publicSubnetIds: userPublicSubnetIds
+        } : undefined,
         deleteBucket,
         userPoolIdParameter: userPoolIdParameter(domain),
         env: {
@@ -104,7 +114,10 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         domain,
         openlineageApiCpu,
         openlineageApiMemory,
-        marquezTag
+        openlineageWebCpu,
+        openlineageWebMemory,
+        marquezVersionTag,
+        loadBalancerCertificateArn
     });
     dataLineage.node.addDependency(sharedStack);
 };

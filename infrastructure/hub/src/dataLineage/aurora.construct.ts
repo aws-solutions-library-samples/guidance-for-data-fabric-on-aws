@@ -22,6 +22,7 @@ export class AuroraDatabase extends Construct {
     clusterIdentifier: string;
     rdsClusterWriterEndpoint: string;
     databaseUsername: string;
+    databaseName: string;
     databaseSecret: ISecret;
     databaseCluster: IDatabaseCluster;
 
@@ -29,7 +30,9 @@ export class AuroraDatabase extends Construct {
         super(scope, id);
 
         this.instanceName = `sdf-${props.domain}`;
-        const databaseUsername = 'marquez';
+        this.databaseUsername = 'marquez';
+        this.databaseName = 'marquez';
+
         const clusterName = `sdf-${props.domain}-cluster`;
 
         const iamPolicy = new Policy(this, 'iam-policy', {
@@ -173,9 +176,9 @@ export class AuroraDatabase extends Construct {
                 retention: Duration.days(RetentionDays.ONE_WEEK),
                 preferredWindow: '03:00-04:00'
             },
-            defaultDatabaseName: 'marquez',
+            defaultDatabaseName: this.databaseName,
             credentials: {
-                username: databaseUsername,
+                username: this.databaseUsername,
                 password: this.databaseSecret.secretValue
             },
             // something wrong with the construct where it always accepts parameter as string
@@ -225,7 +228,5 @@ export class AuroraDatabase extends Construct {
         ]);
 
         this.databaseSecurityGroup.addIngressRule(this.databaseSecurityGroup, Port.tcp(5432), 'allow db connection');
-
-        this.databaseUsername = databaseUsername;
     }
 }

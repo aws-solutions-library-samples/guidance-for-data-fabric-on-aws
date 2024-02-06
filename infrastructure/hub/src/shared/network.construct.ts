@@ -10,6 +10,8 @@ import { NagSuppressions } from 'cdk-nag';
 
 export interface SdfVpcConfig {
     vpcId: string;
+    publicSubnetIds: string[],
+    privateSubnetIds: string[],
     isolatedSubnetIds: string[]
 }
 
@@ -183,11 +185,10 @@ export class Network extends Construct {
                 stringListValue: this.vpc.selectSubnets({subnetGroupName: 'isolated-subnet'}).subnets.map((o) => o.subnetId)
             });
 
-            // TODO add MWAA endpoint
-
-
             this.sdfVpcConfig = {
                 vpcId: this.vpc.vpcId,
+                publicSubnetIds: this.vpc.selectSubnets({subnetGroupName: 'public-subnet'}).subnets.map((o) => o.subnetId),
+                privateSubnetIds: this.vpc.selectSubnets({subnetGroupName: 'private-subnet'}).subnets.map((o) => o.subnetId),
                 isolatedSubnetIds: this.vpc.selectSubnets({subnetGroupName: 'isolated-subnet'}).subnets.map((o) => o.subnetId)
             };
 
@@ -216,6 +217,8 @@ export class Network extends Construct {
 
             this.sdfVpcConfig = {
                 vpcId: this.vpc.vpcId,
+                publicSubnetIds: props.userVpcConfig.publicSubnetIds,
+                privateSubnetIds: props.userVpcConfig.privateSubnetIds,
                 isolatedSubnetIds: props.userVpcConfig.isolatedSubnetIds
             };
         }
