@@ -5,11 +5,10 @@ import { AuroraPostgresEngineVersion, CfnDBCluster, DatabaseCluster, DatabaseClu
 import { HostedRotation, ISecret, Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 import { NagSuppressions } from 'cdk-nag';
-import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 export interface AuroraDatabaseConstructProperties {
     vpc: IVpc;
-    isolatedSubnetIds: string[]
     domain: string;
     minClusterCapacity: number;
     maxClusterCapacity: number;
@@ -82,37 +81,6 @@ export class AuroraDatabase extends Construct {
             }
         ]);
 
-
-        const s3ExportPolicy = new Policy(this, 's3-export-policy', {
-            statements: [
-                new PolicyStatement({
-                    sid: 'S3Export',
-                    actions: [
-                        's3:PutObject',
-                        's3:AbortMultipartUpload'
-                    ],
-                    effect: Effect.ALLOW,
-                    resources: [`arn:aws:s3:::sdf-*/*`]
-                })
-            ]
-        });
-
-        const s3ExportRole = new Role(this, 's3-export-role', {
-            assumedBy: new ServicePrincipal('rds.amazonaws.com')
-        });
-
-        s3ExportRole.attachInlinePolicy(s3ExportPolicy);
-
-        NagSuppressions.addResourceSuppressions(s3ExportPolicy, [
-            {
-                id: 'AwsSolutions-IAM5',
-                appliesTo: [
-                    'Resource::arn:aws:s3:::sdf-*/*'
-                ],
-                reason: 'This policy is only for our RDS cluster to perform S3 exports to any bucket with a sdf prefix',
-            },
-        ]);
-
         this.databaseSecurityGroup = new SecurityGroup(this, id.concat(`${this.instanceName}-sg`), {
             vpc: props.vpc,
             description: `${this.instanceName}-instance-sg`,
@@ -133,8 +101,6 @@ export class AuroraDatabase extends Construct {
             })
         });
 
-
-        /** Version "8.0.postgresql_aurora.3.01.0". */
         const dbEngine = DatabaseClusterEngine.auroraPostgres({version: AuroraPostgresEngineVersion.VER_14_8});
 
         /**
@@ -188,13 +154,10 @@ export class AuroraDatabase extends Construct {
             iamAuthentication: false,
             clusterIdentifier: `sdf-${props.domain}-aurora-cluster`,
             subnetGroup: subnetGroup,
-            s3ExportRole
         });
 
         this.clusterIdentifier = this.databaseCluster.clusterIdentifier;
 
-        // databaseCluster.node.addDependency(customResource);
-        this.databaseCluster.node.addDependency(s3ExportRole);
 
         if (!props.clusterDeletionProtection) {
             NagSuppressions.addResourceSuppressions(this.databaseCluster, [

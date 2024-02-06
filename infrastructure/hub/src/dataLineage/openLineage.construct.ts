@@ -12,9 +12,6 @@ import { ApplicationLoadBalancedFargateService } from 'aws-cdk-lib/aws-ecs-patte
 import { AuthenticateCognitoAction } from "aws-cdk-lib/aws-elasticloadbalancingv2-actions";
 import { CfnUserPoolClient, OAuthScope, UserPool, UserPoolClient, UserPoolDomain } from "aws-cdk-lib/aws-cognito";
 import { ApplicationProtocol, ListenerAction } from "aws-cdk-lib/aws-elasticloadbalancingv2";
-import * as ssm from "aws-cdk-lib/aws-ssm";
-import { StringParameter } from "aws-cdk-lib/aws-ssm";
-import { userPoolDomainParameter, userPoolIdParameter } from "../shared/cognito.construct.js";
 import { Certificate } from "aws-cdk-lib/aws-certificatemanager";
 import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import * as cr from 'aws-cdk-lib/custom-resources';
@@ -23,7 +20,7 @@ import { CustomResource } from 'aws-cdk-lib';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export interface DataLineageConstructProperties {
+export interface OpenLineageConstructProperties {
     domain: string;
     vpc: IVpc,
     openlineageApiCpu: number;
@@ -38,14 +35,16 @@ export interface DataLineageConstructProperties {
     databasePassword: ISecret;
     databaseSecurityGroup: ISecurityGroup;
     loadBalancerCertificateArn: string;
+    userPoolDomainName: string;
+    userPoolId: string;
 }
 
-export const openLineageWebUrlParameter = (domain: string) => `/sdf/${domain}/dataLineage/openLineageWebUrl`;
-export const openLineageApiUrlParameter = (domain: string) => `/sdf/${domain}/dataLineage/openLineageApiUrl`;
+export class OpenLineage extends Construct {
 
-export class DataLineage extends Construct {
+    public openLineageWebUrl: string;
+    public openLineageApiUrl: string;
 
-    constructor(scope: Construct, id: string, props: DataLineageConstructProperties) {
+    constructor(scope: Construct, id: string, props: OpenLineageConstructProperties) {
         super(scope, id);
 
         const namePrefix = `sdf-${props.domain}`;
@@ -117,10 +116,7 @@ export class DataLineage extends Construct {
         openlineageApiService.connections.allowFrom(Peer.anyIpv4(), Port.tcp(5000), 'Allow application inside VPC to access the api endpoint');
         openlineageApiService.connections.allowFrom(Peer.anyIpv4(), Port.tcp(5001), 'Allow application inside VPC to access the administrator endpoint');
 
-        new ssm.StringParameter(this, 'openLineageApiUrlParameter', {
-            parameterName: openLineageApiUrlParameter(props.domain),
-            stringValue: `http://${openlineageApiCloudMapServiceName}.${dnsSubDomain}:5000`
-        });
+        this.openLineageApiUrl = `http://${openlineageApiCloudMapServiceName}.${dnsSubDomain}:5000`;
 
         props.databaseSecurityGroup.addIngressRule(openlineageApiService.connections.securityGroups[0]!, Port.tcp(5432), 'Allow openlineageApi to access the RDS database')
 
@@ -143,10 +139,7 @@ export class DataLineage extends Construct {
             protocol: ApplicationProtocol.HTTPS
         });
 
-        new ssm.StringParameter(this, 'openLineageWebUrlParameter', {
-            parameterName: openLineageWebUrlParameter(props.domain),
-            stringValue: `https://${openlineageWebService.loadBalancer.loadBalancerDnsName}`
-        });
+        this.openLineageWebUrl = `https://${openlineageWebService.loadBalancer.loadBalancerDnsName}`;
 
         // This custom resource is needed to handle this case issue for Cognito
         // https://github.com/aws/aws-cdk/issues/11171
@@ -195,7 +188,7 @@ export class DataLineage extends Construct {
             {
                 id: 'AwsSolutions-IAM5',
                 reason: 'This only applies to the seeder lambda defined in this construct and its versions.',
-                appliesTo: ['Resource::<DataLineageTransformLowerCaseFunction643F29A8.Arn>:*']
+                appliesTo: ['Resource::<OpenLineageTransformLowerCaseFunction46AD14A6.Arn>:*']
             },
             {
                 id: 'AwsSolutions-L1',
@@ -203,7 +196,7 @@ export class DataLineage extends Construct {
             }
         ], true);
 
-        const userPool = UserPool.fromUserPoolId(this, 'UserPool', StringParameter.valueForStringParameter(this, userPoolIdParameter(props.domain)))
+        const userPool = UserPool.fromUserPoolId(this, 'UserPool', props.userPoolId);
 
         const userPoolClient = new UserPoolClient(this, 'Client', {
             userPool: userPool,
@@ -227,7 +220,7 @@ export class DataLineage extends Construct {
         cfnClient.addPropertyOverride('RefreshTokenValidity', 1);
         cfnClient.addPropertyOverride('SupportedIdentityProviders', ['COGNITO']);
 
-        const userPoolDomain = UserPoolDomain.fromDomainName(this, 'UserPoolDomain', StringParameter.valueForStringParameter(this, userPoolDomainParameter(props.domain)));
+        const userPoolDomain = UserPoolDomain.fromDomainName(this, 'UserPoolDomain', props.userPoolDomainName);
 
         openlineageWebService.listener.addAction('CognitoListener', {
             action: new AuthenticateCognitoAction({
