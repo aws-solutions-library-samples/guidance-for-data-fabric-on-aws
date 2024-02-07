@@ -3,11 +3,15 @@
 ## Prerequisites
 -   Enable IAM Identity Center
 -   Enable Data Zone    
-
+-   SSL Certificate in ACM
 
 ## Deployments Steps
 The deployment of the hub applications is a multi step process.
 At the time of writing IAM Identity Center does not support the creation of SAML based applications because of this we need to do the deployment in multiple stages.  
+
+### Uploading SSL certificate in ACM 
+
+In order for the Application Load Balancer to be configured with [Cognito](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html#cognito-requirements) requires `HTTPS`. To create an HTTPS listener, you must deploy at least one SSL server certificate on your load balancer, follow the instruction [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html) to issue or upload self-signed certificate in ACM.
 
 ### Deploy the shared hub infrastructure
 Note: this step only needs to be performed once for the initial deployment.
