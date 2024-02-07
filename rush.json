@@ -377,6 +377,24 @@
 			"projectFolder": "typescript/packages/libraries/cdk-common",
 			"reviewCategory": "production",
 			"shouldPublish": true
+		},
+		{
+			"packageName": "@sdf/clients",
+			"projectFolder": "typescript/packages/libraries/clients",
+			"reviewCategory": "library",
+			"shouldPublish": true
+		},
+		{
+			"packageName": "@sdf/validators",
+			"projectFolder": "typescript/packages/libraries/validators",
+			"reviewCategory": "library",
+			"shouldPublish": true
+		},
+		{
+			"packageName": "@sdf/dataLineage",
+			"projectFolder": "typescript/packages/apps/dataLineage",
+			"reviewCategory": "production",
+			"shouldPublish": true
 		}
 		// {
 		//   /**
