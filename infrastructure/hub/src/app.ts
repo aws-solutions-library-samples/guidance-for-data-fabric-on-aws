@@ -34,13 +34,6 @@ const adminEmail = app.node.tryGetContext('adminEmail');
 const samlMetaDataUrl = app.node.tryGetContext('samlMetaDataUrl');
 const callbackUrls = app.node.tryGetContext('callbackUrls');
 
-// Optional requirement for DataLineage
-const openlineageApiMemory = (app.node.tryGetContext('openlineageApiMemory') as number) ?? 8192;
-const openlineageApiCpu = (app.node.tryGetContext('openlineageApiCpu') as number) ?? 2048;
-const openlineageWebMemory = (app.node.tryGetContext('openlineageApiMemory') as number) ?? 2048;
-const openlineageWebCpu = (app.node.tryGetContext('openlineageApiCpu') as number) ?? 512;
-const marquezVersionTag = app.node.tryGetContext('marquezVersionTag') ?? '0.43.1';
-const loadBalancerCertificateArn = getOrThrow(app, 'loadBalancerCertificateArn');
 
 let userVpcId;
 let userIsolatedSubnetIds, userPrivateSubnetIds, userPublicSubnetIds;
@@ -94,6 +87,27 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             callbackUrls
         });
         cognitoCustomStack.node.addDependency(sharedStack);
+
+        // Optional requirement for DataLineage
+        const openlineageApiMemory = (app.node.tryGetContext('openlineageApiMemory') as number) ?? 8192;
+        const openlineageApiCpu = (app.node.tryGetContext('openlineageApiCpu') as number) ?? 2048;
+        const openlineageWebMemory = (app.node.tryGetContext('openlineageApiMemory') as number) ?? 2048;
+        const openlineageWebCpu = (app.node.tryGetContext('openlineageApiCpu') as number) ?? 512;
+        const marquezVersionTag = app.node.tryGetContext('marquezVersionTag') ?? '0.43.1';
+        const loadBalancerCertificateArn = getOrThrow(app, 'loadBalancerCertificateArn');
+
+        const dataLineage = new DataLineageStack(app, 'DataLineageStack', {
+            stackName: stackName('datalineage'),
+            description: stackDescription('DataLineage'),
+            domain,
+            openlineageApiCpu,
+            openlineageApiMemory,
+            openlineageWebCpu,
+            openlineageWebMemory,
+            marquezVersionTag,
+            loadBalancerCertificateArn
+        });
+        dataLineage.node.addDependency(sharedStack);
     }
 
     if (ssoInstanceArn && adminEmail) {
@@ -108,18 +122,7 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         ssoCustomStack.node.addDependency(sharedStack);
     }
 
-    const dataLineage = new DataLineageStack(app, 'DataLineageStack', {
-        stackName: stackName('datalineage'),
-        description: stackDescription('DataLineage'),
-        domain,
-        openlineageApiCpu,
-        openlineageApiMemory,
-        openlineageWebCpu,
-        openlineageWebMemory,
-        marquezVersionTag,
-        loadBalancerCertificateArn
-    });
-    dataLineage.node.addDependency(sharedStack);
+
 };
 
 const getCallerEnvironment = (): { accountId?: string, region?: string } | undefined => {
