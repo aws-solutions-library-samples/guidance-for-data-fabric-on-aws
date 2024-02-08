@@ -17,15 +17,6 @@ declare module '@fastify/awilix' {
 	}
 }
 
-// declare function registerBaseAwilix(logger: FastifyBaseLogger): void;
-
-// const registerBaseAwilix= (logger: FastifyBaseLogger) => {
-// 	const commonInjectionOptions = {
-// 		lifetime: Lifetime.SINGLETON
-// 	};
-// 	const awsRegion = process.env['AWS_REGION'];
-// }
-
 const registerContainer = (app?: FastifyInstance) => {
 	const commonInjectionOptions = {
 		lifetime: Lifetime.SINGLETON
@@ -60,7 +51,6 @@ export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<vo
 		disposeOnClose: true,
 		disposeOnResponse: false
 	});
-
 
 	registerContainer(app);
 });
