@@ -29,6 +29,7 @@ export interface CognitoConstructProperties {
 export const userPoolArnParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolArn`;
 export const userPoolClientIdParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolClientId`;
 export const userPoolDomainParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolDomain`;
+export const userPoolIdParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolId`;
 
 export class Cognito extends Construct {
 	public readonly userPoolId: string;
@@ -110,7 +111,7 @@ export class Cognito extends Construct {
 		new ssm.StringParameter(this, 'userPoolDomainParameter', {
 			parameterName: userPoolDomainParameter(props.domain),
 			stringValue: domain.domainName
-		});	
-	
+		});
+
 	}
 }

@@ -3,11 +3,15 @@
 ## Prerequisites
 -   Enable IAM Identity Center
 -   Enable Data Zone    
-
+-   SSL Certificate in ACM
 
 ## Deployments Steps
 The deployment of the hub applications is a multi step process.
 At the time of writing IAM Identity Center does not support the creation of SAML based applications because of this we need to do the deployment in multiple stages.  
+
+### Uploading SSL certificate in ACM 
+
+In order for the Application Load Balancer to be configured with [Cognito](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html#cognito-requirements) requires `HTTPS`. To create an HTTPS listener, you must deploy at least one SSL server certificate on your load balancer, follow the instruction [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html) to issue or upload self-signed certificate in ACM.
 
 ### Deploy the shared hub infrastructure
 Note: this step only needs to be performed once for the initial deployment.
@@ -17,8 +21,7 @@ Sample command to deploy the CDK stack:
 ```
 npm run cdk -- deploy \
 --require-approval never --concurrency=10 \
--c domain=<enter your domain> \
---app "npx ts-node --esm --prefer-ts-exts src/app.ts"
+-c domain=<enter your domain>
 ``` 
 
 You have now deploy the shared infrastructure needed to integrate with `IAM Identity Center` 
@@ -75,6 +78,5 @@ npm run cdk -- deploy \
     -c ssoInstanceArn=<enter your IAM Identity center Instance ARN> \
     -c samlMetaDataUrl=<enter your SAML 2.0 application metadata url> \
     -c callbackUrls=<enter a comma separated list of urls>
-    -c adminEmail=<enter the admin email you want to be used>\
-    --app "npx ts-node --esm --prefer-ts-exts src/app.ts"
+    -c adminEmail=<enter the admin email you want to be used>
 ```

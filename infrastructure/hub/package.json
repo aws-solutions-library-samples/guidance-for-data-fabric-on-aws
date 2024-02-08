@@ -21,11 +21,13 @@
 		"@aws-sdk/client-cognito-identity-provider": "3.496.0",
 		"@aws-sdk/client-cognito-identity": "3.496.0",
 		"@aws-sdk/client-ssm": "3.496.0",
+		"@aws-sdk/client-mwaa": "3.496.0",
 		"source-map-support": "0.5.21",
 		"pino": "8.14.1",
 		"pino-pretty": "10.0.1",
 		"cdk-nag": "2.27.73",
 		"@sdf/cdk-common": "workspace:*",
+		"@sdf/events": "workspace:*",
 		"shelljs": "0.8.5",
 		"ajv": "8.12.0"
 	},

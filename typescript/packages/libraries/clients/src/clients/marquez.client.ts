@@ -15,10 +15,10 @@ export class MarquezClient extends ClientServiceBase {
 	}
 
 	public async recordLineage(lineage: Lineage): Promise<void> {
-		this.log.info(`MarquezClient > recordLineage > in > request: ${JSON.stringify(lineage)}`);
+		this.log.debug(`MarquezClient > recordLineage > in > request: ${JSON.stringify(lineage)}, Url:${this.marquezUrl}/api/v1/lineage`);
 
 			try{
-                await axios.post(`${this.marquezUrl}/lineage`, lineage, {
+                await axios.post(`${this.marquezUrl}/api/v1/lineage`, lineage, {
                     headers: {
                         ...COMMON_HEADERS,
 
@@ -27,7 +27,7 @@ export class MarquezClient extends ClientServiceBase {
 				this.log.error(`MarquezClient > list > exit > error: ${err}`);
 				
 			}
-		this.log.info(`MarquezClient > recordLineage > exit}`);
+		this.log.debug(`MarquezClient > recordLineage > exit}`);
 		return;
 	}
 

@@ -1,13 +1,13 @@
 
 
 import { Cradle, diContainer, FastifyAwilixOptions, fastifyAwilixPlugin } from '@fastify/awilix';
-import { asFunction, asValue, Lifetime } from 'awilix';
-import type { FastifyInstance, FastifyBaseLogger } from 'fastify';
+import { asFunction, Lifetime } from 'awilix';
+import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { MarquezClient } from '@sdf/clients';
 
 
-import { DirectLineageEventProcessor } from '../src/events/directLineage.eventProcessor.js';
+import { DirectLineageEventProcessor } from '../events/directLineage.eventProcessor.js';
 
 
 declare module '@fastify/awilix' {
@@ -17,7 +17,14 @@ declare module '@fastify/awilix' {
 	}
 }
 
-declare function registerBaseAwilix(logger: FastifyBaseLogger): void;
+// declare function registerBaseAwilix(logger: FastifyBaseLogger): void;
+
+// const registerBaseAwilix= (logger: FastifyBaseLogger) => {
+// 	const commonInjectionOptions = {
+// 		lifetime: Lifetime.SINGLETON
+// 	};
+// 	const awsRegion = process.env['AWS_REGION'];
+// }
 
 const registerContainer = (app?: FastifyInstance) => {
 	const commonInjectionOptions = {
@@ -25,8 +32,6 @@ const registerContainer = (app?: FastifyInstance) => {
 	};
 
 	const marquezUrl = process.env['MARQUEZ_URL'] as string;
-	const eventBusName = process.env['EVENT_BUS_NAME'];
-
 
 
 	diContainer.register({
@@ -56,7 +61,6 @@ export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<vo
 		disposeOnResponse: false
 	});
 
-	registerBaseAwilix(app.log);
 
 	registerContainer(app);
 });

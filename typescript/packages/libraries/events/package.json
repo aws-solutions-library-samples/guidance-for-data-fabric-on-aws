@@ -1,8 +1,8 @@
 {
-	"name": "@sdf/clients",
+	"name": "@sdf/events",
 	"version": "1.0.0",
-	"description": "A collection of client libraries for various components",
-	"author": "Pouya Bahavar <bahavar@amazon.com>",
+	"description": "Platform events",
+	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {
 		".": {
 			"import": "./dist/index.js",
@@ -14,28 +14,30 @@
 	"type": "module",
 	"scripts": {
 		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
-		"build": "tsc -b",
-		"test": "npm run build && vitest run --passWithNoTests"
+		"test": "npm run build && vitest run --passWithNoTests",
+		"build": "npx tsc -b"
 	},
 	"dependencies": {
-		"@aws-sdk/client-lambda": "3.370.0",
-		"axios": "1.6.7"
+		"@aws-sdk/client-eventbridge": "3.370.0",
+		"@sinclair/typebox": "0.29.4"
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",
+		"@types/antlr4-autosuggest": "0.0.1",
+		"@types/antlr4": "4.11.2",
 		"@types/node": "20.4.2",
 		"@types/prettier": "2.7.3",
 		"@typescript-eslint/eslint-plugin": "6.1.0",
 		"@typescript-eslint/parser": "6.1.0",
+		"aws-sdk-client-mock": "3.0.0",
+		"antlr4ts-cli": "0.5.0-alpha.4",
 		"eslint": "8.45.0",
+		"pino": "8.14.1",
 		"shx": "0.3.4",
 		"ts-node": "10.9.1",
 		"typescript": "5.1.6",
-		"aws-sdk-client-mock": "3.0.0",
 		"vitest": "0.33.0",
-		"vitest-mock-extended": "1.1.4",
-		"pino": "8.14.1",
-		"pino-pretty": "10.0.1"
+		"vitest-mock-extended": "1.1.4"
 	},
 	"private": false
 }

@@ -391,6 +391,12 @@
 			"shouldPublish": true
 		},
 		{
+			"packageName": "@sdf/events",
+			"projectFolder": "typescript/packages/libraries/events",
+			"reviewCategory": "library",
+			"shouldPublish": true
+		},
+		{
 			"packageName": "@sdf/dataLineage",
 			"projectFolder": "typescript/packages/apps/dataLineage",
 			"reviewCategory": "production",
