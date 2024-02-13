@@ -60,7 +60,7 @@ export interface lineageIngestionEvent {
 
 export const ACCESS_CONTROL_EVENT_SOURCE: string = 'com.aws.sdf.accessControl';
 export const DATA_LINEAGE_EVENT_SOURCE: string = 'com.aws.sdf.dataLineage';
-export const DATA_QUALITY_EVENT_SOURCE: string = 'com.aws.sdf.dataLineage';
+export const DATA_ASSET_EVENT_SOURCE: string = 'com.aws.sdf.dataAsset';
 
 export const DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT = `SDF>${DATA_LINEAGE_EVENT_SOURCE}>ingestion>request`;
 
