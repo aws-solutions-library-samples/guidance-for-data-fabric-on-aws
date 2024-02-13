@@ -79,8 +79,6 @@ export class DataLineage extends Construct {
 			architecture: getLambdaArchitecture(scope)
 		});
 
-		eventBus.grantPutEventsTo(lineageIngestionEventLambda);
-
 		const dataLineageIngestionRule = new Rule(this, 'DataLineageIngestionRule', {
 			eventBus: eventBus,
 			eventPattern: {
