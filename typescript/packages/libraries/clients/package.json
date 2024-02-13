@@ -18,7 +18,8 @@
 		"test": "npm run build && vitest run --passWithNoTests"
 	},
 	"dependencies": {
-		"axios": "1.6.7"
+		"axios": "1.6.7",
+		"@sdf/events": "workspace:*"
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",

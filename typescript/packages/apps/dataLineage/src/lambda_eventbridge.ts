@@ -2,7 +2,7 @@ import type { EventBridgeHandler, Context, Callback } from 'aws-lambda';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from './app.light';
-import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT, LineageIngestionEventDetail } from '@sdf/events';
+import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT, RunEvent } from '@sdf/events';
 import type { DirectLineageEventProcessor } from './events/directLineage.eventProcessor.js';
 
 const app: FastifyInstance = await buildLightApp();
@@ -16,7 +16,7 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 
 	// filter event for direct ingestion into Marquez
 	if (event['detail-type'] === DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT) {
-		const detail = event.detail as LineageIngestionEventDetail;
+		const detail = event.detail as RunEvent;
 		await eventProcessor.processDirectLineageIngestionEvent(detail);
 		
 		// any other events are not handled
@@ -26,6 +26,6 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 
 };
 
-type EventDetails = LineageIngestionEventDetail
+type EventDetails = RunEvent
 
 

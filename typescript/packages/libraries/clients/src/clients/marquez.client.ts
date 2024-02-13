@@ -1,8 +1,8 @@
 import { ClientServiceBase } from '../common/common.js';
-import type { Lineage } from './openLineage.models.js';
 import type { BaseLogger } from 'pino';
 import axios from 'axios';
 import { COMMON_HEADERS } from '../common/utils.js'
+import type { RunEvent } from '@sdf/events';
 
 export class MarquezClient extends ClientServiceBase {
 	private readonly marquezUrl: string;
@@ -14,7 +14,7 @@ export class MarquezClient extends ClientServiceBase {
 		this.log = log;
 	}
 
-	public async recordLineage(lineage: Lineage): Promise<void> {
+	public async recordLineage(lineage: RunEvent): Promise<void> {
 		this.log.debug(`MarquezClient > recordLineage > in > request: ${JSON.stringify(lineage)}, Url:${this.marquezUrl}/api/v1/lineage`);
 
 			try{

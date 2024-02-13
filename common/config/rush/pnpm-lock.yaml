@@ -322,6 +322,9 @@ importers:
 
   ../../typescript/packages/libraries/clients:
     dependencies:
+      '@sdf/events':
+        specifier: workspace:*
+        version: link:../events
       axios:
         specifier: 1.6.7
         version: 1.6.7

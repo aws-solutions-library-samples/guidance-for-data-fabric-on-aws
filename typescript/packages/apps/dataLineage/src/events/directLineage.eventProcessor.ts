@@ -1,6 +1,7 @@
 import { validateNotEmpty } from '@sdf/validators';
-import type { MarquezClient, Lineage } from '@sdf/clients';
+import type { MarquezClient } from '@sdf/clients';
 import type { BaseLogger } from 'pino';
+import type { RunEvent } from '@sdf/events';
 
 export class DirectLineageEventProcessor {
 	constructor(
@@ -9,7 +10,7 @@ export class DirectLineageEventProcessor {
 	) {
 	}
 
-	public async processDirectLineageIngestionEvent(lineage: Lineage): Promise<void> {
+	public async processDirectLineageIngestionEvent(lineage: RunEvent): Promise<void> {
 		this.log.info(`EventProcessor > DirectLineageIngestion > lineage: ${JSON.stringify(lineage)}`);
 
 		validateNotEmpty(lineage, 'lineage');

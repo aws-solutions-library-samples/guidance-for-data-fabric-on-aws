@@ -1,6 +1,7 @@
 import { EventBridgeClient, PutEventsCommandInput, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import type { BaseLogger } from 'pino';
-import type { DomainEvent, EventSource } from './models.js';
+import type { EventSource } from './openLineage.models.js';
+import type { DomainEvent } from './hub.models.js';
 
 export class EventPublisher {
 	private readonly log: BaseLogger;
