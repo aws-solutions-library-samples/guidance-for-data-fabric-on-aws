@@ -11,7 +11,20 @@ At the time of writing IAM Identity Center does not support the creation of SAML
 
 ### Uploading SSL certificate in ACM 
 
-In order for the Application Load Balancer to be configured with [Cognito](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html#cognito-requirements) requires `HTTPS`. To create an HTTPS listener, you must deploy at least one SSL server certificate on your load balancer, follow the instruction [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html) to issue or upload self-signed certificate in ACM.
+In order for the Application Load Balancer to be configured with [Cognito](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html#cognito-requirements) requires `HTTPS`. To create an HTTPS listener, you must deploy at least one SSL server certificate on your load balancer, follow the instruction below to issue or upload self-signed certificate in ACM.
+
+1. Generate a private key. Be sure to provide valid (even though false) domain names when needed.
+    ```shell
+    openssl genrsa 2048 > my-aws-private.key
+    ```
+2. Generate the certificate providing the key generated in #1.
+    ```shell
+    openssl req -new -x509 -nodes -sha1 -days 3650 -extensions v3_ca -key my-aws-private.key > my-aws-public.crt
+    ```
+3. Upload the generated certificate (my-aws-public.crt) and the private key (my-aws-private.key) to AWS Certificate Manager. You will need to install AWS CLI and setup credentials to run the following command.
+    ```shell
+    aws acm import-certificate — certificate file://my-aws-public.crt — private-key file://my-aws-private.key — region us-east-2
+    ```
 
 ### Deploy the shared hub infrastructure
 Note: this step only needs to be performed once for the initial deployment.
