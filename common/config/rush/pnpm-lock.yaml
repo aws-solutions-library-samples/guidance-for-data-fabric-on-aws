@@ -31,10 +31,10 @@ importers:
       '@aws-sdk/client-sso-admin':
         specifier: 3.496.0
         version: 3.496.0
-      '@sdf/cdk-common':
+      '@df/cdk-common':
         specifier: workspace:*
         version: link:../../typescript/packages/libraries/cdk-common
-      '@sdf/events':
+      '@df/events':
         specifier: workspace:*
         version: link:../../typescript/packages/libraries/events
       ajv:
@@ -143,13 +143,13 @@ importers:
       '@fastify/type-provider-typebox':
         specifier: 3.3.0
         version: 3.3.0(@sinclair/typebox@0.29.4)
-      '@sdf/clients':
+      '@df/clients':
         specifier: workspace:*
         version: link:../../libraries/clients
-      '@sdf/events':
+      '@df/events':
         specifier: workspace:*
         version: link:../../libraries/events
-      '@sdf/validators':
+      '@df/validators':
         specifier: workspace:*
         version: link:../../libraries/validators
       '@sinclair/typebox':
@@ -322,7 +322,7 @@ importers:
 
   ../../typescript/packages/libraries/clients:
     dependencies:
-      '@sdf/events':
+      '@df/events':
         specifier: workspace:*
         version: link:../events
       axios:

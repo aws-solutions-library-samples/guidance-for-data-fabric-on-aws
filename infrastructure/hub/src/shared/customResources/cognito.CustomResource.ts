@@ -6,8 +6,8 @@ import { SSMClient,GetParameterCommand, PutParameterCommand, DescribeActivations
 const cognitoClient = new CognitoIdentityProviderClient({});
 const ssmClient = new SSMClient({});
 
-const addFederatedIdentityProvider = async (userPoolIdParameter:string|undefined, sdfDomain:string|undefined, idpNameParameter:string|undefined, metadataUrlParameter:string|undefined, cognitoClientIdParameter:string|undefined, callbackUrls:string|undefined ):Promise<string | undefined> => {
-	const providerName = `sdf-${sdfDomain}-sso-provider`;
+const addFederatedIdentityProvider = async (userPoolIdParameter:string|undefined, dfDomain:string|undefined, idpNameParameter:string|undefined, metadataUrlParameter:string|undefined, cognitoClientIdParameter:string|undefined, callbackUrls:string|undefined ):Promise<string | undefined> => {
+	const providerName = `df-${dfDomain}-sso-provider`;
 
 	// GET User Pool ID that has already been created
 	const userPoolParam = await ssmClient.send (new GetParameterCommand({
@@ -89,7 +89,7 @@ const addFederatedIdentityProvider = async (userPoolIdParameter:string|undefined
 		if(!clientIdParameter){
 			const client = await cognitoClient.send(new CreateUserPoolClientCommand({
 				UserPoolId: userPoolParam.Parameter?.Value,
-				ClientName:`sdf-${sdfDomain}-sso-client`,
+				ClientName:`df-${dfDomain}-sso-client`,
 				SupportedIdentityProviders: [providerName],
 				CallbackURLs: callbackUrls?.split(','),
 				AllowedOAuthFlows:['implicit'],
@@ -111,15 +111,15 @@ const addFederatedIdentityProvider = async (userPoolIdParameter:string|undefined
 export const handler = async (event: any): Promise<any> => {
 	console.log(`cognito.customResource > handler > in : ${JSON.stringify(event)}`);
 
-	const { USE_POOL_ID_PARAMETER, SDF_DOMAIN, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER, CALLBACK_URLS } = process.env;
+	const { USE_POOL_ID_PARAMETER, DF_DOMAIN, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER, CALLBACK_URLS } = process.env;
 
 	try {
 		switch (event.RequestType) {
 			case 'Create': {
-				return await addFederatedIdentityProvider(USE_POOL_ID_PARAMETER, SDF_DOMAIN, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER, CALLBACK_URLS );
+				return await addFederatedIdentityProvider(USE_POOL_ID_PARAMETER, DF_DOMAIN, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER, CALLBACK_URLS );
 			}
 			case 'Update': {
-				return await addFederatedIdentityProvider(USE_POOL_ID_PARAMETER, SDF_DOMAIN, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER, CALLBACK_URLS);
+				return await addFederatedIdentityProvider(USE_POOL_ID_PARAMETER, DF_DOMAIN, IDENTITY_PROVIDER_NAME_PARAMETER, METADATA_URL_PARAMETER, COGNITO_CLIENT_ID_PARAMETER, CALLBACK_URLS);
 			}
 			case 'Delete': {
 				console.log(`nothing to do on delete`);

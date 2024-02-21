@@ -7,8 +7,8 @@ import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Duration } from 'aws-cdk-lib';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { getLambdaArchitecture } from '@sdf/cdk-common';
-import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT } from '@sdf/events';
+import { getLambdaArchitecture } from '@df/cdk-common';
+import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT } from '@df/events';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import type { IVpc } from 'aws-cdk-lib/aws-ec2';
@@ -31,7 +31,7 @@ export class DataLineage extends Construct {
 	constructor(scope: Construct, id: string, props: DataLineageConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `sdf-${props.domain}`;
+		const namePrefix = `df-${props.domain}`;
 		const eventBus = EventBus.fromEventBusName(this, 'DomainEventBus', props.eventBusName);
 
 

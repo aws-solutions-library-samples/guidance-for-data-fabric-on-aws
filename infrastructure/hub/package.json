@@ -1,7 +1,7 @@
 {
-	"name": "@sdf/infrastructure-hub",
+	"name": "@df/infrastructure-hub",
 	"version": "1.0.0",
-	"description": "SDF: Hub Infrastructure.",
+	"description": "DF: Hub Infrastructure.",
 	"author": "Pouya Bahavar <bahavar@amazon.com>",
 	"type": "module",
 	"scripts": {
@@ -26,8 +26,8 @@
 		"pino": "8.14.1",
 		"pino-pretty": "10.0.1",
 		"cdk-nag": "2.27.73",
-		"@sdf/cdk-common": "workspace:*",
-		"@sdf/events": "workspace:*",
+		"@df/cdk-common": "workspace:*",
+		"@df/events": "workspace:*",
 		"shelljs": "0.8.5",
 		"ajv": "8.12.0"
 	},

@@ -2,7 +2,7 @@ import type { EventBridgeHandler, Context, Callback } from 'aws-lambda';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from './app.light';
-import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT, RunEvent } from '@sdf/events';
+import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT, RunEvent } from '@df/events';
 import type { DirectLineageEventProcessor } from './events/directLineage.eventProcessor.js';
 
 const app: FastifyInstance = await buildLightApp();

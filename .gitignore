@@ -116,7 +116,7 @@ cdk-outputs.json
 
 **/*.svg.bkp
 env.list
-sdf_core.postman_environment.json
+df_core.postman_environment.json
 
 *.dtmp
 *.bkp

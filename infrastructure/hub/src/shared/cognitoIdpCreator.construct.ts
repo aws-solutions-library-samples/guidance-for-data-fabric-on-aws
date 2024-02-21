@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import * as cdk from 'aws-cdk-lib';
 import { NagSuppressions } from 'cdk-nag';
-import { getLambdaArchitecture } from '@sdf/cdk-common';
+import { getLambdaArchitecture } from '@df/cdk-common';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,9 +23,9 @@ export interface CognitoIdpCreatorConstructProperties {
 	callbackUrls: string
 }
 
-export const idpNameParameter = (domain: string) => `/sdf/${domain}/shared/ssoApplicationArnParameter`;
-export const ssoApplicationMetadataUrlParameter = (domain: string) => `/sdf/${domain}/shared/MetadataUrlParameter`;
-export const CognitoClientIdParameter = (domain: string) => `/sdf/${domain}/shared/cognito/clientId`;
+export const idpNameParameter = (domain: string) => `/df/${domain}/shared/ssoApplicationArnParameter`;
+export const ssoApplicationMetadataUrlParameter = (domain: string) => `/df/${domain}/shared/MetadataUrlParameter`;
+export const CognitoClientIdParameter = (domain: string) => `/df/${domain}/shared/cognito/clientId`;
 
 
 
@@ -37,7 +37,7 @@ export class CognitoIdpCreator extends Construct {
 	constructor(scope: Construct, id: string, props: CognitoIdpCreatorConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `sdf-${props.domain}`;
+		const namePrefix = `df-${props.domain}`;
 
 		new ssm.StringParameter(this, 'ssoApplicationMetadataUrlParameter', {
 			parameterName: ssoApplicationMetadataUrlParameter(props.domain),
@@ -67,7 +67,7 @@ export class CognitoIdpCreator extends Construct {
 			},
 			environment: {
 				USE_POOL_ID_PARAMETER: props.userPoolIdParameter,
-				SDF_DOMAIN: props.domain,
+				DF_DOMAIN: props.domain,
 				IDENTITY_PROVIDER_NAME_PARAMETER: idpNameParameter(props.domain),
 				METADATA_URL_PARAMETER: ssoApplicationMetadataUrlParameter(props.domain),
 				COGNITO_CLIENT_ID_PARAMETER: CognitoClientIdParameter(props.domain),

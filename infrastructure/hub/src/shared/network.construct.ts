@@ -8,7 +8,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
 
-export interface SdfVpcConfig {
+export interface DfVpcConfig {
     vpcId: string;
     publicSubnetIds: string[],
     privateSubnetIds: string[],
@@ -18,30 +18,30 @@ export interface SdfVpcConfig {
 export interface NetworkConstructProperties {
     domain: string;
     deleteBucket?: boolean;
-    userVpcConfig?: SdfVpcConfig;
+    userVpcConfig?: DfVpcConfig;
 }
 
-export const accessLogBucketNameParameter = (domain: string) => `/sdf/shared/${domain}/s3/accessLogBucketName`;
-export const vpcIdParameter = (domain: string) => `/sdf/shared/${domain}/network/vpcId`;
+export const accessLogBucketNameParameter = (domain: string) => `/df/shared/${domain}/s3/accessLogBucketName`;
+export const vpcIdParameter = (domain: string) => `/df/shared/${domain}/network/vpcId`;
 
-export const publicSubnetIdsParameter = (domain: string) => `/sdf/shared/${domain}/network/publicSubnets`;
-export const publicSubnetIdListParameter = (domain: string) => `/sdf/shared/${domain}/network/publicSubnetList`;
+export const publicSubnetIdsParameter = (domain: string) => `/df/shared/${domain}/network/publicSubnets`;
+export const publicSubnetIdListParameter = (domain: string) => `/df/shared/${domain}/network/publicSubnetList`;
 
-export const privateSubnetIdsParameter = (domain: string) => `/sdf/shared/${domain}/network/privateSubnets`;
-export const privateSubnetIdListParameter = (domain: string) => `/sdf/shared/${domain}/network/privateSubnetList`;
+export const privateSubnetIdsParameter = (domain: string) => `/df/shared/${domain}/network/privateSubnets`;
+export const privateSubnetIdListParameter = (domain: string) => `/df/shared/${domain}/network/privateSubnetList`;
 
-export const isolatedSubnetIdsParameter = (domain: string) => `/sdf/shared/${domain}/network/isolatedSubnets`;
-export const isolatedSubnetIdListParameter = (domain: string) => `/sdf/shared/${domain}/network/isolatedSubnetList`;
+export const isolatedSubnetIdsParameter = (domain: string) => `/df/shared/${domain}/network/isolatedSubnets`;
+export const isolatedSubnetIdListParameter = (domain: string) => `/df/shared/${domain}/network/isolatedSubnetList`;
 
 
 export class Network extends Construct {
     public vpc: IVpc;
-    public sdfVpcConfig: SdfVpcConfig;
+    public dfVpcConfig: DfVpcConfig;
 
     constructor(scope: Construct, id: string, props: NetworkConstructProperties) {
         super(scope, id);
 
-        const accessLogBucketName = `sdf-access-logs-${props.domain}-${cdk.Stack.of(this).account}-${cdk.Stack.of(this).region}`;
+        const accessLogBucketName = `df-access-logs-${props.domain}-${cdk.Stack.of(this).account}-${cdk.Stack.of(this).region}`;
 
         const accessLogBucket = new s3.Bucket(this, 's3AccessLog', {
             bucketName: accessLogBucketName,
@@ -93,7 +93,7 @@ export class Network extends Construct {
             });
 
 
-            const bucketName = `sdf-vpc-logs-${props.domain}-${cdk.Stack.of(this).account}-${cdk.Stack.of(this).region}`;
+            const bucketName = `df-vpc-logs-${props.domain}-${cdk.Stack.of(this).account}-${cdk.Stack.of(this).region}`;
 
             // Create log bucket.
             const s3LogBucket = new s3.Bucket(this, 's3LogBucket', {
@@ -116,7 +116,7 @@ export class Network extends Construct {
 
             });
 
-            const flowLogName = `sdf-${props.domain}-flowlogs`;
+            const flowLogName = `df-${props.domain}-flowlogs`;
 
             // Add flow logs.
             const vpcFlowLogRole = new iam.Role(this, 'vpcFlowLogRole', {
@@ -129,7 +129,7 @@ export class Network extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     reason: 'The role an only modify to a specific flowlog.',
-                    appliesTo: ['Action::s3:Abort*', 'Action::s3:DeleteObject*', `Resource::<Networks3LogBucketD8B712E9.Arn>/sdf-${props.domain}-flowlogs/*`]
+                    appliesTo: ['Action::s3:Abort*', 'Action::s3:DeleteObject*', `Resource::<Networks3LogBucketD8B712E9.Arn>/df-${props.domain}-flowlogs/*`]
                 }
             ], true);
 
@@ -151,41 +151,41 @@ export class Network extends Construct {
 
             new ssm.StringParameter(this, 'publicSubnetIdsParameter', {
                 parameterName: publicSubnetIdsParameter(props.domain),
-                description: 'Public subnet IDs used for SDF.',
+                description: 'Public subnet IDs used for DF.',
                 stringValue: this.vpc.selectSubnets({subnetGroupName: 'public-subnet'}).subnets.map((o) => o.subnetId).join(',')
             });
 
             new ssm.StringListParameter(this, 'publicSubnetIdListParameter', {
                 parameterName: publicSubnetIdListParameter(props.domain),
-                description: 'Public subnet IDs used for SDF.',
+                description: 'Public subnet IDs used for DF.',
                 stringListValue: this.vpc.selectSubnets({subnetGroupName: 'public-subnet'}).subnets.map((o) => o.subnetId)
             });
 
             new ssm.StringParameter(this, 'privateSubnetIdsParameter', {
                 parameterName: privateSubnetIdsParameter(props.domain),
-                description: 'Private subnet IDs used for SDF.',
+                description: 'Private subnet IDs used for DF.',
                 stringValue: this.vpc.selectSubnets({subnetGroupName: 'private-subnet'}).subnets.map((o) => o.subnetId).join(',')
             });
 
             new ssm.StringListParameter(this, 'privateSubnetIdListParameter', {
                 parameterName: privateSubnetIdListParameter(props.domain),
-                description: 'Private subnet IDs used for SDF.',
+                description: 'Private subnet IDs used for DF.',
                 stringListValue: this.vpc.selectSubnets({subnetGroupName: 'private-subnet'}).subnets.map((o) => o.subnetId)
             });
 
             new ssm.StringParameter(this, 'isolatedSubnetIdsParameter', {
                 parameterName: isolatedSubnetIdsParameter(props.domain),
-                description: 'Isolated subnet IDs used for SDF.',
+                description: 'Isolated subnet IDs used for DF.',
                 stringValue: this.vpc.selectSubnets({subnetGroupName: 'isolated-subnet'}).subnets.map((o) => o.subnetId).join(',')
             });
 
             new ssm.StringListParameter(this, 'isolatedSubnetIdListParameter', {
                 parameterName: isolatedSubnetIdListParameter(props.domain),
-                description: 'Isolated subnet IDs used for SDF.',
+                description: 'Isolated subnet IDs used for DF.',
                 stringListValue: this.vpc.selectSubnets({subnetGroupName: 'isolated-subnet'}).subnets.map((o) => o.subnetId)
             });
 
-            this.sdfVpcConfig = {
+            this.dfVpcConfig = {
                 vpcId: this.vpc.vpcId,
                 publicSubnetIds: this.vpc.selectSubnets({subnetGroupName: 'public-subnet'}).subnets.map((o) => o.subnetId),
                 privateSubnetIds: this.vpc.selectSubnets({subnetGroupName: 'private-subnet'}).subnets.map((o) => o.subnetId),
@@ -203,19 +203,19 @@ export class Network extends Construct {
 
             new ssm.StringParameter(this, 'isolatedSubnetIdsParameter', {
                 parameterName: isolatedSubnetIdsParameter(props.domain),
-                description: 'Isolated subnet IDs used for SDF.',
+                description: 'Isolated subnet IDs used for DF.',
                 stringValue: props.userVpcConfig.isolatedSubnetIds.join(',')
             });
 
 
             new ssm.StringListParameter(this, 'isolatedSubnetIdListParameter', {
                 parameterName: isolatedSubnetIdListParameter(props.domain),
-                description: 'Isolated subnet IDs used for SDF.',
+                description: 'Isolated subnet IDs used for DF.',
                 stringListValue: props.userVpcConfig.isolatedSubnetIds
             });
 
 
-            this.sdfVpcConfig = {
+            this.dfVpcConfig = {
                 vpcId: this.vpc.vpcId,
                 publicSubnetIds: props.userVpcConfig.publicSubnetIds,
                 privateSubnetIds: props.userVpcConfig.privateSubnetIds,

@@ -43,8 +43,8 @@ After deployment grab the cognito domain and userPoolId created during the stack
 
 Sample cli command:
 ```
-aws ssm get-parameter --name "/sdf/<enter domain>/shared/cognito/userPoolDomain"
-aws ssm get-parameter --name "/sdf/<enter domain>/shared/cognito/userPoolId"
+aws ssm get-parameter --name "/df/<enter domain>/shared/cognito/userPoolDomain"
+aws ssm get-parameter --name "/df/<enter domain>/shared/cognito/userPoolId"
 
 ```
 

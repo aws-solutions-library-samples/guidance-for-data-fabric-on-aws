@@ -7,8 +7,8 @@ export interface EventBusConstructProperties {
 	domain: string;
 }
 
-export const eventBusNameParameter = (domain: string) => `/sdf/${domain}/shared/eventBusName`;
-export const eventBusArnParameter = (domain: string) => `/sdf/${domain}/shared/eventBusArn`;
+export const eventBusNameParameter = (domain: string) => `/df/${domain}/shared/eventBusName`;
+export const eventBusArnParameter = (domain: string) => `/df/${domain}/shared/eventBusArn`;
 
 export class Bus extends Construct {
 	public readonly eventBusName: string;
@@ -17,7 +17,7 @@ export class Bus extends Construct {
 		super(scope, id);
 
 		const accountId = cdk.Stack.of(this).account;
-		const namePrefix = `sdf-${props.domain}`;
+		const namePrefix = `df-${props.domain}`;
 
 		const bus = new EventBus(this, 'bus', {
 			eventBusName: `${namePrefix}-${accountId}`,
