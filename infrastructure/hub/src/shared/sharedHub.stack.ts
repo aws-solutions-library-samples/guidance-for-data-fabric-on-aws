@@ -5,6 +5,8 @@ import { Bus } from './eventbus.construct.js';
 import { SSM } from './ssm.construct.js';
 import type { Construct } from 'constructs';
 import { Compute } from './compute.construct.js';
+import { S3, bucketArnParameter, bucketNameParameter } from './s3.construct.js';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 
 
 export type SharedHubStackProperties = StackProps & {
@@ -49,6 +51,20 @@ export class SharedHubInfrastructureStack extends Stack {
             domain: props.domain
         });
 
+        const s3 = new S3(this, 'S3', {
+            deleteBucket: false
+        });
 
+        new ssm.StringParameter(this, 'bucketNameParameter', {
+            parameterName: bucketNameParameter,
+            description: 'shared Bucket Name for SDF',
+            stringValue: s3.bucketName
+        });
+
+        new ssm.StringParameter(this, 'bucketArnParameter', {
+            parameterName: bucketArnParameter,
+            description: 'shared Bucket Arn for SDF',
+            stringValue: s3.bucketArn
+        });
     }
 }

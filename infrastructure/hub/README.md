@@ -21,8 +21,7 @@ Sample command to deploy the CDK stack:
 ```
 npm run cdk -- deploy \
 --require-approval never --concurrency=10 \
--c domain=<enter your domain> \
---app "npx ts-node --esm --prefer-ts-exts src/app.ts"
+-c domain=<enter your domain>
 ``` 
 
 You have now deploy the shared infrastructure needed to integrate with `IAM Identity Center` 
@@ -79,6 +78,5 @@ npm run cdk -- deploy \
     -c ssoInstanceArn=<enter your IAM Identity center Instance ARN> \
     -c samlMetaDataUrl=<enter your SAML 2.0 application metadata url> \
     -c callbackUrls=<enter a comma separated list of urls>
-    -c adminEmail=<enter the admin email you want to be used>\
-    --app "npx ts-node --esm --prefer-ts-exts src/app.ts"
+    -c adminEmail=<enter the admin email you want to be used>
 ```

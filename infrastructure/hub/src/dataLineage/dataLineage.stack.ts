@@ -9,6 +9,9 @@ import { NagSuppressions } from 'cdk-nag';
 import { clusterNameParameter } from "../shared/compute.construct.js";
 import { userPoolDomainParameter, userPoolIdParameter } from "../shared/cognito.construct.js";
 import { OpenLineage } from "./openLineage.construct.js";
+import { DataLineage } from "./dataLineage.construct.js";
+import { eventBusArnParameter } from '../shared/eventbus.construct.js';
+
 
 export type DataLineageStackProperties = StackProps & {
     domain: string;
@@ -23,6 +26,7 @@ export type DataLineageStackProperties = StackProps & {
 export const rdsClusterWriterEndpoint = (domain: string) => `/sdf/${domain}/dataLineage/aurora/rdsClusterWriterEndpoint`;
 export const openLineageWebUrlParameter = (domain: string) => `/sdf/${domain}/dataLineage/openLineageWebUrl`;
 export const openLineageApiUrlParameter = (domain: string) => `/sdf/${domain}/dataLineage/openLineageApiUrl`;
+
 
 export class DataLineageStack extends Stack {
     constructor(scope: Construct, id: string, props: DataLineageStackProperties) {
@@ -92,6 +96,14 @@ export class DataLineageStack extends Stack {
         new StringParameter(this, 'openLineageApiUrlParameter', {
             parameterName: openLineageApiUrlParameter(props.domain),
             stringValue: openLineage.openLineageApiUrl
+        });
+
+        const eventBusName = StringParameter.valueForStringParameter(this, eventBusArnParameter(props.domain));
+        new DataLineage(this, 'DataLineage', {
+            vpc,
+            domain: props.domain,
+            marquezUrl: openLineage.openLineageApiUrl,
+            eventBusName
         });
 
         NagSuppressions.addResourceSuppressionsByPath(this, [

@@ -13,6 +13,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import { userPoolIdParameter } from "./shared/cognito.construct.js";
+import { DataAssetStack } from './dataAsset/dataAsset.stack.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,6 +109,14 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             loadBalancerCertificateArn
         });
         dataLineage.node.addDependency(sharedStack);
+
+        const dataAsset = new DataAssetStack(app, 'DataAssetStack', {
+            stackName: stackName('dataAsset'),
+            description: stackDescription('DataAsset'),
+            moduleName: 'dataAsset',
+            domainId:domain
+        });
+        dataAsset.node.addDependency(sharedStack);
     }
 
     if (ssoInstanceArn && adminEmail) {
