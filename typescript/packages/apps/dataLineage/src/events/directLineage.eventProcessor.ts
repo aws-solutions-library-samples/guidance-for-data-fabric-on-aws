@@ -1,7 +1,7 @@
-import { validateNotEmpty } from '@sdf/validators';
-import type { MarquezClient } from '@sdf/clients';
+import { validateNotEmpty } from '@df/validators';
+import type { MarquezClient } from '@df/clients';
 import type { BaseLogger } from 'pino';
-import type { RunEvent } from '@sdf/events';
+import type { RunEvent } from '@df/events';
 
 export class DirectLineageEventProcessor {
 	constructor(

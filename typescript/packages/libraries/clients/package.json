@@ -1,5 +1,5 @@
 {
-	"name": "@sdf/clients",
+	"name": "@df/clients",
 	"version": "1.0.0",
 	"description": "A collection of client libraries for various components",
 	"author": "Pouya Bahavar <bahavar@amazon.com>",
@@ -19,7 +19,7 @@
 	},
 	"dependencies": {
 		"axios": "1.6.7",
-		"@sdf/events": "workspace:*"
+		"@df/events": "workspace:*"
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",

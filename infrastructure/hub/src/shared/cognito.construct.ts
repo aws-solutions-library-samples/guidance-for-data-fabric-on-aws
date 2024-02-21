@@ -26,10 +26,10 @@ export interface CognitoConstructProperties {
 }
 
 
-export const userPoolArnParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolArn`;
-export const userPoolClientIdParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolClientId`;
-export const userPoolDomainParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolDomain`;
-export const userPoolIdParameter = (domain: string) => `/sdf/${domain}/shared/cognito/userPoolId`;
+export const userPoolArnParameter = (domain: string) => `/df/${domain}/shared/cognito/userPoolArn`;
+export const userPoolClientIdParameter = (domain: string) => `/df/${domain}/shared/cognito/userPoolClientId`;
+export const userPoolDomainParameter = (domain: string) => `/df/${domain}/shared/cognito/userPoolDomain`;
+export const userPoolIdParameter = (domain: string) => `/df/${domain}/shared/cognito/userPoolId`;
 
 export class Cognito extends Construct {
 	public readonly userPoolId: string;
@@ -37,7 +37,7 @@ export class Cognito extends Construct {
 	constructor(scope: Construct, id: string, props: CognitoConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `sdf-${props.domain}`;
+		const namePrefix = `df-${props.domain}`;
 
 		const userPoolEmailSettings: UserPoolEmail | undefined = props.userPoolEmail
 			? cognito.UserPoolEmail.withSES({
@@ -104,7 +104,7 @@ export class Cognito extends Construct {
 		const domain = new UserPoolDomain(this, 'UserPoolDomain', {
 			userPool: userPool,
 			cognitoDomain: {
-				domainPrefix: `sdf-${props.domain}-${cdk.Stack.of(this).account}`
+				domainPrefix: `df-${props.domain}-${cdk.Stack.of(this).account}`
 			}
 		});
 

@@ -1,5 +1,5 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
-import { Network, SdfVpcConfig } from './network.construct.js';
+import { Network, DfVpcConfig } from './network.construct.js';
 import { Cognito } from './cognito.construct.js';
 import { Bus } from './eventbus.construct.js';
 import { SSM } from './ssm.construct.js';
@@ -10,7 +10,7 @@ import { Compute } from './compute.construct.js';
 export type SharedHubStackProperties = StackProps & {
     domain: string;
     deleteBucket?: boolean;
-    userVpcConfig?: SdfVpcConfig;
+    userVpcConfig?: DfVpcConfig;
     userPoolIdParameter: string;
 
 };

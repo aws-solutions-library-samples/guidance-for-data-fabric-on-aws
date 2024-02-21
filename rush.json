@@ -271,7 +271,7 @@
 		 * your PR branch, and in this situation "rush change" will also automatically invoke "git fetch"
 		 * to retrieve the latest activity for the remote main branch.
 		 */
-		"url": "git@ssh.gitlab.aws.dev:wwso-cross-industry-prototyping/sdf/sdf-core.git",
+		"url": "git@ssh.gitlab.aws.dev:wwso-cross-industry-prototyping/df/df-core.git",
 		/**
 		 * The default branch name. This tells "rush change" which remote branch to compare against.
 		 * The default value is "main"
@@ -367,37 +367,37 @@
 	 */
 	"projects": [
 		{
-			"packageName": "@sdf/infrastructure-hub",
+			"packageName": "@df/infrastructure-hub",
 			"projectFolder": "infrastructure/hub",
 			"reviewCategory": "production",
 			"shouldPublish": true
 		},
 		{
-			"packageName": "@sdf/cdk-common",
+			"packageName": "@df/cdk-common",
 			"projectFolder": "typescript/packages/libraries/cdk-common",
 			"reviewCategory": "production",
 			"shouldPublish": true
 		},
 		{
-			"packageName": "@sdf/clients",
+			"packageName": "@df/clients",
 			"projectFolder": "typescript/packages/libraries/clients",
 			"reviewCategory": "library",
 			"shouldPublish": true
 		},
 		{
-			"packageName": "@sdf/validators",
+			"packageName": "@df/validators",
 			"projectFolder": "typescript/packages/libraries/validators",
 			"reviewCategory": "library",
 			"shouldPublish": true
 		},
 		{
-			"packageName": "@sdf/events",
+			"packageName": "@df/events",
 			"projectFolder": "typescript/packages/libraries/events",
 			"reviewCategory": "library",
 			"shouldPublish": true
 		},
 		{
-			"packageName": "@sdf/dataLineage",
+			"packageName": "@df/dataLineage",
 			"projectFolder": "typescript/packages/apps/dataLineage",
 			"reviewCategory": "production",
 			"shouldPublish": true

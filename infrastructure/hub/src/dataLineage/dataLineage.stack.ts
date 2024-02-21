@@ -23,9 +23,9 @@ export type DataLineageStackProperties = StackProps & {
     loadBalancerCertificateArn: string;
 };
 
-export const rdsClusterWriterEndpoint = (domain: string) => `/sdf/${domain}/dataLineage/aurora/rdsClusterWriterEndpoint`;
-export const openLineageWebUrlParameter = (domain: string) => `/sdf/${domain}/dataLineage/openLineageWebUrl`;
-export const openLineageApiUrlParameter = (domain: string) => `/sdf/${domain}/dataLineage/openLineageApiUrl`;
+export const rdsClusterWriterEndpoint = (domain: string) => `/df/${domain}/dataLineage/aurora/rdsClusterWriterEndpoint`;
+export const openLineageWebUrlParameter = (domain: string) => `/df/${domain}/dataLineage/openLineageWebUrl`;
+export const openLineageApiUrlParameter = (domain: string) => `/df/${domain}/dataLineage/openLineageApiUrl`;
 
 
 export class DataLineageStack extends Stack {

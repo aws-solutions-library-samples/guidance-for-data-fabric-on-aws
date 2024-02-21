@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import * as cdk from 'aws-cdk-lib';
 import { NagSuppressions } from 'cdk-nag';
-import { getLambdaArchitecture } from '@sdf/cdk-common';
+import { getLambdaArchitecture } from '@df/cdk-common';
 import { Effect, Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,7 +32,7 @@ export class SsoSeeder extends Construct {
 		super(scope, id);
 
 		const accountId = cdk.Stack.of(this).account;
-		const namePrefix = `sdf-${props.domain}`;
+		const namePrefix = `df-${props.domain}`;
 		const instanceId = props.ssoInstanceArn.split('/')[1];
 
 		const iamPolicy = new Policy(this, 'iam-policy', {

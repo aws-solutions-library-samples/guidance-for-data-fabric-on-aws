@@ -5,15 +5,15 @@ export interface SSMConstructProperties {
 	domain: string;
 }
 // Access Control Parameters
-export const accessControlApiFunctionNameParameter = (domain: string) => `/sdf/${domain}/accessControl/apiFunctionName`;
+export const accessControlApiFunctionNameParameter = (domain: string) => `/df/${domain}/accessControl/apiFunctionName`;
 
 // Data Lineage Parameters
-export const dataLineageApiFunctionNameParameter = (domain: string) => `/sdf/${domain}/dataLineage/apiFunctionName`;
+export const dataLineageApiFunctionNameParameter = (domain: string) => `/df/${domain}/dataLineage/apiFunctionName`;
 
 
 
 // Data Quality Parameters
-export const dataQualityApiFunctionNameParameter = (domain: string) => `/sdf/${domain}/dataQuality/apiFunctionName`;
+export const dataQualityApiFunctionNameParameter = (domain: string) => `/df/${domain}/dataQuality/apiFunctionName`;
 
 
 export class SSM extends Construct {
@@ -21,7 +21,7 @@ export class SSM extends Construct {
 	constructor(scope: Construct, id: string, props: SSMConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `sdf-${props.domain}`;
+		const namePrefix = `df-${props.domain}`;
 		/*
 			* Access Control parameters
 		*/
