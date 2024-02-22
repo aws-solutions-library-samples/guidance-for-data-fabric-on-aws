@@ -422,7 +422,7 @@
 			"shouldPublish": true
 		},
 		{
-			"packageName": "@sdf/dataAsset",
+			"packageName": "@df/dataAsset",
 			"projectFolder": "typescript/packages/apps/dataAsset",
 			"reviewCategory": "production",
 			"shouldPublish": true

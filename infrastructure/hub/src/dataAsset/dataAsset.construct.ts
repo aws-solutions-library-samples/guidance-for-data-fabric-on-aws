@@ -1,4 +1,4 @@
-import { getLambdaArchitecture } from '@sdf/cdk-common';
+import { getLambdaArchitecture } from '@df/cdk-common';
 import { EventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
-import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT } from '@sdf/events';
+import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT } from '@df/events';
 import { SfnStateMachine } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 
@@ -41,7 +41,7 @@ export class DataAsset extends Construct {
     constructor(scope: Construct, id: string, props: DataAssetConstructProperties) {
         super(scope, id);
 
-        const namePrefix = `sdf`;
+        const namePrefix = `df`;
         const eventBus = EventBus.fromEventBusName(this, 'EventBus', props.eventBusName);
         const accountId = Stack.of(this).account;
         const region = Stack.of(this).region;
@@ -191,7 +191,7 @@ export class DataAsset extends Construct {
 
         const SFNGetExecutionHistoryPolicy = new PolicyStatement({
             actions: ['states:GetExecutionHistory', 'states:DescribeExecution'],
-            resources: [`arn:aws:states:${region}:${accountId}:execution:sdf-data-asset:*`]
+            resources: [`arn:aws:states:${region}:${accountId}:execution:df-data-asset:*`]
         });
 
         apiLambda.addToRolePolicy(SFNGetExecutionHistoryPolicy);
@@ -213,12 +213,14 @@ export class DataAsset extends Construct {
                     'databrew:CreateRecipe',
                     'databrew:CreateRecipeJob',
                     'databrew:CreateRuleset',
-                    'databrew:CreateSchedule'
+                    'databrew:CreateSchedule',
+                    'iam:PassRole'
                 ],
                 resources: [
-                    `arn:aws:states:${region}:${accountId}:stateMachine:sdf-data-asset`,
+                    `arn:aws:states:${region}:${accountId}:stateMachine:df-data-asset`,
                     `arn:aws:databrew:${region}:${accountId}:dataset/*`,
-                    `arn:aws:databrew:${region}:${accountId}:job/*`
+                    `arn:aws:databrew:${region}:${accountId}:job/*`,
+                    `arn:aws:iam::${accountId}:role/service-role/*`
                 ]
             });
     
@@ -279,7 +281,7 @@ export class DataAsset extends Construct {
 
         const configDataBrewLambda = new NodejsFunction(this, 'ConfigDataBrewLambda', {
             description: `Asset Manager config data brew Task Handler`,
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/dataBrew.handler.ts'),
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/job.handler.ts'),
             functionName: `${namePrefix}-configDataBrewTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
@@ -375,18 +377,18 @@ export class DataAsset extends Construct {
             outputPath: '$.dataAssetEvent'
         });
 
-        const runJobTask = new LambdaInvoke(this, 'ExecuteJobTask', {
-            lambdaFunction: runJobLambda,
-            payload: TaskInput.fromObject({
-                'dataAssetEvent.$': '$',
-                'execution':{
-                    'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
-                    'taskToken': JsonPath.taskToken
-                }
-            }),
-            outputPath: '$.dataAssetEvent'
-        });
+        // const runJobTask = new LambdaInvoke(this, 'ExecuteJobTask', {
+        //     lambdaFunction: runJobLambda,
+        //     payload: TaskInput.fromObject({
+        //         'dataAssetEvent.$': '$',
+        //         'execution':{
+        //             'executionStartTime.$': '$$.Execution.StartTime',
+        //             'executionArn.$': '$$.Execution.Id',
+        //             'taskToken': JsonPath.taskToken
+        //         }
+        //     }),
+        //     outputPath: '$.dataAssetEvent'
+        // });
 
         const deadLetterQueue = new Queue(this, 'DeadLetterQueue');
         deadLetterQueue.addToResourcePolicy(new PolicyStatement({
@@ -417,7 +419,7 @@ export class DataAsset extends Construct {
         const dataAssetStateMachine = new StateMachine(this, 'DataAssetStateMachine', {
             definitionBody: DefinitionBody.fromChainable(
                 new Choice(this, 'Connection data Found ?')
-                    .otherwise(createDataSetTask.next(configDataBrewTask).next(runJobTask))
+                    .otherwise(createDataSetTask.next(configDataBrewTask))
                     .when(Condition.or(Condition.isPresent('$.workflow.dataset.connectionId'), Condition.isPresent('$.workflow.dataset.connection')),
                         new Choice(this, 'Is connectionId present?')
                             .otherwise(createConnectionTask.next(createDataSetTask))
@@ -471,7 +473,7 @@ export class DataAsset extends Construct {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
                         'Resource::*',
-                        'Resource::arn:aws:states:<AWS::Region>:<AWS::AccountId>:execution:sdf-data-asset:*'],
+                        'Resource::arn:aws:states:<AWS::Region>:<AWS::AccountId>:execution:df-data-asset:*'],
                     reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments actions.'
 
                 }
@@ -491,7 +493,8 @@ export class DataAsset extends Construct {
                     appliesTo: [
                         'Resource::*',
                         `Resource::arn:aws:databrew:<AWS::Region>:<AWS::AccountId>:dataset/*`,
-                        `Resource::arn:aws:databrew:<AWS::Region>:<AWS::AccountId>:job/*`
+                        `Resource::arn:aws:databrew:<AWS::Region>:<AWS::AccountId>:job/*`,
+                        `Resource::arn:aws:iam::<AWS::AccountId>:role/service-role/*`
                     ],
                     reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments actions.'
 

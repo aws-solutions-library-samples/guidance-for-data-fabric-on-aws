@@ -5,8 +5,8 @@ export interface S3ConstructProperties {
 	deleteBucket: boolean;
 }
 
-export const bucketNameParameter = `/sdf/shared/bucketName`;
-export const bucketArnParameter = `/sdf/shared/bucketArn`;
+export const bucketNameParameter = `/df/shared/bucketName`;
+export const bucketArnParameter = `/df/shared/bucketArn`;
 
 export class S3 extends Construct {
 	public readonly bucketName: string;
@@ -17,10 +17,10 @@ export class S3 extends Construct {
 
 		const accountId = Stack.of(this).account;
 		const region = Stack.of(this).region;
-		const bucketName = `sdf-${accountId}-${region}-hub`;
+		const bucketName = `df-${accountId}-${region}-hub`;
 
 
-		const bucket = new s3.Bucket(this, 'sdfBucket', {
+		const bucket = new s3.Bucket(this, 'dfBucket', {
 			bucketName: bucketName,
 			encryption: s3.BucketEncryption.S3_MANAGED,
 			intelligentTieringConfigurations: [

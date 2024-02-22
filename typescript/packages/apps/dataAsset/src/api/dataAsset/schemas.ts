@@ -115,6 +115,14 @@ export const workflow = Type.Object({
     tags,
 });
 
+export const execution = Type.Object({
+    hubStateMachineArn: Type.Optional(Type.String({ description: 'The hub execution id of the state machine' }))   ,
+    spokeStateMachineArn: Type.Optional(Type.String({ description: 'The Spoke execution id of the state machine' })),
+    jobRunId: Type.Optional(Type.String({ description: 'The job runId from databrew' })),
+    jobRunStatus: Type.Optional(Type.String({ description: 'The run status of the job' })),
+    jobStopTime: Type.Optional(Type.String({ description: 'The stop time of the last job run ' }))
+
+});
 
 export const dataAssetResource = Type.Object({
     id,
@@ -124,6 +132,7 @@ export const dataAssetResource = Type.Object({
     createdAt: createdAt,
     updatedBy: Type.Optional(updatedBy),
     updatedAt: Type.Optional(updatedAt),
+    execution: Type.Optional(execution),
     catalog,
     workflow
 }, { $id: 'dataAssetResource' });
@@ -138,6 +147,7 @@ export const newDataAssetResource = Type.Object({
 
 export const editDataAssetResource = Type.Object({
     state,
+    execution: Type.Optional(execution),
     catalog,
     workflow
 }, {

@@ -607,7 +607,7 @@ export interface lineageIngestionEvent {
 		Detail: RunEvent,
 	};
 
-export const DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT = `SDF>${DATA_LINEAGE_SPOKE_EVENT_SOURCE}>ingestion>request`;
+export const DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT = `DF>${DATA_LINEAGE_SPOKE_EVENT_SOURCE}>ingestion>request`;
 
 export type {lineageIngestionEvent as LineageIngestionEvent};
 

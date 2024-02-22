@@ -13,7 +13,7 @@ import { DataAssetService } from '../api/dataAsset/service.js';
 import { BaseCradle, registerBaseAwilix } from '@df/resource-api-base';
 import { EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE } from '@df/events';
  import { ConnectionTask} from '../stepFunction/tasks/connectionTask.js';
- import { DataBrewTask} from '../stepFunction/tasks/dataBrewTask.js';
+ import { JobTask} from '../stepFunction/tasks/jobTask.js';
  import { DataSetTask} from '../stepFunction/tasks/dataSetTask.js';
  import { RunJobTask} from '../stepFunction/tasks/runJobTask.js';
 import { GlueClient } from '@aws-sdk/client-glue';
@@ -36,7 +36,7 @@ declare module '@fastify/awilix' {
 		dataAssetRepository: DataAssetRepository;
 		dataAssetService: DataAssetService;
 		connectionTask:ConnectionTask;
-		dataBrewTask:DataBrewTask;
+		jobTask:JobTask;
 		dataSetTask:DataSetTask;
 		runJobTask:RunJobTask;
 	}
@@ -168,7 +168,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		dataBrewTask: asFunction((container: Cradle) => new DataBrewTask(app.log, container.stepFunctionClient, container.dataBrewClient, JobsBucketName, JobsBucketPrefix), {
+		jobTask: asFunction((container: Cradle) => new JobTask(app.log, container.stepFunctionClient, container.dataBrewClient, JobsBucketName, JobsBucketPrefix), {
 			...commonInjectionOptions
 		}),
 

@@ -12,8 +12,8 @@ export interface DomainEvent<T> {
 	error?: Error;
 }
 
-export const ACCESS_CONTROL_HUB_EVENT_SOURCE: string = 'com.aws.sdf.hub.accessControl';
-export const DATA_LINEAGE_HUB_EVENT_SOURCE: string = 'com.aws.sdf.hub.dataLineage';
-export const DATA_ASSET_HUB_EVENT_SOURCE: string = 'com.aws.sdf.hub.dataAsset';
+export const ACCESS_CONTROL_HUB_EVENT_SOURCE: string = 'com.aws.df.hub.accessControl';
+export const DATA_LINEAGE_HUB_EVENT_SOURCE: string = 'com.aws.df.hub.dataLineage';
+export const DATA_ASSET_HUB_EVENT_SOURCE: string = 'com.aws.df.hub.dataAsset';
 
-export const DATA_ASSET_HUB_CREATE_REQUEST_EVENT =  `SDF>${DATA_ASSET_HUB_EVENT_SOURCE}>create>request`
+export const DATA_ASSET_HUB_CREATE_REQUEST_EVENT =  `DF>${DATA_ASSET_HUB_EVENT_SOURCE}>create>request`

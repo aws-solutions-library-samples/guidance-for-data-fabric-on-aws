@@ -57,13 +57,13 @@ export class SharedHubInfrastructureStack extends Stack {
 
         new ssm.StringParameter(this, 'bucketNameParameter', {
             parameterName: bucketNameParameter,
-            description: 'shared Bucket Name for SDF',
+            description: 'shared Bucket Name for DF',
             stringValue: s3.bucketName
         });
 
         new ssm.StringParameter(this, 'bucketArnParameter', {
             parameterName: bucketArnParameter,
-            description: 'shared Bucket Arn for SDF',
+            description: 'shared Bucket Arn for DF',
             stringValue: s3.bucketArn
         });
     }

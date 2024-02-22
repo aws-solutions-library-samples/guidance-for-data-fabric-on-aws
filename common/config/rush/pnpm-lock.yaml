@@ -137,6 +137,18 @@ importers:
       '@aws-sdk/lib-dynamodb':
         specifier: 3.370.0
         version: 3.370.0(@aws-sdk/client-dynamodb@3.370.0)(@aws-sdk/types@3.370.0)
+      '@df/dynamodb-utils':
+        specifier: workspace:*
+        version: link:../../libraries/dynamodb-utils
+      '@df/events':
+        specifier: workspace:*
+        version: link:../../libraries/events
+      '@df/resource-api-base':
+        specifier: workspace:*
+        version: link:../../libraries/resource-api-base
+      '@df/validators':
+        specifier: workspace:*
+        version: link:../../libraries/validators
       '@fastify/awilix':
         specifier: 3.1.0
         version: 3.1.0(awilix@8.0.1)(fastify@4.20.0)
@@ -158,18 +170,6 @@ importers:
       '@fastify/type-provider-typebox':
         specifier: 3.3.0
         version: 3.3.0(@sinclair/typebox@0.29.4)
-      '@sdf/dynamodb-utils':
-        specifier: workspace:*
-        version: link:../../libraries/dynamodb-utils
-      '@sdf/events':
-        specifier: workspace:*
-        version: link:../../libraries/events
-      '@sdf/resource-api-base':
-        specifier: workspace:*
-        version: link:../../libraries/resource-api-base
-      '@sdf/validators':
-        specifier: workspace:*
-        version: link:../../libraries/validators
       '@sinclair/typebox':
         specifier: 0.29.4
         version: 0.29.4
@@ -267,6 +267,15 @@ importers:
       '@aws-sdk/lib-dynamodb':
         specifier: 3.370.0
         version: 3.370.0(@aws-sdk/client-dynamodb@3.370.0)(@aws-sdk/types@3.370.0)
+      '@df/clients':
+        specifier: workspace:*
+        version: link:../../libraries/clients
+      '@df/events':
+        specifier: workspace:*
+        version: link:../../libraries/events
+      '@df/validators':
+        specifier: workspace:*
+        version: link:../../libraries/validators
       '@fastify/awilix':
         specifier: 3.1.0
         version: 3.1.0(awilix@8.0.1)(fastify@4.20.0)
@@ -288,15 +297,6 @@ importers:
       '@fastify/type-provider-typebox':
         specifier: 3.3.0
         version: 3.3.0(@sinclair/typebox@0.29.4)
-      '@df/clients':
-        specifier: workspace:*
-        version: link:../../libraries/clients
-      '@df/events':
-        specifier: workspace:*
-        version: link:../../libraries/events
-      '@df/validators':
-        specifier: workspace:*
-        version: link:../../libraries/validators
       '@sinclair/typebox':
         specifier: 0.29.4
         version: 0.29.4
@@ -735,6 +735,12 @@ importers:
       '@aws-sdk/util-dynamodb':
         specifier: 3.370.0
         version: 3.370.0
+      '@df/dynamodb-utils':
+        specifier: workspace:*
+        version: link:../dynamodb-utils
+      '@df/lambda-invoker':
+        specifier: workspace:*
+        version: link:../lambda-invoker
       '@fastify/awilix':
         specifier: 3.1.0
         version: 3.1.0(awilix@8.0.1)(fastify@4.20.0)
@@ -750,12 +756,6 @@ importers:
       '@fastify/type-provider-typebox':
         specifier: 3.3.0
         version: 3.3.0(@sinclair/typebox@0.29.4)
-      '@sdf/dynamodb-utils':
-        specifier: workspace:*
-        version: link:../dynamodb-utils
-      '@sdf/lambda-invoker':
-        specifier: workspace:*
-        version: link:../lambda-invoker
       '@sinclair/typebox':
         specifier: 0.29.4
         version: 0.29.4

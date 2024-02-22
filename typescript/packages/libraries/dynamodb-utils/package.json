@@ -1,5 +1,5 @@
 {
-	"name": "@sdf/dynamodb-utils",
+	"name": "@df/dynamodb-utils",
 	"version": "1.0.0",
 	"description": "Common DynamoDB utils.",
 	"author": "Dean Hart <deanhart@amazon.com>",
