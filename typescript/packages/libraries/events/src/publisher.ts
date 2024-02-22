@@ -34,7 +34,7 @@ export class EventPublisher {
 				{
 					EventBusName: this.eventBusName,
 					Source: this.eventSource as unknown as string,
-					DetailType: `SDF>${this.eventSource}>${event.resourceType}>${event.eventType}`,
+					DetailType: `DF>${this.eventSource}>${event.resourceType}>${event.eventType}`,
 					Detail: JSON.stringify({
 						...event,
 						error: error,

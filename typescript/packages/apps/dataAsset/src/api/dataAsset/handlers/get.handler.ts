@@ -1,4 +1,4 @@
-import { apiVersion100, commonHeaders, FastifyTypebox, notFoundResponse } from '@sdf/resource-api-base';
+import { apiVersion100, commonHeaders, FastifyTypebox, notFoundResponse } from '@df/resource-api-base';
 import { Type } from '@sinclair/typebox';
 
 import { id, dataAssetResource } from '../schemas.js';

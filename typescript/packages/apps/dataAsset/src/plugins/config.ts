@@ -1,7 +1,7 @@
 import fp from 'fastify-plugin';
 import fastifyEnv, { FastifyEnvOptions } from '@fastify/env';
 import { Static, Type } from '@sinclair/typebox';
-import { baseConfigSchema, convertFromTypeBoxIntersectToJSONSchema } from '@sdf/resource-api-base';
+import { baseConfigSchema, convertFromTypeBoxIntersectToJSONSchema } from '@df/resource-api-base';
 
 // eslint-disable-next-line @rushstack/typedef-var
 export const moduleConfigSchema = Type.Object({

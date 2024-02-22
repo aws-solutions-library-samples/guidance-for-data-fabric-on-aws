@@ -11,9 +11,9 @@ const ssm = new SSMClient({ region: process.env['AWS_REGION'] });
 
 const getValues = async (module: string, mapping: Record<string, string>) => {
 	for (const key in mapping) {
-		let prefix = `/sdf/${module}/`;
+		let prefix = `/df/${module}/`;
 		if( module != 'dataAsset' ){
-			prefix = `/sdf/${DOMAIN_ID}/${module}/`;
+			prefix = `/df/${DOMAIN_ID}/${module}/`;
 		}
 		const name = `${prefix}${mapping[key]}`;
 		try {

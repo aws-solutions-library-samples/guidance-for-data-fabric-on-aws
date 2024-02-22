@@ -6,7 +6,7 @@ export default fp<FastifySwaggerOptions>(async (app) => {
 	await app.register(FastifySwagger, {
 		openapi: {
 			info: {
-				title: 'SDF: Asset Management',
+				title: 'DF: Asset Management',
 				description:
 					'\nHas accountability for:\n- managing Assets in data zone\n\t- creating data brew jobs for profiling and data conversion \n\t- running data bre job for profiling and data quality\n',
 				version: '0.0.1',

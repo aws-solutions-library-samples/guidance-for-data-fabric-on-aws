@@ -1,6 +1,6 @@
 import { Type } from '@sinclair/typebox';
 import { dataAssetResource, newDataAssetResource } from '../schemas.js';
-import { apiVersion100, badRequestResponse, commonHeaders, FastifyTypebox, serviceUnavailableResponse } from '@sdf/resource-api-base';
+import { apiVersion100, badRequestResponse, commonHeaders, FastifyTypebox, serviceUnavailableResponse } from '@df/resource-api-base';
 
 export default function createDataAssetsRoute(fastify: FastifyTypebox, _options: unknown, done: () => void): void {
 	fastify.route({

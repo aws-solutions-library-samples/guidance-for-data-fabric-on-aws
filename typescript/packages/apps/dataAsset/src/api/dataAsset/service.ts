@@ -1,11 +1,11 @@
 import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import type { FastifyBaseLogger } from 'fastify';
 import type {  EditDataAsset,  NewDataAsset,  DataAssetListOptions,  DataAsset,  Catalog, Workflow } from './schemas.js';
-import { validateNotEmpty, validateRegularExpression } from '@sdf/validators';
+import { validateNotEmpty, validateRegularExpression } from '@df/validators';
 import type { DataAssetRepository } from './repository.js';
 import { GetAssetCommand, type DataZoneClient, CreateAssetCommand, CreateAssetOutput } from '@aws-sdk/client-datazone';
-import { NotFoundError } from '@sdf/resource-api-base';
-import { EventBridgeEventBuilder, type EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_HUB_CREATE_REQUEST_EVENT } from '@sdf/events';
+import { NotFoundError } from '@df/resource-api-base';
+import { EventBridgeEventBuilder, type EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_HUB_CREATE_REQUEST_EVENT } from '@df/events';
 import { getObjectArnFromUri } from '../../common/s3Utils.js';
 import { AssetTypeToFormMap, ConnectionToAssetTypeMap, getConnectionType } from '../../common/utils.js';
 
@@ -198,7 +198,7 @@ export class DataAssetService {
     private createFormInput(formName:string, asset:NewDataAsset): any{
         let input = {}
         switch (formName) {
-            case 'sdf_s3_asset_form':
+            case 'df_s3_asset_form':
 				input = {
                     formName,
                     content: JSON.stringify({

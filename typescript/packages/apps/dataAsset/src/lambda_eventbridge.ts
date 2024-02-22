@@ -2,7 +2,7 @@ import type { EventBridgeHandler, Context, Callback } from 'aws-lambda';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from './app.light';
-import  { DATA_ASSET_SPOKE_EVENT_SOURCE, RunEvent } from '@sdf/events';
+import  { DATA_ASSET_SPOKE_EVENT_SOURCE, RunEvent } from '@df/events';
 import type { DataAssetEventProcessor } from './events/dataAsset.eventProcessor.js';
 
 const app: FastifyInstance = await buildLightApp();

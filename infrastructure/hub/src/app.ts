@@ -8,7 +8,7 @@ import { CognitoCustomStack } from './shared/cognitoCustom.stack.js';
 import { DataLineageStack } from './dataLineage/dataLineage.stack.js';
 import { AwsSolutionsChecks } from 'cdk-nag';
 import { getOrThrow } from './shared/stack.utils.js';
-import { tryGetBooleanContext } from '@sdf/cdk-common';
+import { tryGetBooleanContext } from '@df/cdk-common';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
@@ -46,11 +46,11 @@ if (useExistingVpc) {
 }
 
 // tags the entire platform with cost allocation tags
-cdk.Tags.of(app).add('sdf:domain', domain);
+cdk.Tags.of(app).add('df:domain', domain);
 
 Aspects.of(app).add(new AwsSolutionsChecks({verbose: true}));
 
-const stackNamePrefix = `sdf-shared-${domain}`;
+const stackNamePrefix = `df-shared-${domain}`;
 
 const stackName = (suffix: string) => `${stackNamePrefix}-${suffix}`;
 const stackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
@@ -71,8 +71,8 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         deleteBucket,
         userPoolIdParameter: userPoolIdParameter(domain),
         env: {
-            // The SDF_REGION domain variable
-            region: process.env?.['SDF_REGION'] || callerEnvironment?.region,
+            // The DF_REGION domain variable
+            region: process.env?.['DF_REGION'] || callerEnvironment?.region,
             account: callerEnvironment?.accountId
         }
     });

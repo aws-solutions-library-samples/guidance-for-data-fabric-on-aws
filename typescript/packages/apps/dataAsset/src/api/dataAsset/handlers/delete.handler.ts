@@ -1,4 +1,4 @@
-import { commonHeaders, forbiddenResponse, id, noBodyResponse, notFoundResponse, apiVersion100, FastifyTypebox } from '@sdf/resource-api-base';
+import { commonHeaders, forbiddenResponse, id, noBodyResponse, notFoundResponse, apiVersion100, FastifyTypebox } from '@df/resource-api-base';
 import { Type } from '@sinclair/typebox';
 
 export default function deleteDataAssetsRoute(fastify: FastifyTypebox, _options: unknown, done: () => void): void {

@@ -2,7 +2,7 @@ import { ClientServiceBase } from '../common/common.js';
 import type { BaseLogger } from 'pino';
 import axios from 'axios';
 import { COMMON_HEADERS } from '../common/utils.js'
-import type { RunEvent } from '@sdf/events';
+import type { RunEvent } from '@df/events';
 
 export class MarquezClient extends ClientServiceBase {
 	private readonly marquezUrl: string;

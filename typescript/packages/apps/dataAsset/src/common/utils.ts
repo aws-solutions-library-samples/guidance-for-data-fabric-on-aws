@@ -7,11 +7,11 @@ export const ConnectionToAssetTypeMap = {
     managedRedshift: 'amazon.datazone.RedshiftViewAssetType',
 
     glue: 'amazon.datazone.GlueTableAssetType',
-    dataLake: 'SDF_S3_Custom_Asset_V1'
+    dataLake: 'DF_S3_Custom_Asset'
 }
 
 export const AssetTypeToFormMap = {
-    SDF_S3_Custom_Asset_V1: 'sdf_s3_asset_form'
+    DF_S3_Custom_Asset: 'df_s3_asset_form'
 }
 
 export function getConnectionType(workflow: Workflow ):string{

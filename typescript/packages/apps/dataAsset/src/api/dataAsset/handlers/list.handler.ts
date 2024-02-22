@@ -1,5 +1,5 @@
 
-import { apiVersion100, commonHeaders, fromTokenPaginationQS, FastifyTypebox } from '@sdf/resource-api-base';
+import { apiVersion100, commonHeaders, fromTokenPaginationQS, FastifyTypebox } from '@df/resource-api-base';
 import { Type } from '@sinclair/typebox';
 import { countPaginationParam, listDataAssetResource } from '../schemas.js';
 

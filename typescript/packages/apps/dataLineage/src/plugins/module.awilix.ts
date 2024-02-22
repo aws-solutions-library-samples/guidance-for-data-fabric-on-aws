@@ -4,7 +4,7 @@ import { Cradle, diContainer, FastifyAwilixOptions, fastifyAwilixPlugin } from '
 import { asFunction, Lifetime } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
-import { MarquezClient } from '@sdf/clients';
+import { MarquezClient } from '@df/clients';
 
 
 import { DirectLineageEventProcessor } from '../events/directLineage.eventProcessor.js';

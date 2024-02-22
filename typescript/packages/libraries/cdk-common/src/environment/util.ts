@@ -1,11 +1,11 @@
 import { STS } from '@aws-sdk/client-sts';
 
-export interface SdfAwsEnvironment {
+export interface DfAwsEnvironment {
 	accountId?: string;
 	region?: string;
 }
 
-const getSdfAwsEnvironment = async (): Promise<SdfAwsEnvironment> => {
+const getDfAwsEnvironment = async (): Promise<DfAwsEnvironment> => {
 	const sts = new STS({});
 	
 	let accountId, region;
@@ -23,5 +23,5 @@ const getSdfAwsEnvironment = async (): Promise<SdfAwsEnvironment> => {
 };
 
 export {
-	getSdfAwsEnvironment
+	getDfAwsEnvironment
 };

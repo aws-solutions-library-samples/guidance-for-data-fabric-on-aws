@@ -1,5 +1,5 @@
 {
-	"name": "@sdf/cdk-common",
+	"name": "@df/cdk-common",
 	"version": "1.0.0",
 	"description": "CDK constructs and shared utilities",
 	"author": "Edmund Chute <echute@amazon.com>",

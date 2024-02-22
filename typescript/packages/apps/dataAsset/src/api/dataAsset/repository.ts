@@ -1,7 +1,7 @@
 import type { FastifyBaseLogger } from 'fastify';
 import type { DataAsset } from './schemas.js';
 import { DynamoDBDocumentClient, GetCommand, GetCommandInput,QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { createDelimitedAttribute, DynamoDbUtils, expandDelimitedAttribute } from '@sdf/dynamodb-utils';
+import { createDelimitedAttribute, DynamoDbUtils, expandDelimitedAttribute } from '@df/dynamodb-utils';
 import { PkType } from '../../common/pkUtils.js';
 
 export class DataAssetRepository {

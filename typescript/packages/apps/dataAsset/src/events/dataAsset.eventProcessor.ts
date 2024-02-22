@@ -1,4 +1,4 @@
-import { validateNotEmpty } from '@sdf/validators';
+import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 
 export class DataAssetEventProcessor {

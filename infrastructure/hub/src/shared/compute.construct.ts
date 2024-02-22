@@ -8,15 +8,15 @@ export interface ComputeConstructProperties {
     vpc: IVpc;
 }
 
-export const clusterNameParameter = (domain: string) => `/sdf/${domain}/shared/clusterName`;
+export const clusterNameParameter = (domain: string) => `/df/${domain}/shared/clusterName`;
 
 export class Compute extends Construct {
     constructor(scope: Construct, id: string, props: ComputeConstructProperties) {
         super(scope, id);
 
-        const namePrefix = `sdf-${props.domain}`;
+        const namePrefix = `df-${props.domain}`;
 
-        const computeCluster = new Cluster(this, 'SDFComputeCluster', {
+        const computeCluster = new Cluster(this, 'DFComputeCluster', {
             vpc: props.vpc,
             clusterName: `${namePrefix}-cluster`,
             containerInsights: true

@@ -1,5 +1,5 @@
 import { Type } from '@sinclair/typebox';
-import { badRequestResponse, commonHeaders, forbiddenResponse, id, apiVersion100, FastifyTypebox, notFoundResponse } from '@sdf/resource-api-base';
+import { badRequestResponse, commonHeaders, forbiddenResponse, id, apiVersion100, FastifyTypebox, notFoundResponse } from '@df/resource-api-base';
 import { dataAssetResource, editDataAssetResource } from '../schemas.js';
 
 
