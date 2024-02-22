@@ -2,7 +2,7 @@ import type { BaseLogger } from 'pino';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 import type { DataAssetEvent } from './models.js';
 import { CreateProfileJobCommand, CreateProfileJobCommandInput, StartJobRunCommand, type DataBrewClient } from '@aws-sdk/client-databrew';
-import { DATA_ASSET_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder, EventPublisher } from '@df/events';
+import { DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, EventBridgeEventBuilder, EventPublisher } from '@df/events';
 
 export class JobTask {
 
@@ -40,7 +40,7 @@ export class JobTask {
 		const publishEvent = new EventBridgeEventBuilder()
             .setEventBusName(this.eventBusName)
             .setSource(DATA_ASSET_SPOKE_EVENT_SOURCE)
-            .setDetailType(DATA_ASSET_HUB_CREATE_REQUEST_EVENT)
+            .setDetailType(DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT)
             .setDetail(asset);
 
 		await this.eventPublisher.publish(publishEvent)
@@ -84,8 +84,9 @@ export class JobTask {
 		return command;
 
 	}
-
+	
+	// TODO this function has not yet been implemented needs further investigation current assumption is that roleArn will be provided as part of the request
 	// private async createJobRole() {
-	// 	// TODO this function has not yet been implemented needs further investigation current assumption is that roleArn will be provided as part of the request
+	// 	
 	// }
 }
