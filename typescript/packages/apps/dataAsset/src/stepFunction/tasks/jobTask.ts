@@ -2,7 +2,7 @@ import type { BaseLogger } from 'pino';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 import type { DataAssetEvent } from './models.js';
 import { CreateProfileJobCommand, CreateProfileJobCommandInput, StartJobRunCommand, type DataBrewClient } from '@aws-sdk/client-databrew';
-import { DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, EventBridgeEventBuilder, EventPublisher } from '@df/events';
+import { DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_RESPONSE_EVENT, DataAssetJobEvent, EventBridgeEventBuilder, EventPublisher } from '@df/events';
 
 export class JobTask {
 
@@ -29,19 +29,25 @@ export class JobTask {
 		// Run the Job if the job is on Demand
 		// TODO scheduled jobs are yet to be implemented
 		const run = await this.dataBrewClient.send(new StartJobRunCommand({ Name: res.Name }));
-		
-		const asset = event.dataAssetEvent.detail;
-		asset['execution'] = {
-			spokeStateMachineArn: event.execution.executionArn,
-			jobRunId: run.RunId,
-			jobRunStatus: 'Started'
+		const eventPayload : DataAssetJobEvent ={
+			dataAsset: event.dataAssetEvent.detail,
+			job:{
+				jobRunId:run.RunId,
+				jobRunStatus: 'Started'
+			}
 		}
+		// const asset = event.dataAssetEvent.detail;
+		// asset['execution'] = {
+		// 	spokeExecutionArn: event.execution.executionArn,
+		// 	jobRunId: run.RunId,
+		// 	jobRunStatus: 'Started'
+		// }
 
 		const publishEvent = new EventBridgeEventBuilder()
             .setEventBusName(this.eventBusName)
             .setSource(DATA_ASSET_SPOKE_EVENT_SOURCE)
-            .setDetailType(DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT)
-            .setDetail(asset);
+            .setDetailType(DATA_ASSET_SPOKE_JOB_RESPONSE_EVENT)
+            .setDetail(eventPayload);
 
 		await this.eventPublisher.publish(publishEvent)
 
@@ -72,6 +78,8 @@ export class JobTask {
 			},
 			Tags: {
 				...asset.workflow?.tags,
+
+				// Default tags that are added for lineage and enrichment purposes
 				domainId: event.dataAssetEvent.detail.catalog.domainId,
 				projectId: event.dataAssetEvent.detail.catalog.projectId,
 				assetName: event.dataAssetEvent.detail.catalog.assetName,
@@ -84,7 +92,7 @@ export class JobTask {
 		return command;
 
 	}
-	
+
 	// TODO this function has not yet been implemented needs further investigation current assumption is that roleArn will be provided as part of the request
 	// private async createJobRole() {
 	// 	

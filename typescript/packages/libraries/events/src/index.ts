@@ -1,3 +1,4 @@
+export * from './common/dataAsset.models.js';
 export * from './publisher.js';
 export * from './hub/models.js';
 export * from './hub/dataAsset.models.js';

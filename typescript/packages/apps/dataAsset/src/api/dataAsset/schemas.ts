@@ -18,12 +18,14 @@ export const updatedAt = Type.String({
     description: 'Date/time updated',
     format: 'date-time'
 });
-export const state = stringEnum(
-    ['pending creation', 'created', 'creation failed',
-        'pending update', 'updated', 'update failed',
-        'pending deletion', 'deletion failed'],
-    'State of the Data asset.'
-);
+
+export const state = Type.String({ description: 'State of the Data asset.' });
+// export const state = stringEnum(
+//     ['pending creation', 'created', 'creation failed',
+//         'pending update', 'updated', 'update failed',
+//         'pending deletion', 'deletion failed'],
+//     'State of the Data asset.'
+// );
 
 export const format = stringEnum(
     ['avro', 'csv', 'json', 'parquet', 'orc', 'grok'],
@@ -77,10 +79,10 @@ export const glueConnection = Type.Object({
     tableName: Type.String({ description: 'The glue table name' }),
 });
 
-export const connection = Type.Object({
+export const connection = Type.Optional(Type.Object({
     dataLake: Type.Optional(dataLakeConnection),
     glue: Type.Optional(glueConnection)
-});
+}));
 
 export const dataset = Type.Object({
     name: Type.String({ description: 'The name of the workflow' }),
@@ -116,11 +118,12 @@ export const workflow = Type.Object({
 });
 
 export const execution = Type.Object({
-    hubStateMachineArn: Type.Optional(Type.String({ description: 'The hub execution id of the state machine' }))   ,
-    spokeStateMachineArn: Type.Optional(Type.String({ description: 'The Spoke execution id of the state machine' })),
+    hubExecutionArn: Type.Optional(Type.String({ description: 'The hub execution id of the state machine' }))   ,
+    spokeExecutionArn: Type.Optional(Type.String({ description: 'The Spoke execution id of the state machine' })),
     jobRunId: Type.Optional(Type.String({ description: 'The job runId from databrew' })),
     jobRunStatus: Type.Optional(Type.String({ description: 'The run status of the job' })),
-    jobStopTime: Type.Optional(Type.String({ description: 'The stop time of the last job run ' }))
+    jobStartTime: Type.Optional(Type.String({ description: 'The start time of the last job run' })),
+    jobStopTime: Type.Optional(Type.String({ description: 'The stop time of the last job run' }))
 
 });
 

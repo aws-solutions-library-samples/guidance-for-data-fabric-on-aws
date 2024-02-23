@@ -2,28 +2,33 @@ import type { EventBridgeHandler, Context, Callback } from 'aws-lambda';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from './app.light';
-import  { DATA_ASSET_SPOKE_EVENT_SOURCE, RunEvent } from '@df/events';
-import type { DataAssetEventProcessor } from './events/dataAsset.eventProcessor.js';
+import  { DATA_ASSET_SPOKE_JOB_RESPONSE_EVENT, DataAssetJobEvent } from '@df/events';
+import type { JobEventProcessor } from './events/job.eventProcessor.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
-const eventProcessor = di.resolve<DataAssetEventProcessor>('dataAssetEventProcessor');
+const eventProcessor = di.resolve<JobEventProcessor>('jobEventProcessor');
 
 
 export const handler: EventBridgeHandler<string, EventDetails, void> = async (event, _context: Context, _callback: Callback) => {
 	app.log.info(`EventBridgeLambda > handler > event: ${JSON.stringify(event)}`);
 
-	// filter event for direct ingestion into Marquez
-	if ((event['detail-type'] as string).startsWith(DATA_ASSET_SPOKE_EVENT_SOURCE)) {
-		const detail = event.detail as RunEvent;
-		await eventProcessor.processDataAssetSpokeCreateResponseEvent(detail);
+	const eventDetail = event.detail as DataAssetJobEvent;
+	// filter job start event 
+	if ((event['detail-type'] as string).startsWith(DATA_ASSET_SPOKE_JOB_RESPONSE_EVENT)) {
+		const detail = eventDetail;
+
+		if ( detail.job.jobRunStatus === 'Started' ) {
+			await eventProcessor.jobStartEvent(detail);
+		}
 		
-		// any other events are not handled
+	// any other events are not handled
 	} else {
 		app.log.error('EventBridgeLambda > handler > Unimplemented event: ${JSON.Stringify(event)}');
 	}
+	app.log.info(`EventBridgeLambda > handler >exit`);
 
 };
 
-type EventDetails = RunEvent
+type EventDetails = DataAssetJobEvent

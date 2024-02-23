@@ -7,7 +7,7 @@ import { asFunction, Lifetime } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { DynamoDbUtils } from '@df/dynamodb-utils';
-import { DataAssetEventProcessor } from '../events/dataAsset.eventProcessor.js';
+import { JobEventProcessor } from '../events/job.eventProcessor.js';
 import { DataAssetRepository } from '../api/dataAsset/repository.js';
 import { DataAssetService } from '../api/dataAsset/service.js';
 import { BaseCradle, registerBaseAwilix } from '@df/resource-api-base';
@@ -25,7 +25,7 @@ const { captureAWSv3Client } = pkg;
 
 declare module '@fastify/awilix' {
 	interface Cradle extends BaseCradle {
-		dataAssetEventProcessor: DataAssetEventProcessor;
+		jobEventProcessor: JobEventProcessor;
 		eventBridgeClient: EventBridgeClient;
 		dynamoDbUtils: DynamoDbUtils;
 		stepFunctionClient: SFNClient;
@@ -87,6 +87,7 @@ const registerContainer = (app?: FastifyInstance) => {
 	const hubStateMachineArn = process.env['ASSET_MANAGEMENT_HUB_STATE_MACHINE_ARN'];
 	const JobsBucketName = process.env['JOBS_BUCKET_NAME'];
 	const JobsBucketPrefix= process.env['JOBS_BUCKET_PREFIX'];
+	const TableName= process.env['TABLE_NAME'];
 
 	diContainer.register({
 
@@ -119,10 +120,11 @@ const registerContainer = (app?: FastifyInstance) => {
 		}),
 		
 		
-		dataAssetEventProcessor: asFunction(
-			() =>
-				new DataAssetEventProcessor(
-					app.log
+		jobEventProcessor: asFunction(
+			(container) =>
+				new JobEventProcessor(
+					app.log,
+					container.dataAssetService
 				),
 			{
 				...commonInjectionOptions
@@ -136,7 +138,7 @@ const registerContainer = (app?: FastifyInstance) => {
 				new DataAssetRepository(
 					app.log,
 					container.dynamoDBDocumentClient,
-					app.config.TABLE_NAME,
+					TableName,
 					container.dynamoDbUtils
 				),
 			{

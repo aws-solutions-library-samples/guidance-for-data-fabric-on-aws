@@ -108,26 +108,33 @@ export class DataAssetService {
         this.log.debug(`DataAssetService > list > exit`);
     
     }
-    public async update(dataAssetId: string, asset: EditDataAsset): Promise<DataAsset> {
-        this.log.debug(`DataAssetService > edit > in dataAssetId:${dataAssetId}, asset:${JSON.stringify(asset)}`);
+    public async update(dataAssetId: string, updatedAsset: EditDataAsset): Promise<DataAsset> {
+        this.log.debug(`DataAssetService > edit > in dataAssetId:${dataAssetId}, asset:${JSON.stringify(updatedAsset)}`);
 
-        const dataAsset = await this.repository.get(dataAssetId);
+        const existing = await this.repository.get(dataAssetId);
 
         // id Asset Id exists validate against data zone 
-        if (dataAsset?.catalog?.assetId){
+        if (existing?.catalog?.assetId){
             //TODO validate asset data against data zone
             const dzAsset = await this.dzClient.send(new GetAssetCommand({
-                domainIdentifier: asset.catalog.domainId,
-                identifier: asset.catalog.assetId
+                domainIdentifier: updatedAsset.catalog.domainId,
+                identifier: updatedAsset.catalog.assetId
             }));
             if(!dzAsset){
                 throw new NotFoundError(`Asset not found in Data Zone !!!`)
             }
         }
+
+        // merge the existing and to be updated
+		existing.catalog= updatedAsset.catalog;
+        existing.workflow = updatedAsset.workflow;
+        existing.execution = updatedAsset.execution
+        existing.updatedAt = new Date(Date.now()).toISOString();
+		existing.updatedBy = 'TBD';
         
 
         this.log.debug(`DataAssetService > edit > exit`);
-        return dataAsset;
+        return existing;
     }
 
     public async delete( dataAssetId:string): Promise<void> {

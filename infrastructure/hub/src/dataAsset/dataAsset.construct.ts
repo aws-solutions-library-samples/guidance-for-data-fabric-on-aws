@@ -15,8 +15,8 @@ import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
-import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT } from '@df/events';
-import { SfnStateMachine } from 'aws-cdk-lib/aws-events-targets';
+import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_JOB_RESPONSE_EVENT } from '@df/events';
+import { LambdaFunction, SfnStateMachine } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -214,7 +214,8 @@ export class DataAsset extends Construct {
                     'databrew:CreateRecipeJob',
                     'databrew:CreateRuleset',
                     'databrew:CreateSchedule',
-                    'iam:PassRole'
+                    'iam:PassRole',
+                    'databrew:StartJobRun'
                 ],
                 resources: [
                     `arn:aws:states:${region}:${accountId}:stateMachine:df-data-asset`,
@@ -307,6 +308,7 @@ export class DataAsset extends Construct {
         });
 
         configDataBrewLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        eventBus.grantPutEventsTo(configDataBrewLambda);
 
         const runJobLambda = new NodejsFunction(this, 'runJobLambda', {
             description: `Asset Manager executeJob Task Handler`,
@@ -437,14 +439,14 @@ export class DataAsset extends Construct {
         runJobLambda.grantInvoke(dataAssetStateMachine);
 
 
-        const dataAssetRule = new Rule(this, 'DataAssetRule', {
+        const triggerStateMachineRule = new Rule(this, 'TriggerStateMachineRule', {
             eventBus: eventBus,
             eventPattern: {
                 detailType: [DATA_ASSET_HUB_CREATE_REQUEST_EVENT]
             }
         });
 
-        dataAssetRule.addTarget(
+        triggerStateMachineRule.addTarget(
             new SfnStateMachine(dataAssetStateMachine, {
                 deadLetterQueue: deadLetterQueue,
                 maxEventAge: Duration.minutes(5),
@@ -454,8 +456,51 @@ export class DataAsset extends Construct {
 
         this.stateMachineArn = dataAssetStateMachine.stateMachineArn;
 
+        const jobCompletionEventLambda = new NodejsFunction(this, 'JobCompletionEventLambda', {
+			description: `Job Completion Event Handler`,
+			entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/lambda_eventbridge.ts'),
+			runtime: Runtime.NODEJS_18_X,
+			tracing: Tracing.ACTIVE,
+			functionName: `${namePrefix}-dataAsset-job-event`,
+			timeout: Duration.seconds(30),
+			memorySize: 512,
+			logRetention: RetentionDays.ONE_WEEK,
+			environment: {
+				TABLE_NAME: table.tableName,
+			},
+			bundling: {
+				minify: true,
+				format: OutputFormat.ESM,
+				target: 'node18.16',
+				sourceMap: false,
+				sourcesContent: false,
+				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+				externalModules: ['aws-sdk', 'pg-native']
+			},
+			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope)
+		});
 
-        NagSuppressions.addResourceSuppressions([apiLambda],
+        table.grantReadWriteData(jobCompletionEventLambda);
+
+
+        // Rule for Job completion events
+        const jobResultProcessorRule = new Rule(this, 'JobResultProcessorRule', {
+            eventBus: eventBus,
+            eventPattern: {
+                detailType: [DATA_ASSET_SPOKE_JOB_RESPONSE_EVENT]
+            }
+        });
+
+        jobResultProcessorRule.addTarget(
+            new LambdaFunction(jobCompletionEventLambda, {
+                deadLetterQueue: deadLetterQueue,
+                maxEventAge: Duration.minutes(5),
+                retryAttempts: 2
+            })
+        );
+
+        NagSuppressions.addResourceSuppressions([apiLambda,jobCompletionEventLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',

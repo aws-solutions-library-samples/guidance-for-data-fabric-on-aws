@@ -6,4 +6,4 @@ export const ACCESS_CONTROL_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.acces
 export const DATA_LINEAGE_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.dataLineage';
 export const DATA_ASSET_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.dataAsset';
 
-export const DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>create>response`
+export const DATA_ASSET_SPOKE_JOB_RESPONSE_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>create>response`

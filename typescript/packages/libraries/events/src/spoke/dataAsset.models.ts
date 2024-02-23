@@ -1,8 +1,11 @@
-export interface dataAssetSpokeCreateResponseEvent {
-    EventBusName: string,
-    Source: string,
-    DetailType: string,
-    // Detail: RunEvent,
+import type { DataAssetJobEvent } from "../common/dataAsset.models";
+
+export interface dataAssetSpokeResponseEvent {
+    account: string,
+    region: string,
+    source: string,
+    'detail-type': string,
+    detail: DataAssetJobEvent,
 };
 
-export type {dataAssetSpokeCreateResponseEvent as DataAssetSpokeCreateResponseEvent};
+export type {dataAssetSpokeResponseEvent as DataAssetSpokeResponseEvent};
