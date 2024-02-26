@@ -17,7 +17,13 @@ declare module '@fastify/awilix' {
 	}
 }
 
-const registerContainer = (app?: FastifyInstance) => {
+export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<void> => {
+	// first register the DI plugin
+	await app.register(fastifyAwilixPlugin, {
+		disposeOnClose: true,
+		disposeOnResponse: false
+	});
+
 	const commonInjectionOptions = {
 		lifetime: Lifetime.SINGLETON
 	};
@@ -43,16 +49,5 @@ const registerContainer = (app?: FastifyInstance) => {
 		),
 		
 	});
-};
-
-export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<void> => {
-	// first register the DI plugin
-	await app.register(fastifyAwilixPlugin, {
-		disposeOnClose: true,
-		disposeOnResponse: false
-	});
-
-	registerContainer(app);
 });
 
-export { registerContainer };

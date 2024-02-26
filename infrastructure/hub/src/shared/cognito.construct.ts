@@ -15,7 +15,6 @@ import { NagSuppressions } from 'cdk-nag';
 
 
 export interface CognitoConstructProperties {
-	domain: string;
 	userPoolIdParameter: string;
 	userPoolEmail?: {
 		fromEmail: string;
@@ -26,10 +25,9 @@ export interface CognitoConstructProperties {
 }
 
 
-export const userPoolArnParameter = (domain: string) => `/df/${domain}/shared/cognito/userPoolArn`;
-export const userPoolClientIdParameter = (domain: string) => `/df/${domain}/shared/cognito/userPoolClientId`;
-export const userPoolDomainParameter = (domain: string) => `/df/${domain}/shared/cognito/userPoolDomain`;
-export const userPoolIdParameter = (domain: string) => `/df/${domain}/shared/cognito/userPoolId`;
+export const userPoolArnParameter = `/df/shared/cognito/userPoolArn`;
+export const userPoolClientIdParameter = `/df/shared/cognito/userPoolClientId`;
+export const userPoolDomainParameter = `/df/shared/cognito/userPoolDomain`;
 
 export class Cognito extends Construct {
 	public readonly userPoolId: string;
@@ -37,7 +35,7 @@ export class Cognito extends Construct {
 	constructor(scope: Construct, id: string, props: CognitoConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `df-${props.domain}`;
+		const namePrefix = `df`;
 
 		const userPoolEmailSettings: UserPoolEmail | undefined = props.userPoolEmail
 			? cognito.UserPoolEmail.withSES({
@@ -97,19 +95,19 @@ export class Cognito extends Construct {
 		});
 
 		new ssm.StringParameter(this, 'cognitoUserPoolArnParameter', {
-			parameterName: userPoolArnParameter(props.domain),
+			parameterName: userPoolArnParameter,
 			stringValue: userPool.userPoolArn
 		});
 
 		const domain = new UserPoolDomain(this, 'UserPoolDomain', {
 			userPool: userPool,
 			cognitoDomain: {
-				domainPrefix: `df-${props.domain}-${cdk.Stack.of(this).account}`
+				domainPrefix: `${namePrefix}-${cdk.Stack.of(this).account}`
 			}
 		});
 
 		new ssm.StringParameter(this, 'userPoolDomainParameter', {
-			parameterName: userPoolDomainParameter(props.domain),
+			parameterName: userPoolDomainParameter,
 			stringValue: domain.domainName
 		});
 

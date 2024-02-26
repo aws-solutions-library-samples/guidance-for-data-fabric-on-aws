@@ -2,31 +2,27 @@ import { Construct } from 'constructs';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 
 export interface SSMConstructProperties {
-	domain: string;
 }
 // Access Control Parameters
-export const accessControlApiFunctionNameParameter = (domain: string) => `/df/${domain}/accessControl/apiFunctionName`;
-
+export const accessControlApiFunctionNameParameter = `/df/accessControl/apiFunctionName`;
 // Data Lineage Parameters
-export const dataLineageApiFunctionNameParameter = (domain: string) => `/df/${domain}/dataLineage/apiFunctionName`;
+export const dataLineageApiFunctionNameParameter = `/df/dataLineage/apiFunctionName`;
 
 
 
 // Data Quality Parameters
-export const dataQualityApiFunctionNameParameter = (domain: string) => `/df/${domain}/dataQuality/apiFunctionName`;
+export const dataQualityApiFunctionNameParameter = `/df/dataQuality/apiFunctionName`;
 
 
 export class SSM extends Construct {
 
-	constructor(scope: Construct, id: string, props: SSMConstructProperties) {
+	constructor(scope: Construct, id: string) {
 		super(scope, id);
 
-		const namePrefix = `df-${props.domain}`;
-		/*
-			* Access Control parameters
-		*/
+		const namePrefix = `df`;
+
 		new StringParameter(this, 'accessControlApiFunctionNameParameter', {
-			parameterName: accessControlApiFunctionNameParameter(props.domain),
+			parameterName: accessControlApiFunctionNameParameter,
 			stringValue: `${namePrefix}-accessControlApi`,
 		});
 
@@ -35,7 +31,7 @@ export class SSM extends Construct {
 		*/
 
 		new StringParameter(this, 'dataLineageApiFunctionNameParameter', {
-			parameterName: dataLineageApiFunctionNameParameter(props.domain),
+			parameterName: dataLineageApiFunctionNameParameter,
 			stringValue: `${namePrefix}-dataLineageApi`,
 		});
 
@@ -43,7 +39,7 @@ export class SSM extends Construct {
 			* Data Quality parameters
 		*/
 		new StringParameter(this, 'dataQualityApiFunctionNameParameter', {
-			parameterName: dataQualityApiFunctionNameParameter(props.domain),
+			parameterName: dataQualityApiFunctionNameParameter,
 			stringValue: `${namePrefix}-dataQualityApi`,
 		});
 

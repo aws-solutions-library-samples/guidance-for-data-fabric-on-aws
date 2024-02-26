@@ -17,15 +17,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export interface CognitoIdpCreatorConstructProperties {
-	domain: string;
 	userPoolIdParameter: string,
 	samlMetaDataUrl: string,
 	callbackUrls: string
 }
 
-export const idpNameParameter = (domain: string) => `/df/${domain}/shared/ssoApplicationArnParameter`;
-export const ssoApplicationMetadataUrlParameter = (domain: string) => `/df/${domain}/shared/MetadataUrlParameter`;
-export const CognitoClientIdParameter = (domain: string) => `/df/${domain}/shared/cognito/clientId`;
+export const idpNameParameter = `/df/shared/ssoApplicationArnParameter`;
+export const ssoApplicationMetadataUrlParameter = `/df/shared/MetadataUrlParameter`;
+export const CognitoClientIdParameter = `/df/shared/cognito/clientId`;
 
 
 
@@ -37,10 +36,10 @@ export class CognitoIdpCreator extends Construct {
 	constructor(scope: Construct, id: string, props: CognitoIdpCreatorConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `df-${props.domain}`;
+		const namePrefix = `df`;
 
 		new ssm.StringParameter(this, 'ssoApplicationMetadataUrlParameter', {
-			parameterName: ssoApplicationMetadataUrlParameter(props.domain),
+			parameterName: ssoApplicationMetadataUrlParameter,
 			stringValue: props.samlMetaDataUrl
 		});
 		const userPoolId = ssm.StringParameter.valueForStringParameter(this, props.userPoolIdParameter);
@@ -63,14 +62,13 @@ export class CognitoIdpCreator extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native']
+				externalModules: ['pg-native']
 			},
 			environment: {
-				USE_POOL_ID_PARAMETER: props.userPoolIdParameter,
-				DF_DOMAIN: props.domain,
-				IDENTITY_PROVIDER_NAME_PARAMETER: idpNameParameter(props.domain),
-				METADATA_URL_PARAMETER: ssoApplicationMetadataUrlParameter(props.domain),
-				COGNITO_CLIENT_ID_PARAMETER: CognitoClientIdParameter(props.domain),
+				USER_POOL_ID_PARAMETER: props.userPoolIdParameter,
+				IDENTITY_PROVIDER_NAME_PARAMETER: idpNameParameter,
+				METADATA_URL_PARAMETER: ssoApplicationMetadataUrlParameter,
+				COGNITO_CLIENT_ID_PARAMETER: CognitoClientIdParameter,
 				CALLBACK_URLS : props.callbackUrls
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),

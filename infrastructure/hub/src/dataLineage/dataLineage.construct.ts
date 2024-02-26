@@ -19,7 +19,6 @@ const __dirname = path.dirname(__filename);
 
 export interface DataLineageConstructProperties {
 	vpc: IVpc;
-	domain: string;
 	eventBusName: string;
 	marquezUrl: string;
 }
@@ -31,7 +30,7 @@ export class DataLineage extends Construct {
 	constructor(scope: Construct, id: string, props: DataLineageConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `df-${props.domain}`;
+		const namePrefix = `df`;
 		const eventBus = EventBus.fromEventBusName(this, 'DomainEventBus', props.eventBusName);
 
 
@@ -51,7 +50,7 @@ export class DataLineage extends Construct {
 
 
 		const lineageIngestionEventLambda = new NodejsFunction(this, 'LineageIngestionEventLambda', {
-			description: `Data Lineage Ingestion Event Handler: Domain ${props.domain}`,
+			description: `Data Lineage Ingestion Event Handler`,
 			entry: path.join(__dirname, '../../../../typescript/packages/apps/dataLineage/src/lambda_eventbridge.ts'),
 			runtime: Runtime.NODEJS_18_X,
 			tracing: Tracing.ACTIVE,
@@ -60,7 +59,6 @@ export class DataLineage extends Construct {
 			memorySize: 512,
 			logRetention: RetentionDays.ONE_WEEK,
 			environment: {
-				DOMAIN: props.domain,
 				EVENT_BUS_NAME: props.eventBusName,
 				MARQUEZ_URL: props.marquezUrl
 			},
