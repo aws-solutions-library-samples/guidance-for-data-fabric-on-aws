@@ -16,7 +16,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export interface SsoSeederConstructProperties {
-	domain: string;
 	ssoRegion: string;
 	ssoInstanceArn:string;
 	adminEmail: string;
@@ -32,7 +31,7 @@ export class SsoSeeder extends Construct {
 		super(scope, id);
 
 		const accountId = cdk.Stack.of(this).account;
-		const namePrefix = `df-${props.domain}`;
+		const namePrefix = `df`;
 		const instanceId = props.ssoInstanceArn.split('/')[1];
 
 		const iamPolicy = new Policy(this, 'iam-policy', {
@@ -88,12 +87,11 @@ export class SsoSeeder extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native']
+				externalModules: ['pg-native']
 			},
 			environment: {
 				SSO_INSTANCE_ARN: props.ssoInstanceArn,
 				SSO_REGION:props.ssoRegion,
-				DOMAIN: props.domain,
 				ADMIN_EMAIL: props.adminEmail
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),

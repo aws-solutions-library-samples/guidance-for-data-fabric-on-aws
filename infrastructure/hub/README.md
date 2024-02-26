@@ -34,17 +34,18 @@ Sample command to deploy the CDK stack:
 ```
 npm run cdk -- deploy \
 --require-approval never --concurrency=10 \
--c domain=<enter your domain>
+-c spokeAccountIds=<Comma delimited list of account IDs with no spaces> \
+-c identityStoreId=<Identity Store ID> 
 ``` 
 
-You have now deploy the shared infrastructure needed to integrate with `IAM Identity Center` 
+You have now deployed the shared infrastructure needed to integrate with `IAM Identity Center` 
 
 After deployment grab the cognito domain and userPoolId created during the stack deployment.
 
 Sample cli command:
 ```
-aws ssm get-parameter --name "/df/<enter domain>/shared/cognito/userPoolDomain"
-aws ssm get-parameter --name "/df/<enter domain>/shared/cognito/userPoolId"
+aws ssm get-parameter --name "/df/shared/cognito/userPoolDomain"
+aws ssm get-parameter --name "/df/shared/cognito/userPoolId"
 
 ```
 
@@ -87,9 +88,10 @@ Format: Basic
 ```
 npm run cdk -- deploy \
     --all  --require-approval never --concurrency=10 \
-    -c domain=<enter your domain> \
     -c ssoInstanceArn=<enter your IAM Identity center Instance ARN> \
     -c samlMetaDataUrl=<enter your SAML 2.0 application metadata url> \
-    -c callbackUrls=<enter a comma separated list of urls>
-    -c adminEmail=<enter the admin email you want to be used>
+    -c callbackUrls=<enter a comma separated list of urls> \
+    -c adminEmail=<enter the admin email you want to be used>\
+    -c identityStoreId=<Identity Store ID> \
+    -c spokeAccountIds=<Comma delimited list of account IDs with no spaces>
 ```

@@ -21,7 +21,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export interface OpenLineageConstructProperties {
-    domain: string;
     vpc: IVpc,
     openlineageApiCpu: number;
     openlineageApiMemory: number;
@@ -47,7 +46,7 @@ export class OpenLineage extends Construct {
     constructor(scope: Construct, id: string, props: OpenLineageConstructProperties) {
         super(scope, id);
 
-        const namePrefix = `df-${props.domain}`;
+        const namePrefix = `df`;
 
         const computeCluster = Cluster.fromClusterAttributes(this, 'ComputeCluster', {
             vpc: props.vpc,
@@ -90,7 +89,7 @@ export class OpenLineage extends Construct {
             ]
         });
 
-        const dnsSubDomain = `${props.domain}.df`;
+        const dnsSubDomain = `df`;
 
         const openlineageNamespace = new PrivateDnsNamespace(this, 'OpenLineageNamespace', {
             name: dnsSubDomain,
