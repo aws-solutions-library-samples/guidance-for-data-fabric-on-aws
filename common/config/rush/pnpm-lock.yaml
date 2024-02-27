@@ -128,6 +128,9 @@ importers:
       '@aws-sdk/client-glue':
         specifier: 3.370.0
         version: 3.370.0
+      '@aws-sdk/client-s3':
+        specifier: 3.370.0
+        version: 3.370.0
       '@aws-sdk/client-sfn':
         specifier: 3.370.0
         version: 3.370.0
