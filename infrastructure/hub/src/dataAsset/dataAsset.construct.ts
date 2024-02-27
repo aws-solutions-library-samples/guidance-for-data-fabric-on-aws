@@ -609,7 +609,7 @@ export class DataAsset extends Construct {
                 Condition: {
                     'StringEquals': {
                         'events:source': [DATA_ASSET_SPOKE_EVENT_SOURCE],
-                        'detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
+                        'events:detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
                     }
                 }
             }                        
