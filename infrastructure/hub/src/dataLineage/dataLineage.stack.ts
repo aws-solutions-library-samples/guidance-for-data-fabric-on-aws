@@ -7,14 +7,13 @@ import { Vpc } from 'aws-cdk-lib/aws-ec2';
 import { StringListParameter, StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
 import { clusterNameParameter } from "../shared/compute.construct.js";
-import { userPoolDomainParameter, userPoolIdParameter } from "../shared/cognito.construct.js";
+import { userPoolDomainParameter } from "../shared/cognito.construct.js";
 import { OpenLineage } from "./openLineage.construct.js";
+import { userPoolIdParameter } from '@df/cdk-common';
 import { DataLineage } from "./dataLineage.construct.js";
-import { eventBusArnParameter } from '../shared/eventbus.construct.js';
 
 
 export type DataLineageStackProperties = StackProps & {
-    domain: string;
     openlineageApiCpu: number;
     openlineageApiMemory: number;
     openlineageWebCpu: number;
@@ -23,26 +22,26 @@ export type DataLineageStackProperties = StackProps & {
     loadBalancerCertificateArn: string;
 };
 
-export const rdsClusterWriterEndpoint = (domain: string) => `/df/${domain}/dataLineage/aurora/rdsClusterWriterEndpoint`;
-export const openLineageWebUrlParameter = (domain: string) => `/df/${domain}/dataLineage/openLineageWebUrl`;
-export const openLineageApiUrlParameter = (domain: string) => `/df/${domain}/dataLineage/openLineageApiUrl`;
+export const rdsClusterWriterEndpoint = `/df/dataLineage/aurora/rdsClusterWriterEndpoint`;
+export const openLineageWebUrlParameter = `/df/dataLineage/openLineageWebUrl`;
+export const openLineageApiUrlParameter = `/df/dataLineage/openLineageApiUrl`;
 
 
 export class DataLineageStack extends Stack {
     constructor(scope: Construct, id: string, props: DataLineageStackProperties) {
         super(scope, id, props);
 
-        const vpcId = StringParameter.valueForStringParameter(this, vpcIdParameter(props.domain));
+        const vpcId = StringParameter.valueForStringParameter(this, vpcIdParameter);
 
-        const isolatedSubnetIds = StringListParameter.valueForTypedListParameter(this, isolatedSubnetIdListParameter(props.domain));
+        const isolatedSubnetIds = StringListParameter.valueForTypedListParameter(this, isolatedSubnetIdListParameter);
 
-        const privateSubnetIds = StringListParameter.valueForTypedListParameter(this, privateSubnetIdListParameter(props.domain));
+        const privateSubnetIds = StringListParameter.valueForTypedListParameter(this, privateSubnetIdListParameter);
 
-        const publicSubnetIds = StringListParameter.valueForTypedListParameter(this, publicSubnetIdListParameter(props.domain));
+        const publicSubnetIds = StringListParameter.valueForTypedListParameter(this, publicSubnetIdListParameter);
 
-        const userPoolDomainName = StringParameter.valueForStringParameter(this, userPoolDomainParameter(props.domain));
+        const userPoolDomainName = StringParameter.valueForStringParameter(this, userPoolDomainParameter);
 
-        const userPoolId = StringParameter.valueForStringParameter(this, userPoolIdParameter(props.domain));
+        const userPoolId = StringParameter.valueForStringParameter(this, userPoolIdParameter);
 
         const availabilityZones = cdk.Stack.of(this).availabilityZones;
 
@@ -55,7 +54,6 @@ export class DataLineageStack extends Stack {
         });
 
         const aurora = new AuroraDatabase(this, 'OpenLineageDatabase', {
-            domain: props.domain,
             vpc,
             minClusterCapacity: 1,
             maxClusterCapacity: 1,
@@ -63,18 +61,17 @@ export class DataLineageStack extends Stack {
         });
 
         new StringParameter(this, 'rdsClusterWriterEndpoint', {
-            parameterName: rdsClusterWriterEndpoint(props.domain),
+            parameterName: rdsClusterWriterEndpoint,
             stringValue: aurora.rdsClusterWriterEndpoint
         });
 
-        const clusterName = StringParameter.valueForStringParameter(this, clusterNameParameter(props.domain));
+        const clusterName = StringParameter.valueForStringParameter(this, clusterNameParameter);
 
         const openLineage = new OpenLineage(this, 'OpenLineage', {
             vpc,
             clusterName,
             userPoolDomainName,
             userPoolId,
-            domain: props.domain,
             openlineageApiCpu: props.openlineageApiCpu,
             openlineageApiMemory: props.openlineageApiMemory,
             openlineageWebCpu: props.openlineageWebCpu,
@@ -89,21 +86,18 @@ export class DataLineageStack extends Stack {
         });
 
         new StringParameter(this, 'openLineageWebUrlParameter', {
-            parameterName: openLineageWebUrlParameter(props.domain),
+            parameterName: openLineageWebUrlParameter,
             stringValue: openLineage.openLineageWebUrl
         });
 
         new StringParameter(this, 'openLineageApiUrlParameter', {
-            parameterName: openLineageApiUrlParameter(props.domain),
+            parameterName: openLineageApiUrlParameter,
             stringValue: openLineage.openLineageApiUrl
         });
 
-        const eventBusName = StringParameter.valueForStringParameter(this, eventBusArnParameter(props.domain));
         new DataLineage(this, 'DataLineage', {
             vpc,
-            domain: props.domain,
-            marquezUrl: openLineage.openLineageApiUrl,
-            eventBusName
+            marquezUrl: openLineage.openLineageApiUrl
         });
 
         NagSuppressions.addResourceSuppressionsByPath(this, [

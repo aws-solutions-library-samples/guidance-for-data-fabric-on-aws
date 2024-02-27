@@ -7,7 +7,6 @@ import { CognitoIdpCreator } from './cognitoIdpCreator.construct.js';
 
 
 export type CognitoCustomStackProperties = StackProps & {
-	domain: string;
 	samlMetaDataUrl: string;
 	ssoRegion: string;
 	userPoolIdParameter: string;
@@ -19,15 +18,9 @@ export class CognitoCustomStack extends Stack {
 	constructor(scope: Construct, id: string, props: CognitoCustomStackProperties) {
 		super(scope, id, props);
 
-		// validation
-		if (props.domain === undefined) {
-			throw new Error('domain is required');
-		}
-	
 			// SAML metadata available deploy federated cognito
 
 			new CognitoIdpCreator(this,'CognitoIdpCreator',{
-				domain: props.domain,
 				userPoolIdParameter: props.userPoolIdParameter,
 				samlMetaDataUrl: props.samlMetaDataUrl,
 				callbackUrls: props.callbackUrls

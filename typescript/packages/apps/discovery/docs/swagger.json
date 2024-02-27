@@ -1,0 +1,216 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "DF Discovery",
+    "description": "API to find and retrieve asset metadata from DF.",
+    "version": "0.1.0"
+  },
+  "components": {
+    "schemas": {
+      "def-0": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "Status of the pipeline execution.",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "S3"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "Glue"
+                ]
+              }
+            ]
+          },
+          "detail": {
+            "type": "object",
+            "properties": {
+              "arn": {
+                "type": "string"
+              },
+              "region": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "arn",
+              "region"
+            ],
+            "title": "s3DetailType"
+          }
+        },
+        "required": [
+          "type",
+          "detail"
+        ],
+        "title": "asset"
+      },
+      "def-1": {
+        "type": "object",
+        "properties": {
+          "arn": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "arn",
+          "region"
+        ],
+        "title": "s3DetailType"
+      }
+    }
+  },
+  "paths": {
+    "/domains/{domainId}/assets/{assetListingId}": {
+      "get": {
+        "operationId": "get",
+        "summary": "Retrieve a asset metadata from AWS DataZone domain.",
+        "tags": [
+          "Assets",
+          "Data Assets"
+        ],
+        "description": "Retrieve the asset metadata from AWS DataZone domain.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "assetListingId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "domainId",
+            "required": true,
+            "description": "Amazon DataZone Identifier."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "description": "Status of the pipeline execution.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "S3"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Glue"
+                          ]
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "object",
+                      "properties": {
+                        "arn": {
+                          "type": "string"
+                        },
+                        "region": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "arn",
+                        "region"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "detail"
+                  ]
+                },
+                "examples": {
+                  "S3 Asset Type": {
+                    "summary": "Asset retrieved successfully from DataZone catalog.",
+                    "value": {
+                      "type": "S3",
+                      "detail": {
+                        "arn": "arn:aws:s3:::df-bucket/df-data.csv",
+                        "region": "us-east-1"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost"
+    }
+  ],
+  "security": [],
+  "tags": [
+    {
+      "name": "Assets",
+      "description": "Manage Data Assets."
+    }
+  ]
+}

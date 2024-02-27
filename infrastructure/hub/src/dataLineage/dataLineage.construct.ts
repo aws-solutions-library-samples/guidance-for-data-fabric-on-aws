@@ -1,14 +1,14 @@
 import { Construct } from 'constructs';
-import { EventBus, Rule } from 'aws-cdk-lib/aws-events';
+import { CfnEventBusPolicy, EventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { Duration } from 'aws-cdk-lib';
+import { Duration, Stack } from 'aws-cdk-lib';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { getLambdaArchitecture } from '@df/cdk-common';
-import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT } from '@df/events';
+import { dfEventBusName, getLambdaArchitecture } from '@df/cdk-common';
+import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT, DATA_LINEAGE_SPOKE_EVENT_SOURCE } from '@df/events';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import type { IVpc } from 'aws-cdk-lib/aws-ec2';
@@ -19,8 +19,6 @@ const __dirname = path.dirname(__filename);
 
 export interface DataLineageConstructProperties {
 	vpc: IVpc;
-	domain: string;
-	eventBusName: string;
 	marquezUrl: string;
 }
 
@@ -31,8 +29,10 @@ export class DataLineage extends Construct {
 	constructor(scope: Construct, id: string, props: DataLineageConstructProperties) {
 		super(scope, id);
 
-		const namePrefix = `df-${props.domain}`;
-		const eventBus = EventBus.fromEventBusName(this, 'DomainEventBus', props.eventBusName);
+		const namePrefix = `df`;
+		const eventBus = EventBus.fromEventBusName(this, 'HubEventBus', dfEventBusName);
+		const accountId = Stack.of(this).account;
+        const region = Stack.of(this).region;
 
 
 		const deadLetterQueue = new Queue(this, 'DeadLetterQueue');
@@ -51,7 +51,7 @@ export class DataLineage extends Construct {
 
 
 		const lineageIngestionEventLambda = new NodejsFunction(this, 'LineageIngestionEventLambda', {
-			description: `Data Lineage Ingestion Event Handler: Domain ${props.domain}`,
+			description: `Data Lineage Ingestion Event Handler`,
 			entry: path.join(__dirname, '../../../../typescript/packages/apps/dataLineage/src/lambda_eventbridge.ts'),
 			runtime: Runtime.NODEJS_18_X,
 			tracing: Tracing.ACTIVE,
@@ -60,8 +60,7 @@ export class DataLineage extends Construct {
 			memorySize: 512,
 			logRetention: RetentionDays.ONE_WEEK,
 			environment: {
-				DOMAIN: props.domain,
-				EVENT_BUS_NAME: props.eventBusName,
+				EVENT_BUS_NAME: dfEventBusName,
 				MARQUEZ_URL: props.marquezUrl
 			},
 			vpc: props.vpc,
@@ -93,6 +92,22 @@ export class DataLineage extends Construct {
 				retryAttempts: 2
 			})
 		);
+
+		new CfnEventBusPolicy(this,'DataLineageEventBusPolicy', {
+            eventBusName: dfEventBusName,
+            statementId: 'AllowSpokeAccountsToPutLineageEvents',
+            statement:{
+                Effect: Effect.ALLOW,
+                Action: ['events:PutEvents'],
+                Resource: [`arn:aws:events:${region}:${accountId}:event-bus/${dfEventBusName}`],
+                Principal: '*',
+                Condition: {
+                    'StringEquals': {
+                        'events:source': [DATA_LINEAGE_SPOKE_EVENT_SOURCE]
+                    }
+                }
+            }                        
+        });
 
 		NagSuppressions.addResourceSuppressions([deadLetterQueue],
 			[

@@ -9,7 +9,6 @@ import { Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 export interface AuroraDatabaseConstructProperties {
     vpc: IVpc;
-    domain: string;
     minClusterCapacity: number;
     maxClusterCapacity: number;
     clusterDeletionProtection: boolean;
@@ -28,11 +27,11 @@ export class AuroraDatabase extends Construct {
     constructor(scope: Construct, id: string, props: AuroraDatabaseConstructProperties) {
         super(scope, id);
 
-        this.instanceName = `df-${props.domain}`;
+        this.instanceName = `df`;
         this.databaseUsername = 'marquez';
         this.databaseName = 'marquez';
 
-        const clusterName = `df-${props.domain}-cluster`;
+        const clusterName = `df-cluster`;
 
         const iamPolicy = new Policy(this, 'iam-policy', {
             statements: [
@@ -97,7 +96,7 @@ export class AuroraDatabase extends Construct {
 
         this.databaseSecret.addRotationSchedule('RotationSchedule', {
             hostedRotation: HostedRotation.postgreSqlSingleUser({
-                functionName: `df-${props.domain}-dataLineage-secret-rotation`
+                functionName: `df-dataLineage-secret-rotation`
             })
         });
 
@@ -116,7 +115,7 @@ export class AuroraDatabase extends Construct {
 
         const subnetGroup = new SubnetGroup(this, 'aurora-rds-subnet-group', {
             description: `Aurora RDS Subnet Group for database ${this.instanceName}`,
-            subnetGroupName: `df-${props.domain}-aurora-rds-subnet-group`,
+            subnetGroupName: `df-aurora-rds-subnet-group`,
             vpc: props.vpc,
             removalPolicy: RemovalPolicy.DESTROY,
             vpcSubnets: {
@@ -152,7 +151,7 @@ export class AuroraDatabase extends Construct {
             instances: 1,
             cloudwatchLogsRetention: RetentionDays.ONE_WEEK,
             iamAuthentication: false,
-            clusterIdentifier: `df-${props.domain}-aurora-cluster`,
+            clusterIdentifier: `df-aurora-cluster`,
             subnetGroup: subnetGroup,
         });
 

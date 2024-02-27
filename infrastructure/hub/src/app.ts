@@ -7,13 +7,13 @@ import { SsoCustomStack } from './shared/ssoCustom.stack.js';
 import { CognitoCustomStack } from './shared/cognitoCustom.stack.js';
 import { DataLineageStack } from './dataLineage/dataLineage.stack.js';
 import { AwsSolutionsChecks } from 'cdk-nag';
-import { getOrThrow } from './shared/stack.utils.js';
-import { tryGetBooleanContext } from '@df/cdk-common';
+import { tryGetBooleanContext, getOrThrow, userPoolIdParameter } from '@df/cdk-common';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
-import { userPoolIdParameter } from "./shared/cognito.construct.js";
 import { DataAssetStack } from './dataAsset/dataAsset.stack.js';
+import { AccessManagementStack } from './accessManagement/accessManagement.stack.js';
+import { DiscoveryStack } from "./discovery/discovery.stack.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 const app = new cdk.App();
 
 // mandatory requirements
-const domain = getOrThrow(app, 'domain');
+const spokeAccountIds = getOrThrow(app, 'spokeAccountIds').toString().split(',');
 
 const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
 
@@ -30,11 +30,11 @@ const useExistingVpc = tryGetBooleanContext(app, 'useExistingVpc', false);
 
 // Optional requirements to specify the cognito SAML provider
 const ssoInstanceArn = app.node.tryGetContext('ssoInstanceArn');
+const identityStoreId = app.node.tryGetContext('identityStoreId');
 const ssoRegion = app.node.tryGetContext('ssoRegion');
 const adminEmail = app.node.tryGetContext('adminEmail');
 const samlMetaDataUrl = app.node.tryGetContext('samlMetaDataUrl');
 const callbackUrls = app.node.tryGetContext('callbackUrls');
-
 
 let userVpcId;
 let userIsolatedSubnetIds, userPrivateSubnetIds, userPublicSubnetIds;
@@ -45,23 +45,19 @@ if (useExistingVpc) {
     userIsolatedSubnetIds = getOrThrow(app, 'existingIsolatedSubnetIds').toString().split(',');
 }
 
-// tags the entire platform with cost allocation tags
-cdk.Tags.of(app).add('df:domain', domain);
 
 Aspects.of(app).add(new AwsSolutionsChecks({verbose: true}));
 
-const stackNamePrefix = `df-shared-${domain}`;
+const stackNamePrefix = `df-hub`;
 
 const stackName = (suffix: string) => `${stackNamePrefix}-${suffix}`;
 const stackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
 
 const deployPlatform = (callerEnvironment?: { accountId?: string, region?: string }): void => {
 
-
     const sharedStack = new SharedHubInfrastructureStack(app, 'SharedHubStack', {
-        stackName: stackName('hub'),
+        stackName: stackName('shared'),
         description: stackDescription('SharedHub'),
-        domain,
         userVpcConfig: useExistingVpc ? {
             vpcId: userVpcId,
             isolatedSubnetIds: userIsolatedSubnetIds,
@@ -69,7 +65,6 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             publicSubnetIds: userPublicSubnetIds
         } : undefined,
         deleteBucket,
-        userPoolIdParameter: userPoolIdParameter(domain),
         env: {
             // The DF_REGION domain variable
             region: process.env?.['DF_REGION'] || callerEnvironment?.region,
@@ -77,14 +72,32 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         }
     });
 
+    
+    
+    if (identityStoreId) {
+        const discoveryStack = new DiscoveryStack(app, "DiscoveryStack", {
+            stackName: stackName('discovery'),
+            description: stackDescription('Discovery'),
+            identityStoreId: identityStoreId
+        })
+        discoveryStack.node.addDependency(sharedStack);
+
+        const accessManagementStack = new AccessManagementStack(app, "AccessManagementStack", {
+            stackName: stackName('accessManagement'),
+            description: stackDescription('AccessManagement'),
+            spokeAccountIds,
+            identityStoreId: identityStoreId
+        })
+        accessManagementStack.node.addDependency(sharedStack);
+    }
+
     if (samlMetaDataUrl && callbackUrls) {
         const cognitoCustomStack = new CognitoCustomStack(app, 'CognitoCustomStack', {
             stackName: stackName('CognitoCustomStack'),
             description: stackDescription('CognitoCustomStack'),
-            domain,
             ssoRegion,
             samlMetaDataUrl,
-            userPoolIdParameter: userPoolIdParameter(domain),
+            userPoolIdParameter,
             callbackUrls
         });
         cognitoCustomStack.node.addDependency(sharedStack);
@@ -100,7 +113,6 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         const dataLineage = new DataLineageStack(app, 'DataLineageStack', {
             stackName: stackName('datalineage'),
             description: stackDescription('DataLineage'),
-            domain,
             openlineageApiCpu,
             openlineageApiMemory,
             openlineageWebCpu,
@@ -114,7 +126,6 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             stackName: stackName('dataAsset'),
             description: stackDescription('DataAsset'),
             moduleName: 'dataAsset',
-            domainId:domain
         });
         dataAsset.node.addDependency(sharedStack);
     }
@@ -123,7 +134,6 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         const ssoCustomStack = new SsoCustomStack(app, 'SsoCustomStack', {
             stackName: stackName('SsoCustomStack'),
             description: stackDescription('SsoCustomStack'),
-            domain,
             ssoInstanceArn,
             ssoRegion,
             adminEmail

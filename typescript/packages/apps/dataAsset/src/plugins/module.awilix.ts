@@ -19,6 +19,8 @@ import { EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE } from '@df/events';
 import { GlueClient } from '@aws-sdk/client-glue';
 import { DataBrewClient } from '@aws-sdk/client-databrew';
 import { S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
 
 
 const { captureAWSv3Client } = pkg;
@@ -132,7 +134,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 		
-		
+		// Event PRocessors
 		jobEventProcessor: asFunction(
 			(container) =>
 				new JobEventProcessor(
@@ -141,7 +143,8 @@ const registerContainer = (app?: FastifyInstance) => {
 					container.dataBrewClient,
 					eventBusName,
 					container.eventPublisher,
-					container.s3Client				),
+					container.s3Client,
+					getSignedUrl			),
 			{
 				...commonInjectionOptions
 			}

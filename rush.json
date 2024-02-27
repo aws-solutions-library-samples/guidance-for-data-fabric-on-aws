@@ -373,6 +373,12 @@
 			"shouldPublish": true
 		},
 		{
+			"packageName": "@df/infrastructure-spoke",
+			"projectFolder": "infrastructure/spoke",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		  },	  
+		{
 			"packageName": "@df/cdk-common",
 			"projectFolder": "typescript/packages/libraries/cdk-common",
 			"reviewCategory": "production",
@@ -415,7 +421,18 @@
 			"shouldPublish": true
 		},
 		{
-			"packageName": "@df/dataLineage",
+			"packageName": "@df/access-management",
+			"projectFolder": "typescript/packages/apps/access-management",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		  },
+		  {
+			"packageName": "@df/discovery",
+			"projectFolder": "typescript/packages/apps/discovery",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		  },	  
+		{
 			"packageName": "@df/dataLineage",
 			"projectFolder": "typescript/packages/apps/dataLineage",
 			"reviewCategory": "production",

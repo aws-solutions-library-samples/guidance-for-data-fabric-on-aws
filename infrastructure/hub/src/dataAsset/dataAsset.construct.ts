@@ -1,5 +1,5 @@
-import { getLambdaArchitecture } from '@df/cdk-common';
-import { EventBus, Rule } from 'aws-cdk-lib/aws-events';
+import { dfEventBusName, getLambdaArchitecture } from '@df/cdk-common';
+import { CfnEventBusPolicy, EventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
-import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE } from '@df/events';
+import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE } from '@df/events';
 import { LambdaFunction, SfnStateMachine } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 
@@ -44,6 +44,7 @@ export class DataAsset extends Construct {
 
         const namePrefix = `df`;
         const eventBus = EventBus.fromEventBusName(this, 'EventBus', props.eventBusName);
+        // const eventBus:EventBus = EventBus.bind(iEventBus);
         const defaultEventBus = EventBus.fromEventBusName(this, 'DefaultEventBus', 'default');
         const bucket = Bucket.fromBucketName(this,'JobBucket',props.bucketName)
         const accountId = Stack.of(this).account;
@@ -538,7 +539,7 @@ export class DataAsset extends Construct {
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/lambda_eventbridge.ts'),
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
-            functionName: `${namePrefix}-dataAsset-jobCompletion-event`,
+            functionName: `${namePrefix}-dataAsset-jobCompletion`,
             timeout: Duration.seconds(30),
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
@@ -563,21 +564,56 @@ export class DataAsset extends Construct {
         jobCompletionEventLambda.addToRolePolicy(DataZoneAssetWritePolicy);
 
 
-        // Rule for Job completion events
-        const jobResultProcessorRule = new Rule(this, 'JobResultProcessorRule', {
+        // Rule for Job Start events
+        const jobStartRule = new Rule(this, 'JobStartRule', {
             eventBus: eventBus,
             eventPattern: {
                 detailType: [DATA_ASSET_SPOKE_JOB_START_EVENT]
             }
         });
 
-        jobResultProcessorRule.addTarget(
+        jobStartRule.addTarget(
             new LambdaFunction(jobCompletionEventLambda, {
                 deadLetterQueue: deadLetterQueue,
                 maxEventAge: Duration.minutes(5),
                 retryAttempts: 2
             })
         );
+
+         // Rule for Job completion events
+         const jobCompletionRule = new Rule(this, 'JobCompletionRule', {
+            eventBus: eventBus,
+            eventPattern: {
+                detailType: [DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
+            }
+        });
+
+        jobCompletionRule.addTarget(
+            new LambdaFunction(jobCompletionEventLambda, {
+                deadLetterQueue: deadLetterQueue,
+                maxEventAge: Duration.minutes(5),
+                retryAttempts: 2
+            })
+        );
+
+
+        // Add eventBus Policy for incoming job events
+        new CfnEventBusPolicy(this,'JobEventBusPolicy', {
+            eventBusName: dfEventBusName,
+            statementId: 'AllowSpokeAccountsToPutJobEvents',
+            statement:{
+                Effect: Effect.ALLOW,
+                Action: ['events:PutEvents'],
+                Resource: [`arn:aws:events:${region}:${accountId}:event-bus/${dfEventBusName}`],
+                Principal: '*',
+                Condition: {
+                    'StringEquals': {
+                        'events:source': [DATA_ASSET_SPOKE_EVENT_SOURCE],
+                        'detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
+                    }
+                }
+            }                        
+        });
 
         NagSuppressions.addResourceSuppressions([apiLambda, jobCompletionEventLambda, jobEnrichmentLambda],
             [

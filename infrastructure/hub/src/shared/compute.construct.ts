@@ -4,17 +4,16 @@ import { Cluster } from "aws-cdk-lib/aws-ecs";
 import type { IVpc } from "aws-cdk-lib/aws-ec2";
 
 export interface ComputeConstructProperties {
-    domain: string;
     vpc: IVpc;
 }
 
-export const clusterNameParameter = (domain: string) => `/df/${domain}/shared/clusterName`;
+export const clusterNameParameter = `/df/shared/clusterName`;
 
 export class Compute extends Construct {
     constructor(scope: Construct, id: string, props: ComputeConstructProperties) {
         super(scope, id);
 
-        const namePrefix = `df-${props.domain}`;
+        const namePrefix = `df`;
 
         const computeCluster = new Cluster(this, 'DFComputeCluster', {
             vpc: props.vpc,
@@ -23,7 +22,7 @@ export class Compute extends Construct {
         });
 
         new ssm.StringParameter(this, 'clusterNameParameter', {
-            parameterName: clusterNameParameter(props.domain),
+            parameterName: clusterNameParameter,
             stringValue: computeCluster.clusterName,
         });
     }

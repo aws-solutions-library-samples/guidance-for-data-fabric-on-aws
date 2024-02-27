@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { dfEventBusName } from '@df/cdk-common';
 
 const { DOMAIN_ID, AWS_REGION  } = process.env;
 
@@ -12,9 +13,6 @@ const ssm = new SSMClient({ region: process.env['AWS_REGION'] });
 const getValues = async (module: string, mapping: Record<string, string>) => {
 	for (const key in mapping) {
 		let prefix = `/df/${module}/`;
-		if( module != 'dataAsset' ){
-			prefix = `/df/${DOMAIN_ID}/${module}/`;
-		}
 		const name = `${prefix}${mapping[key]}`;
 		try {
 			const response = await ssm.send(
@@ -35,9 +33,10 @@ const getValues = async (module: string, mapping: Record<string, string>) => {
 let outputFile = `NODE_ENV=${DOMAIN_ID}\r\n`;
 outputFile += 'MODULE_NAME=dataAsset\r\n';
 outputFile += 'ENABLE_DELETE_RESOURCE=true\r\n';
+outputFile += `EVENT_BUS_NAME=${dfEventBusName}\r\n`;
 
 await getValues('shared', {
-	EVENT_BUS_NAME: 'eventBusName',
+	
 });
 
 await getValues('dataAsset', {

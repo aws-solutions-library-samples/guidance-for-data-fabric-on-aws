@@ -91,7 +91,8 @@ export type JobExecution = {
     jobRunStatus?: string,
     jobStartTime?: string, 
     jobStopTime?: string, 
-    message?:string
+    message?:string,
+    profileSignedUrl?: string 
 };
 
 export type DataAssetJobStartEvent = {
@@ -103,6 +104,5 @@ export type DataAssetJobCompletionEvent = {
     dataAsset:{
         catalog:DataAssetCatalog
     }
-    job: JobExecution,
-    profile?: {}
+    job: JobExecution
 };
