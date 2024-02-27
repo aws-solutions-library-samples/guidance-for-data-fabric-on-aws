@@ -86,13 +86,23 @@ export type DataAsset = {
 };
 
 export type JobExecution = {
+    assetId?: string,
     jobRunId?: string,
     jobRunStatus?: string,
     jobStartTime?: string, 
-    jobStopTime?: string 
+    jobStopTime?: string, 
+    message?:string
 };
 
-export type DataAssetJobEvent = {
+export type DataAssetJobStartEvent = {
     dataAsset: DataAsset,
     job: JobExecution
+};
+
+export type DataAssetJobCompletionEvent = {
+    dataAsset:{
+        catalog:DataAssetCatalog
+    }
+    job: JobExecution,
+    profile?: {}
 };

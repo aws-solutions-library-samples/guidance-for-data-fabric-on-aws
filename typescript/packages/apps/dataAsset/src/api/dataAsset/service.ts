@@ -109,16 +109,17 @@ export class DataAssetService {
     
     }
     public async update(dataAssetId: string, updatedAsset: EditDataAsset): Promise<DataAsset> {
-        this.log.debug(`DataAssetService > edit > in dataAssetId:${dataAssetId}, asset:${JSON.stringify(updatedAsset)}`);
+        this.log.debug(`DataAssetService > update > in dataAssetId:${dataAssetId}, asset:${JSON.stringify(updatedAsset)}`);
 
         const existing = await this.repository.get(dataAssetId);
 
-        // id Asset Id exists validate against data zone 
-        if (existing?.catalog?.assetId){
+        // Asset Id exists validate against data zone 
+        if (existing.id){
             //TODO validate asset data against data zone
+            this.log.debug(`DataAssetService > update > in dataZone domainId :${updatedAsset.catalog.domainId}, assetId:${dataAssetId}`);
             const dzAsset = await this.dzClient.send(new GetAssetCommand({
                 domainIdentifier: updatedAsset.catalog.domainId,
-                identifier: updatedAsset.catalog.assetId
+                identifier: dataAssetId
             }));
             if(!dzAsset){
                 throw new NotFoundError(`Asset not found in Data Zone !!!`)
@@ -133,7 +134,7 @@ export class DataAssetService {
 		existing.updatedBy = 'TBD';
         
 
-        this.log.debug(`DataAssetService > edit > exit`);
+        this.log.debug(`DataAssetService > update > exit`);
         return existing;
     }
 

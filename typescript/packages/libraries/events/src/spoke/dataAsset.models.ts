@@ -1,11 +1,21 @@
-import type { DataAssetJobEvent } from "../common/dataAsset.models";
+import type { DataAssetJobStartEvent, DataAssetJobCompletionEvent } from "../common/dataAsset.models";
 
-export interface dataAssetSpokeResponseEvent {
+export interface dataAssetSpokeJobStartEvent {
     account: string,
     region: string,
     source: string,
     'detail-type': string,
-    detail: DataAssetJobEvent,
+    detail: DataAssetJobStartEvent,
 };
 
-export type {dataAssetSpokeResponseEvent as DataAssetSpokeResponseEvent};
+
+export interface dataAssetSpokeJobCompletionEvent {
+    account: string,
+    region: string,
+    source: string,
+    'detail-type': string,
+    detail: DataAssetJobCompletionEvent,
+};
+
+export type {dataAssetSpokeJobStartEvent as DataAssetSpokeJobStartEvent};
+export type {dataAssetSpokeJobCompletionEvent as DataAssetSpokeJobCompletionEvent};

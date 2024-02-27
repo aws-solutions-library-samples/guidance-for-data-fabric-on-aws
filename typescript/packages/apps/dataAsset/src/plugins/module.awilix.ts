@@ -18,6 +18,7 @@ import { EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE } from '@df/events';
  import { RunJobTask} from '../stepFunction/tasks/runJobTask.js';
 import { GlueClient } from '@aws-sdk/client-glue';
 import { DataBrewClient } from '@aws-sdk/client-databrew';
+import { S3Client } from '@aws-sdk/client-s3';
 
 
 const { captureAWSv3Client } = pkg;
@@ -32,6 +33,7 @@ declare module '@fastify/awilix' {
 		dataZoneClient: DataZoneClient;
 		glueClient: GlueClient;
 		dataBrewClient: DataBrewClient;
+		s3Client: S3Client;
 		eventPublisher: EventPublisher;
 		dataAssetRepository: DataAssetRepository;
 		dataAssetService: DataAssetService;
@@ -77,6 +79,13 @@ class DataBrewClientFactory {
 	}
 }
 
+class S3ClientFactory {
+	public static create(region: string): S3Client {
+		const s3 = captureAWSv3Client(new S3Client({ region }));
+		return s3;
+	}
+}
+
 const registerContainer = (app?: FastifyInstance) => {
 	const commonInjectionOptions = {
 		lifetime: Lifetime.SINGLETON
@@ -111,6 +120,10 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
+		s3Client: asFunction(() => S3ClientFactory.create(awsRegion), {
+			...commonInjectionOptions,
+		}),
+
 		dynamoDbUtils: asFunction((container: Cradle) => new DynamoDbUtils(app.log, container.dynamoDBDocumentClient), {
 			...commonInjectionOptions,
 		}),
@@ -124,8 +137,11 @@ const registerContainer = (app?: FastifyInstance) => {
 			(container) =>
 				new JobEventProcessor(
 					app.log,
-					container.dataAssetService
-				),
+					container.dataAssetService,
+					container.dataBrewClient,
+					eventBusName,
+					container.eventPublisher,
+					container.s3Client				),
 			{
 				...commonInjectionOptions
 			}
