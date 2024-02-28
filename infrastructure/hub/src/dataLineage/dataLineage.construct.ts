@@ -7,7 +7,7 @@ import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Duration, Stack } from 'aws-cdk-lib';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { dfEventBusName, getLambdaArchitecture } from '@df/cdk-common';
+import { dfEventBusName, getLambdaArchitecture, OrganizationUnitPath } from '@df/cdk-common';
 import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT, DATA_LINEAGE_SPOKE_EVENT_SOURCE } from '@df/events';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -18,6 +18,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export interface DataLineageConstructProperties {
+	orgPath: OrganizationUnitPath,
 	vpc: IVpc;
 	marquezUrl: string;
 }
@@ -104,6 +105,9 @@ export class DataLineage extends Construct {
                 Condition: {
                     'StringEquals': {
                         'events:source': [DATA_LINEAGE_SPOKE_EVENT_SOURCE]
+                    },
+					'ForAnyValue:StringEquals': {
+                        'aws:PrincipalOrgPaths': `${props.orgPath.orgId}/${props.orgPath.rootId}/${props.orgPath.ouId}/`
                     }
                 }
             }                        

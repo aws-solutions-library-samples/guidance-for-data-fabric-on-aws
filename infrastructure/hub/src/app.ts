@@ -7,7 +7,7 @@ import { SsoCustomStack } from './shared/ssoCustom.stack.js';
 import { CognitoCustomStack } from './shared/cognitoCustom.stack.js';
 import { DataLineageStack } from './dataLineage/dataLineage.stack.js';
 import { AwsSolutionsChecks } from 'cdk-nag';
-import { tryGetBooleanContext, getOrThrow, userPoolIdParameter } from '@df/cdk-common';
+import { tryGetBooleanContext, getOrThrow, userPoolIdParameter, OrganizationUnitPath } from '@df/cdk-common';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
@@ -24,6 +24,16 @@ const app = new cdk.App();
 const spokeAccountIds = getOrThrow(app, 'spokeAccountIds').toString().split(',');
 
 const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
+
+// manditory (for now) AWS Organizations parameters
+const orgId = getOrThrow(app, 'orgId');
+const orgRootId = getOrThrow(app, 'orgRootId');
+const orgOuId = getOrThrow(app, 'orgOuId');
+const orgPath: OrganizationUnitPath = {
+    orgId,
+    rootId: orgRootId,
+    ouId: orgOuId
+};
 
 // user VPC config
 const useExistingVpc = tryGetBooleanContext(app, 'useExistingVpc', false);
@@ -118,7 +128,8 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             openlineageWebCpu,
             openlineageWebMemory,
             marquezVersionTag,
-            loadBalancerCertificateArn
+            loadBalancerCertificateArn,
+            orgPath: orgPath
         });
         dataLineage.node.addDependency(sharedStack);
 
@@ -126,6 +137,7 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             stackName: stackName('dataAsset'),
             description: stackDescription('DataAsset'),
             moduleName: 'dataAsset',
+            orgPath: orgPath
         });
         dataAsset.node.addDependency(sharedStack);
     }

@@ -6,3 +6,4 @@ export * from './facts/facts.utils.js';
 export * from './facts/lambdaArchitecture.js';
 export * from './accessManagement/util.js'
 export * from './eventBridge/eventbus.construct.js'
+export * from './organizations/models.js'

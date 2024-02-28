@@ -1,4 +1,4 @@
-import { dfEventBusName, getLambdaArchitecture } from '@df/cdk-common';
+import { dfEventBusName, getLambdaArchitecture, OrganizationUnitPath } from '@df/cdk-common';
 import { CfnEventBusPolicy, EventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
@@ -28,6 +28,7 @@ export type DataAssetConstructProperties = {
     eventBusName: string;
     bucketName: string;
     cognitoUserPoolId: string;
+    orgPath: OrganizationUnitPath
 };
 
 
@@ -598,7 +599,7 @@ export class DataAsset extends Construct {
 
 
         // Add eventBus Policy for incoming job events
-        new CfnEventBusPolicy(this,'JobEventBusPolicy', {
+        new CfnEventBusPolicy(this,'JobEventBusPutEventPolicy', {
             eventBusName: dfEventBusName,
             statementId: 'AllowSpokeAccountsToPutJobEvents',
             statement:{
@@ -610,7 +611,46 @@ export class DataAsset extends Construct {
                     'StringEquals': {
                         'events:source': [DATA_ASSET_SPOKE_EVENT_SOURCE],
                         'events:detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
+                    },
+                    'ForAnyValue:StringEquals': {
+                        'aws:PrincipalOrgPaths': `${props.orgPath.orgId}/${props.orgPath.rootId}/${props.orgPath.ouId}/`
                     }
+                }
+            }                        
+        });
+
+        // Add eventBus Policy to allow spoke accounts to subscribe their bus to the hub bus for outgoing (hub to spoke) events
+        new CfnEventBusPolicy(this,'JobEventBusSubscribePolicy', {
+            eventBusName: dfEventBusName,
+            statementId: 'AllowSpokeAccountsToSubscribeForJobEvents',
+            statement:{
+                Effect: Effect.ALLOW,
+                Action: [
+                    'events:PutRule',
+                    'events:PutTargets',
+                    'events:DeleteRule',
+                    'events:RemoveTargets',
+                    'events:DisableRule',
+                    'events:EnableRule',
+                    'events:TagResource',
+                    'events:UntagResource',
+                    'events:DescribeRule',
+                    'events:ListTargetsByRule',
+                    'events:ListTagsForResource'
+                ],
+                Resource: [`arn:aws:events:${region}:${accountId}:event-bus/${dfEventBusName}`],
+                Principal: '*',
+                Condition: {
+                    'StringEqualsIfExists': {
+                        'events:source': [DATA_ASSET_SPOKE_EVENT_SOURCE],
+                        'events:detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT],
+                        'events:targetArn': 'arn:aws:events:*:${aws:PrincipalAccount}:event-bus/*',
+                        'events:creatorAccount': '${aws:PrincipalAccount}'
+                    },
+                    'ForAnyValue:StringEquals': {
+                        'aws:PrincipalOrgPaths': `${props.orgPath.orgId}/${props.orgPath.rootId}/${props.orgPath.ouId}/`
+                    },
+
                 }
             }                        
         });

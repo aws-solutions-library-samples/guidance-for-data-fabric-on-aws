@@ -9,7 +9,7 @@ import { NagSuppressions } from 'cdk-nag';
 import { clusterNameParameter } from "../shared/compute.construct.js";
 import { userPoolDomainParameter } from "../shared/cognito.construct.js";
 import { OpenLineage } from "./openLineage.construct.js";
-import { userPoolIdParameter } from '@df/cdk-common';
+import { userPoolIdParameter, OrganizationUnitPath } from '@df/cdk-common';
 import { DataLineage } from "./dataLineage.construct.js";
 
 
@@ -20,6 +20,7 @@ export type DataLineageStackProperties = StackProps & {
     openlineageWebMemory: number;
     marquezVersionTag: string;
     loadBalancerCertificateArn: string;
+    orgPath: OrganizationUnitPath
 };
 
 export const rdsClusterWriterEndpoint = `/df/dataLineage/aurora/rdsClusterWriterEndpoint`;
@@ -97,7 +98,8 @@ export class DataLineageStack extends Stack {
 
         new DataLineage(this, 'DataLineage', {
             vpc,
-            marquezUrl: openLineage.openLineageApiUrl
+            marquezUrl: openLineage.openLineageApiUrl,
+            orgPath: props.orgPath
         });
 
         NagSuppressions.addResourceSuppressionsByPath(this, [

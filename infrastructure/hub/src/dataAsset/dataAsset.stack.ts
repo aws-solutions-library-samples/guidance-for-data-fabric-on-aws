@@ -4,11 +4,12 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
 
 import { DataAsset } from "./dataAsset.construct.js";
-import { dfEventBusName, userPoolIdParameter } from '@df/cdk-common';
+import { dfEventBusName, userPoolIdParameter, OrganizationUnitPath } from '@df/cdk-common';
 import { bucketNameParameter } from '../shared/s3.construct.js';
 
 export type DataAssetStackProperties = StackProps & {
     moduleName:string;
+    orgPath: OrganizationUnitPath
 };
 
 
@@ -32,7 +33,8 @@ export class DataAssetStack extends Stack {
             moduleName: props.moduleName,
             eventBusName: dfEventBusName,
             bucketName,
-            cognitoUserPoolId: userPoolId
+            cognitoUserPoolId: userPoolId,
+            orgPath: props.orgPath,
         });
 
         new StringParameter(this, 'dataAssetFunctionNameParameter', {
