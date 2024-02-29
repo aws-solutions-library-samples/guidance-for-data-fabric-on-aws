@@ -32,13 +32,13 @@ const orgPath: OrganizationUnitPath = {
 const stackNamePrefix = `df-shared`;
 
 const stackName = (suffix: string) => `${stackNamePrefix}-${suffix}`;
-const platformStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
+const spokeStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
 
-const deployPlatform = (callerEnvironment?: { accountId?: string, region?: string }): void => {
+const deploySpoke = (callerEnvironment?: { accountId?: string, region?: string }): void => {
 
   new AccessManagementStack(app, 'AccessManagementStack', {
       stackName: stackName('accessManagement'),
-      description: platformStackDescription('AccessManagement'),
+      description: spokeStackDescription('AccessManagement'),
       hubAccountId: hubAccountId,
       env: {
         // The DF_REGION domainId variable
@@ -49,7 +49,7 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
 
   new DataAssetStack(app, 'DataAssetStack', {
     stackName: stackName('dataAsset'),
-    description: platformStackDescription('DataAsset'),
+    description: spokeStackDescription('DataAsset'),
     moduleName: 'dataAsset',
     hubAccountId: hubAccountId,
     orgPath: orgPath,
@@ -76,4 +76,4 @@ const getCallerEnvironment = (): { accountId?: string, region?: string } | undef
 	return callerEnvironment;
 };
 
-deployPlatform(getCallerEnvironment());
+deploySpoke(getCallerEnvironment());

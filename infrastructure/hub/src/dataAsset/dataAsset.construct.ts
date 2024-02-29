@@ -214,12 +214,12 @@ export class DataAsset extends Construct {
         this.apiUrl = apigw.url;
         this.apiName = apigw.restApiName;
 
-        const SFNGetExecutionHistoryPolicy = new PolicyStatement({
-            actions: ['states:GetExecutionHistory', 'states:DescribeExecution'],
-            resources: [`arn:aws:states:${region}:${accountId}:execution:df-data-asset:*`]
-        });
+        // const SFNGetExecutionHistoryPolicy = new PolicyStatement({
+        //     actions: ['states:GetExecutionHistory', 'states:DescribeExecution'],
+        //     resources: [`arn:aws:states:${region}:${accountId}:execution:df-data-asset:*`]
+        // });
 
-        apiLambda.addToRolePolicy(SFNGetExecutionHistoryPolicy);
+        // apiLambda.addToRolePolicy(SFNGetExecutionHistoryPolicy);
 
         /* TODO Temp Data Asset State MAchine to
             1- create data brew connection

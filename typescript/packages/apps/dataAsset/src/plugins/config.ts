@@ -8,9 +8,7 @@ export const moduleConfigSchema = Type.Object({
 	ASSET_MANAGEMENT_HUB_STATE_MACHINE_ARN: Type.String(),
 	EVENT_BUS_NAME: Type.String(),
 	PORT: Type.Number({ default: 30004 }),
-	TABLE_NAME: Type.String(),
-	DOMAIN_ID: Type.String()
-
+	TABLE_NAME: Type.String()
 });
 export const configSchema = Type.Intersect([moduleConfigSchema, baseConfigSchema]);
 

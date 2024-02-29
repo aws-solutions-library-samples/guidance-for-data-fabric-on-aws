@@ -27,6 +27,7 @@ export class JobTask {
 		const res = await this.dataBrewClient.send(new CreateProfileJobCommand(profileCommand));
 
 		// TODO scheduled jobs are yet to be implemented
+		
 		// Run the Job if the job is on Demand
 		const run = await this.dataBrewClient.send(new StartJobRunCommand({ Name: res.Name }));
 		const eventPayload: DataAssetJobStartEvent = {
@@ -58,7 +59,6 @@ export class JobTask {
 		const jobName = `${asset.workflow.name}-${asset.id}-profile`;
 		const outputKey = `${this.jobsBucketPrefix}/${asset.catalog.domainId}/${asset.catalog.projectId}/${asset.id}`
 
-
 		// TODO allow overriding profiling config
 		// TODO allow the use of recipes
 
@@ -73,22 +73,18 @@ export class JobTask {
 			},
 			Tags: {
 				...asset.workflow?.tags,
-
 				// Default tags that are added for lineage and enrichment purposes
 				domainId: event.dataAssetEvent.detail.catalog.domainId,
 				projectId: event.dataAssetEvent.detail.catalog.projectId,
 				assetName: event.dataAssetEvent.detail.catalog.assetName,
-				assetId: event.dataAssetEvent.detail.catalog.assetId
+				assetId: event.dataAssetEvent.detail.id
 			}
-
-
 		}
+
+		this.log.info(`JobTask > createProfilingJob > command:${JSON.stringify(command)}`);
 
 		return command;
 
 	}
-
-	// TODO Function to create the role for job execution 
-	// Needs further investigation current assumption is that roleArn will be provided as part of the request
 
 }

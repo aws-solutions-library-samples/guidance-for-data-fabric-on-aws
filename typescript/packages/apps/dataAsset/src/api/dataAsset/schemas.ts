@@ -104,9 +104,40 @@ export const schedule = Type.Optional(Type.Object({
     // TODO to be implemented
 }));
 
-export const profile = Type.Optional(Type.Object({
-    // TODO to be implemented
-}));
+export const profileSummary = Type.Object(
+    {
+        sampleSize: Type.Number({ description: 'The number of rows used as a sample size from the dataset' }),
+        columnCount: Type.Number({ description: 'The number of columns in the dataset' }),
+        duplicateRowsCount: Type.Number({ description: 'The number of duplicate rows' }),
+        location: Type.String({ description: 'The location of the S3 file containing the profile information' }),
+        totalMissingValues: Type.Number({ description: 'The number of total missing values across all columns' })
+    }
+); 
+
+export const columnProfile = Type.Object(
+    {
+        name: Type.String({ description: 'The name of the column' }),
+        type: Type.String({ description: 'The type of the column' }),
+        distinctValuesCount: Type.Number({ description: 'The number of distinct values'}),
+        uniqueValuesCount: Type.Number({ description: 'The number of unique Values' }),
+        missingValuesCount: Type.Number({ description: 'The number of missing values' }),
+        mostCommonValues: Type.Number({ description: 'Top 5 most common values' }),
+        max: Type.Number({ description: 'The number of total missing values across all columns' }),
+        min: Type.Number({ description: 'The number of total missing values across all columns' }),
+        mean: Type.Number({ description: 'The number of total missing values across all columns' })
+    }
+);
+
+export const columns = Type.Optional(
+	Type.Array(columnProfile, {
+		description: 'column profiles that are to be added to our asset.'
+	})
+);
+
+export const profile = Type.Object({
+    summary: profileSummary,
+    columns
+});
 
 export const workflow = Type.Object({
     name: Type.String({ description: 'The name of the workflow' }),
@@ -137,7 +168,8 @@ export const dataAssetResource = Type.Object({
     updatedAt: Type.Optional(updatedAt),
     execution: Type.Optional(execution),
     catalog,
-    workflow
+    workflow,
+    profile:Type.Optional(profile)
 }, { $id: 'dataAssetResource' });
 
 export const newDataAssetResource = Type.Object({
@@ -176,6 +208,8 @@ export const listDataAssetResource = Type.Object(
     }
 );
 
+
+
 export type Catalog = Static<typeof catalog>;
 export type Workflow = Static<typeof workflow>;
 export type DataAsset = Static<typeof dataAssetResource>;
@@ -183,3 +217,5 @@ export type NewDataAsset = Static<typeof newDataAssetResource>;
 export type EditDataAsset = Static<typeof editDataAssetResource>;
 export type DataAssetListOptions = Static<typeof dataAssetListOptions>;
 export type ListDataAsset = Static<typeof listDataAssetResource>;
+export type DataProfile = Static<typeof profile>;
+export type ProfileColumns = Static<typeof columns>;

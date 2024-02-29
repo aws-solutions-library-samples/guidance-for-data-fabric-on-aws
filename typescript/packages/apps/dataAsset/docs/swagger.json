@@ -1,0 +1,1840 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "DF: Asset Management",
+    "description": "\nHas accountability for:\n- managing Assets in data zone\n\t- creating data brew jobs for profiling and data conversion \n\t- running data bre job for profiling and data quality\n",
+    "version": "0.0.1"
+  },
+  "components": {
+    "securitySchemes": {
+      "platformUserPool": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "def-0": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "state": {
+            "description": "State of the Data asset.",
+            "type": "string"
+          },
+          "version": {
+            "description": "specify the version number",
+            "type": "number"
+          },
+          "createdBy": {
+            "description": "ID of owner.",
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Date/time created",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "description": "Last ID of user who made a change.",
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "Date/time updated",
+            "format": "date-time",
+            "type": "string"
+          },
+          "execution": {
+            "type": "object",
+            "properties": {
+              "hubExecutionArn": {
+                "description": "The hub execution id of the state machine",
+                "type": "string"
+              },
+              "spokeExecutionArn": {
+                "description": "The Spoke execution id of the state machine",
+                "type": "string"
+              },
+              "jobRunId": {
+                "description": "The job runId from databrew",
+                "type": "string"
+              },
+              "jobRunStatus": {
+                "description": "The run status of the job",
+                "type": "string"
+              },
+              "jobStartTime": {
+                "description": "The start time of the last job run",
+                "type": "string"
+              },
+              "jobStopTime": {
+                "description": "The stop time of the last job run",
+                "type": "string"
+              }
+            }
+          },
+          "catalog": {
+            "type": "object",
+            "properties": {
+              "domainId": {
+                "description": "Data Zone domain id",
+                "type": "string"
+              },
+              "projectId": {
+                "description": "Data Zone project id",
+                "type": "string"
+              },
+              "assetName": {
+                "description": "Data Zone asset name",
+                "type": "string"
+              },
+              "assetId": {
+                "description": "Data Zone asset id",
+                "type": "string"
+              },
+              "accountId": {
+                "description": "The account id here the asset resides",
+                "type": "string"
+              },
+              "autoPublish": {
+                "description": "Publish the asset automatically.",
+                "default": true,
+                "type": "boolean"
+              },
+              "revision": {
+                "description": "specify the version number of the datazone asset",
+                "type": "number"
+              }
+            },
+            "required": [
+              "domainId",
+              "projectId",
+              "assetName",
+              "accountId",
+              "autoPublish"
+            ]
+          },
+          "workflow": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "The name of the workflow",
+                "type": "string"
+              },
+              "roleArn": {
+                "description": "The Arn of the IAM Role to be used for the job execution",
+                "type": "string"
+              },
+              "dataset": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "description": "The name of the workflow",
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "avro",
+                      "csv",
+                      "json",
+                      "parquet",
+                      "orc",
+                      "grok"
+                    ],
+                    "description": "The format of the data set."
+                  },
+                  "connectionId": {
+                    "description": "Data Zone project id",
+                    "type": "string"
+                  },
+                  "connection": {
+                    "type": "object",
+                    "properties": {
+                      "dataLake": {
+                        "type": "object",
+                        "properties": {
+                          "s3": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "description": "The uri of the source S3 file",
+                                "type": "string"
+                              },
+                              "region": {
+                                "description": "The region of the S3 bucket",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "path",
+                              "region"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "s3"
+                        ]
+                      },
+                      "glue": {
+                        "type": "object",
+                        "properties": {
+                          "accountId": {
+                            "description": "The account Id the glue table belongs to",
+                            "type": "string"
+                          },
+                          "region": {
+                            "description": "The region of the glue table",
+                            "type": "string"
+                          },
+                          "databaseName": {
+                            "description": "The database name the glue table belongs to",
+                            "type": "string"
+                          },
+                          "tableName": {
+                            "description": "The glue table name",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "accountId",
+                          "region",
+                          "databaseName",
+                          "tableName"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "format"
+                ]
+              },
+              "sampling": {
+                "type": "object",
+                "properties": {}
+              },
+              "transforms": {
+                "type": "object",
+                "properties": {}
+              },
+              "tags": {
+                "description": "tags to be added to our data brew constructs description etc.",
+                "type": "object",
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "name",
+              "roleArn",
+              "dataset"
+            ]
+          },
+          "profile": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "object",
+                "properties": {
+                  "sampleSize": {
+                    "description": "The number of rows used as a sample size from the dataset",
+                    "type": "number"
+                  },
+                  "columnCount": {
+                    "description": "The number of columns in the dataset",
+                    "type": "number"
+                  },
+                  "duplicateRowsCount": {
+                    "description": "The number of duplicate rows",
+                    "type": "number"
+                  },
+                  "location": {
+                    "description": "The location of the S3 file containing the profile information",
+                    "type": "string"
+                  },
+                  "totalMissingValues": {
+                    "description": "The number of total missing values across all columns",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "sampleSize",
+                  "columnCount",
+                  "duplicateRowsCount",
+                  "location",
+                  "totalMissingValues"
+                ]
+              },
+              "columns": {
+                "description": "column profiles that are to be added to our asset.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "The name of the column",
+                      "type": "string"
+                    },
+                    "type": {
+                      "description": "The type of the column",
+                      "type": "string"
+                    },
+                    "distinctValuesCount": {
+                      "description": "The number of distinct values",
+                      "type": "number"
+                    },
+                    "uniqueValuesCount": {
+                      "description": "The number of unique Values",
+                      "type": "number"
+                    },
+                    "missingValuesCount": {
+                      "description": "The number of missing values",
+                      "type": "number"
+                    },
+                    "mostCommonValues": {
+                      "description": "Top 5 most common values",
+                      "type": "number"
+                    },
+                    "max": {
+                      "description": "The number of total missing values across all columns",
+                      "type": "number"
+                    },
+                    "min": {
+                      "description": "The number of total missing values across all columns",
+                      "type": "number"
+                    },
+                    "mean": {
+                      "description": "The number of total missing values across all columns",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "distinctValuesCount",
+                    "uniqueValuesCount",
+                    "missingValuesCount",
+                    "mostCommonValues",
+                    "max",
+                    "min",
+                    "mean"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "summary"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "createdBy",
+          "createdAt",
+          "catalog",
+          "workflow"
+        ],
+        "title": "dataAssetResource"
+      },
+      "def-1": {
+        "type": "object",
+        "properties": {
+          "catalog": {
+            "type": "object",
+            "properties": {
+              "domainId": {
+                "description": "Data Zone domain id",
+                "type": "string"
+              },
+              "projectId": {
+                "description": "Data Zone project id",
+                "type": "string"
+              },
+              "assetName": {
+                "description": "Data Zone asset name",
+                "type": "string"
+              },
+              "assetId": {
+                "description": "Data Zone asset id",
+                "type": "string"
+              },
+              "accountId": {
+                "description": "The account id here the asset resides",
+                "type": "string"
+              },
+              "autoPublish": {
+                "description": "Publish the asset automatically.",
+                "default": true,
+                "type": "boolean"
+              },
+              "revision": {
+                "description": "specify the version number of the datazone asset",
+                "type": "number"
+              }
+            },
+            "required": [
+              "domainId",
+              "projectId",
+              "assetName",
+              "accountId",
+              "autoPublish"
+            ]
+          },
+          "workflow": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "The name of the workflow",
+                "type": "string"
+              },
+              "roleArn": {
+                "description": "The Arn of the IAM Role to be used for the job execution",
+                "type": "string"
+              },
+              "dataset": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "description": "The name of the workflow",
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "avro",
+                      "csv",
+                      "json",
+                      "parquet",
+                      "orc",
+                      "grok"
+                    ],
+                    "description": "The format of the data set."
+                  },
+                  "connectionId": {
+                    "description": "Data Zone project id",
+                    "type": "string"
+                  },
+                  "connection": {
+                    "type": "object",
+                    "properties": {
+                      "dataLake": {
+                        "type": "object",
+                        "properties": {
+                          "s3": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "description": "The uri of the source S3 file",
+                                "type": "string"
+                              },
+                              "region": {
+                                "description": "The region of the S3 bucket",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "path",
+                              "region"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "s3"
+                        ]
+                      },
+                      "glue": {
+                        "type": "object",
+                        "properties": {
+                          "accountId": {
+                            "description": "The account Id the glue table belongs to",
+                            "type": "string"
+                          },
+                          "region": {
+                            "description": "The region of the glue table",
+                            "type": "string"
+                          },
+                          "databaseName": {
+                            "description": "The database name the glue table belongs to",
+                            "type": "string"
+                          },
+                          "tableName": {
+                            "description": "The glue table name",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "accountId",
+                          "region",
+                          "databaseName",
+                          "tableName"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "format"
+                ]
+              },
+              "sampling": {
+                "type": "object",
+                "properties": {}
+              },
+              "transforms": {
+                "type": "object",
+                "properties": {}
+              },
+              "tags": {
+                "description": "tags to be added to our data brew constructs description etc.",
+                "type": "object",
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "name",
+              "roleArn",
+              "dataset"
+            ]
+          }
+        },
+        "required": [
+          "catalog",
+          "workflow"
+        ],
+        "title": "newDataAssetRequestBody"
+      },
+      "def-2": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "description": "State of the Data asset.",
+            "type": "string"
+          },
+          "execution": {
+            "type": "object",
+            "properties": {
+              "hubExecutionArn": {
+                "description": "The hub execution id of the state machine",
+                "type": "string"
+              },
+              "spokeExecutionArn": {
+                "description": "The Spoke execution id of the state machine",
+                "type": "string"
+              },
+              "jobRunId": {
+                "description": "The job runId from databrew",
+                "type": "string"
+              },
+              "jobRunStatus": {
+                "description": "The run status of the job",
+                "type": "string"
+              },
+              "jobStartTime": {
+                "description": "The start time of the last job run",
+                "type": "string"
+              },
+              "jobStopTime": {
+                "description": "The stop time of the last job run",
+                "type": "string"
+              }
+            }
+          },
+          "catalog": {
+            "type": "object",
+            "properties": {
+              "domainId": {
+                "description": "Data Zone domain id",
+                "type": "string"
+              },
+              "projectId": {
+                "description": "Data Zone project id",
+                "type": "string"
+              },
+              "assetName": {
+                "description": "Data Zone asset name",
+                "type": "string"
+              },
+              "assetId": {
+                "description": "Data Zone asset id",
+                "type": "string"
+              },
+              "accountId": {
+                "description": "The account id here the asset resides",
+                "type": "string"
+              },
+              "autoPublish": {
+                "description": "Publish the asset automatically.",
+                "default": true,
+                "type": "boolean"
+              },
+              "revision": {
+                "description": "specify the version number of the datazone asset",
+                "type": "number"
+              }
+            },
+            "required": [
+              "domainId",
+              "projectId",
+              "assetName",
+              "accountId",
+              "autoPublish"
+            ]
+          },
+          "workflow": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "The name of the workflow",
+                "type": "string"
+              },
+              "roleArn": {
+                "description": "The Arn of the IAM Role to be used for the job execution",
+                "type": "string"
+              },
+              "dataset": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "description": "The name of the workflow",
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "avro",
+                      "csv",
+                      "json",
+                      "parquet",
+                      "orc",
+                      "grok"
+                    ],
+                    "description": "The format of the data set."
+                  },
+                  "connectionId": {
+                    "description": "Data Zone project id",
+                    "type": "string"
+                  },
+                  "connection": {
+                    "type": "object",
+                    "properties": {
+                      "dataLake": {
+                        "type": "object",
+                        "properties": {
+                          "s3": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "description": "The uri of the source S3 file",
+                                "type": "string"
+                              },
+                              "region": {
+                                "description": "The region of the S3 bucket",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "path",
+                              "region"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "s3"
+                        ]
+                      },
+                      "glue": {
+                        "type": "object",
+                        "properties": {
+                          "accountId": {
+                            "description": "The account Id the glue table belongs to",
+                            "type": "string"
+                          },
+                          "region": {
+                            "description": "The region of the glue table",
+                            "type": "string"
+                          },
+                          "databaseName": {
+                            "description": "The database name the glue table belongs to",
+                            "type": "string"
+                          },
+                          "tableName": {
+                            "description": "The glue table name",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "accountId",
+                          "region",
+                          "databaseName",
+                          "tableName"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "format"
+                ]
+              },
+              "sampling": {
+                "type": "object",
+                "properties": {}
+              },
+              "transforms": {
+                "type": "object",
+                "properties": {}
+              },
+              "tags": {
+                "description": "tags to be added to our data brew constructs description etc.",
+                "type": "object",
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "name",
+              "roleArn",
+              "dataset"
+            ]
+          }
+        },
+        "required": [
+          "state",
+          "catalog",
+          "workflow"
+        ],
+        "title": "editDataAssetRequestBody"
+      },
+      "def-3": {
+        "type": "object",
+        "properties": {
+          "dataAssets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "description": "No. of results returned when pagination requested.",
+                "type": "integer"
+              },
+              "lastEvaluatedToken": {
+                "description": "Token used to paginate to the next page of search result.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "dataAssets"
+        ],
+        "title": "listDataAsset"
+      }
+    }
+  },
+  "paths": {
+    "/dataassets": {
+      "post": {
+        "tags": [
+          "Data Asset"
+        ],
+        "description": "Creates a new data asset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/def-1"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/def-0"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Service is unavailable.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Data Assets"
+        ],
+        "description": "Lists of data assets.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromToken",
+            "required": false,
+            "description": "Token used to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "dataAssets": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/def-0"
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "description": "No. of results returned when pagination requested.",
+                          "type": "integer"
+                        },
+                        "lastEvaluatedToken": {
+                          "description": "Token used to paginate to the next page of search result.",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "dataAssets"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dataassets/{id}": {
+      "patch": {
+        "operationId": "update",
+        "tags": [
+          "Data Asset"
+        ],
+        "description": "Updates an existing data asset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/def-2"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Unique id.",
+                      "type": "string"
+                    },
+                    "state": {
+                      "description": "State of the Data asset.",
+                      "type": "string"
+                    },
+                    "version": {
+                      "description": "specify the version number",
+                      "type": "number"
+                    },
+                    "createdBy": {
+                      "description": "ID of owner.",
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "description": "Date/time created",
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updatedBy": {
+                      "description": "Last ID of user who made a change.",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "description": "Date/time updated",
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "execution": {
+                      "type": "object",
+                      "properties": {
+                        "hubExecutionArn": {
+                          "description": "The hub execution id of the state machine",
+                          "type": "string"
+                        },
+                        "spokeExecutionArn": {
+                          "description": "The Spoke execution id of the state machine",
+                          "type": "string"
+                        },
+                        "jobRunId": {
+                          "description": "The job runId from databrew",
+                          "type": "string"
+                        },
+                        "jobRunStatus": {
+                          "description": "The run status of the job",
+                          "type": "string"
+                        },
+                        "jobStartTime": {
+                          "description": "The start time of the last job run",
+                          "type": "string"
+                        },
+                        "jobStopTime": {
+                          "description": "The stop time of the last job run",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "catalog": {
+                      "type": "object",
+                      "properties": {
+                        "domainId": {
+                          "description": "Data Zone domain id",
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "description": "Data Zone project id",
+                          "type": "string"
+                        },
+                        "assetName": {
+                          "description": "Data Zone asset name",
+                          "type": "string"
+                        },
+                        "assetId": {
+                          "description": "Data Zone asset id",
+                          "type": "string"
+                        },
+                        "accountId": {
+                          "description": "The account id here the asset resides",
+                          "type": "string"
+                        },
+                        "autoPublish": {
+                          "description": "Publish the asset automatically.",
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "revision": {
+                          "description": "specify the version number of the datazone asset",
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "domainId",
+                        "projectId",
+                        "assetName",
+                        "accountId",
+                        "autoPublish"
+                      ]
+                    },
+                    "workflow": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "description": "The name of the workflow",
+                          "type": "string"
+                        },
+                        "roleArn": {
+                          "description": "The Arn of the IAM Role to be used for the job execution",
+                          "type": "string"
+                        },
+                        "dataset": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "description": "The name of the workflow",
+                              "type": "string"
+                            },
+                            "format": {
+                              "type": "string",
+                              "enum": [
+                                "avro",
+                                "csv",
+                                "json",
+                                "parquet",
+                                "orc",
+                                "grok"
+                              ],
+                              "description": "The format of the data set."
+                            },
+                            "connectionId": {
+                              "description": "Data Zone project id",
+                              "type": "string"
+                            },
+                            "connection": {
+                              "type": "object",
+                              "properties": {
+                                "dataLake": {
+                                  "type": "object",
+                                  "properties": {
+                                    "s3": {
+                                      "type": "object",
+                                      "properties": {
+                                        "path": {
+                                          "description": "The uri of the source S3 file",
+                                          "type": "string"
+                                        },
+                                        "region": {
+                                          "description": "The region of the S3 bucket",
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "path",
+                                        "region"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "s3"
+                                  ]
+                                },
+                                "glue": {
+                                  "type": "object",
+                                  "properties": {
+                                    "accountId": {
+                                      "description": "The account Id the glue table belongs to",
+                                      "type": "string"
+                                    },
+                                    "region": {
+                                      "description": "The region of the glue table",
+                                      "type": "string"
+                                    },
+                                    "databaseName": {
+                                      "description": "The database name the glue table belongs to",
+                                      "type": "string"
+                                    },
+                                    "tableName": {
+                                      "description": "The glue table name",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "accountId",
+                                    "region",
+                                    "databaseName",
+                                    "tableName"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "format"
+                          ]
+                        },
+                        "sampling": {
+                          "type": "object",
+                          "properties": {}
+                        },
+                        "transforms": {
+                          "type": "object",
+                          "properties": {}
+                        },
+                        "tags": {
+                          "description": "tags to be added to our data brew constructs description etc.",
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "roleArn",
+                        "dataset"
+                      ]
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "sampleSize": {
+                              "description": "The number of rows used as a sample size from the dataset",
+                              "type": "number"
+                            },
+                            "columnCount": {
+                              "description": "The number of columns in the dataset",
+                              "type": "number"
+                            },
+                            "duplicateRowsCount": {
+                              "description": "The number of duplicate rows",
+                              "type": "number"
+                            },
+                            "location": {
+                              "description": "The location of the S3 file containing the profile information",
+                              "type": "string"
+                            },
+                            "totalMissingValues": {
+                              "description": "The number of total missing values across all columns",
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "sampleSize",
+                            "columnCount",
+                            "duplicateRowsCount",
+                            "location",
+                            "totalMissingValues"
+                          ]
+                        },
+                        "columns": {
+                          "description": "column profiles that are to be added to our asset.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "description": "The name of the column",
+                                "type": "string"
+                              },
+                              "type": {
+                                "description": "The type of the column",
+                                "type": "string"
+                              },
+                              "distinctValuesCount": {
+                                "description": "The number of distinct values",
+                                "type": "number"
+                              },
+                              "uniqueValuesCount": {
+                                "description": "The number of unique Values",
+                                "type": "number"
+                              },
+                              "missingValuesCount": {
+                                "description": "The number of missing values",
+                                "type": "number"
+                              },
+                              "mostCommonValues": {
+                                "description": "Top 5 most common values",
+                                "type": "number"
+                              },
+                              "max": {
+                                "description": "The number of total missing values across all columns",
+                                "type": "number"
+                              },
+                              "min": {
+                                "description": "The number of total missing values across all columns",
+                                "type": "number"
+                              },
+                              "mean": {
+                                "description": "The number of total missing values across all columns",
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "type",
+                              "distinctValuesCount",
+                              "uniqueValuesCount",
+                              "missingValuesCount",
+                              "mostCommonValues",
+                              "max",
+                              "min",
+                              "mean"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "summary"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "state",
+                    "createdBy",
+                    "createdAt",
+                    "catalog",
+                    "workflow"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete",
+        "tags": [
+          "Data Asset"
+        ],
+        "description": "Delete data asset",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dataassets/{assetId}": {
+      "get": {
+        "tags": [
+          "Data Assets"
+        ],
+        "description": "Retrieve details of a specific data asset.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "assetId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Unique id.",
+                      "type": "string"
+                    },
+                    "state": {
+                      "description": "State of the Data asset.",
+                      "type": "string"
+                    },
+                    "version": {
+                      "description": "specify the version number",
+                      "type": "number"
+                    },
+                    "createdBy": {
+                      "description": "ID of owner.",
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "description": "Date/time created",
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updatedBy": {
+                      "description": "Last ID of user who made a change.",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "description": "Date/time updated",
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "execution": {
+                      "type": "object",
+                      "properties": {
+                        "hubExecutionArn": {
+                          "description": "The hub execution id of the state machine",
+                          "type": "string"
+                        },
+                        "spokeExecutionArn": {
+                          "description": "The Spoke execution id of the state machine",
+                          "type": "string"
+                        },
+                        "jobRunId": {
+                          "description": "The job runId from databrew",
+                          "type": "string"
+                        },
+                        "jobRunStatus": {
+                          "description": "The run status of the job",
+                          "type": "string"
+                        },
+                        "jobStartTime": {
+                          "description": "The start time of the last job run",
+                          "type": "string"
+                        },
+                        "jobStopTime": {
+                          "description": "The stop time of the last job run",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "catalog": {
+                      "type": "object",
+                      "properties": {
+                        "domainId": {
+                          "description": "Data Zone domain id",
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "description": "Data Zone project id",
+                          "type": "string"
+                        },
+                        "assetName": {
+                          "description": "Data Zone asset name",
+                          "type": "string"
+                        },
+                        "assetId": {
+                          "description": "Data Zone asset id",
+                          "type": "string"
+                        },
+                        "accountId": {
+                          "description": "The account id here the asset resides",
+                          "type": "string"
+                        },
+                        "autoPublish": {
+                          "description": "Publish the asset automatically.",
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "revision": {
+                          "description": "specify the version number of the datazone asset",
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "domainId",
+                        "projectId",
+                        "assetName",
+                        "accountId",
+                        "autoPublish"
+                      ]
+                    },
+                    "workflow": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "description": "The name of the workflow",
+                          "type": "string"
+                        },
+                        "roleArn": {
+                          "description": "The Arn of the IAM Role to be used for the job execution",
+                          "type": "string"
+                        },
+                        "dataset": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "description": "The name of the workflow",
+                              "type": "string"
+                            },
+                            "format": {
+                              "type": "string",
+                              "enum": [
+                                "avro",
+                                "csv",
+                                "json",
+                                "parquet",
+                                "orc",
+                                "grok"
+                              ],
+                              "description": "The format of the data set."
+                            },
+                            "connectionId": {
+                              "description": "Data Zone project id",
+                              "type": "string"
+                            },
+                            "connection": {
+                              "type": "object",
+                              "properties": {
+                                "dataLake": {
+                                  "type": "object",
+                                  "properties": {
+                                    "s3": {
+                                      "type": "object",
+                                      "properties": {
+                                        "path": {
+                                          "description": "The uri of the source S3 file",
+                                          "type": "string"
+                                        },
+                                        "region": {
+                                          "description": "The region of the S3 bucket",
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "path",
+                                        "region"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "s3"
+                                  ]
+                                },
+                                "glue": {
+                                  "type": "object",
+                                  "properties": {
+                                    "accountId": {
+                                      "description": "The account Id the glue table belongs to",
+                                      "type": "string"
+                                    },
+                                    "region": {
+                                      "description": "The region of the glue table",
+                                      "type": "string"
+                                    },
+                                    "databaseName": {
+                                      "description": "The database name the glue table belongs to",
+                                      "type": "string"
+                                    },
+                                    "tableName": {
+                                      "description": "The glue table name",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "accountId",
+                                    "region",
+                                    "databaseName",
+                                    "tableName"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "format"
+                          ]
+                        },
+                        "sampling": {
+                          "type": "object",
+                          "properties": {}
+                        },
+                        "transforms": {
+                          "type": "object",
+                          "properties": {}
+                        },
+                        "tags": {
+                          "description": "tags to be added to our data brew constructs description etc.",
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "roleArn",
+                        "dataset"
+                      ]
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "sampleSize": {
+                              "description": "The number of rows used as a sample size from the dataset",
+                              "type": "number"
+                            },
+                            "columnCount": {
+                              "description": "The number of columns in the dataset",
+                              "type": "number"
+                            },
+                            "duplicateRowsCount": {
+                              "description": "The number of duplicate rows",
+                              "type": "number"
+                            },
+                            "location": {
+                              "description": "The location of the S3 file containing the profile information",
+                              "type": "string"
+                            },
+                            "totalMissingValues": {
+                              "description": "The number of total missing values across all columns",
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "sampleSize",
+                            "columnCount",
+                            "duplicateRowsCount",
+                            "location",
+                            "totalMissingValues"
+                          ]
+                        },
+                        "columns": {
+                          "description": "column profiles that are to be added to our asset.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "description": "The name of the column",
+                                "type": "string"
+                              },
+                              "type": {
+                                "description": "The type of the column",
+                                "type": "string"
+                              },
+                              "distinctValuesCount": {
+                                "description": "The number of distinct values",
+                                "type": "number"
+                              },
+                              "uniqueValuesCount": {
+                                "description": "The number of unique Values",
+                                "type": "number"
+                              },
+                              "missingValuesCount": {
+                                "description": "The number of missing values",
+                                "type": "number"
+                              },
+                              "mostCommonValues": {
+                                "description": "Top 5 most common values",
+                                "type": "number"
+                              },
+                              "max": {
+                                "description": "The number of total missing values across all columns",
+                                "type": "number"
+                              },
+                              "min": {
+                                "description": "The number of total missing values across all columns",
+                                "type": "number"
+                              },
+                              "mean": {
+                                "description": "The number of total missing values across all columns",
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "type",
+                              "distinctValuesCount",
+                              "uniqueValuesCount",
+                              "missingValuesCount",
+                              "mostCommonValues",
+                              "max",
+                              "min",
+                              "mean"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "summary"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "state",
+                    "createdBy",
+                    "createdAt",
+                    "catalog",
+                    "workflow"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost"
+    }
+  ],
+  "security": [],
+  "tags": [
+    {
+      "name": "Asset Management",
+      "description": "Asset Management"
+    }
+  ]
+}
