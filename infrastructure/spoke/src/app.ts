@@ -19,13 +19,13 @@ const hubAccountId = getOrThrow(app, 'hubAccountId');
 const stackNamePrefix = `df-shared`;
 
 const stackName = (suffix: string) => `${stackNamePrefix}-${suffix}`;
-const platformStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
+const spokeStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
 
-const deployPlatform = (callerEnvironment?: { accountId?: string, region?: string }): void => {
+const deploySpoke = (callerEnvironment?: { accountId?: string, region?: string }): void => {
 
   new AccessManagementStack(app, 'AccessManagementStack', {
       stackName: stackName('accessManagement'),
-      description: platformStackDescription('AccessManagement'),
+      description: spokeStackDescription('AccessManagement'),
       hubAccountId: hubAccountId,
       env: {
         // The DF_REGION domainId variable
@@ -34,7 +34,7 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
       },
   });
 
-  // tags the entire platform with cost allocation tags
+  // tags the entire spoke with cost allocation tags
   cdk.Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
 
 };
@@ -50,4 +50,4 @@ const getCallerEnvironment = (): { accountId?: string, region?: string } | undef
 	return callerEnvironment;
 };
 
-deployPlatform(getCallerEnvironment());
+deploySpoke(getCallerEnvironment());
