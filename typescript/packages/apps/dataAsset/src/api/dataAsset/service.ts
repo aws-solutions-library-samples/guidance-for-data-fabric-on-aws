@@ -1,9 +1,9 @@
 import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import type { FastifyBaseLogger } from 'fastify';
-import type {  EditDataAsset,  NewDataAsset,  DataAssetListOptions,  DataAsset,  Catalog, Workflow } from './schemas.js';
+import type {  EditDataAsset,  NewDataAsset,  DataAssetListOptions,  DataAsset,  Catalog, Workflow, DataProfile } from './schemas.js';
 import { validateNotEmpty, validateRegularExpression } from '@df/validators';
 import type { DataAssetRepository } from './repository.js';
-import { GetAssetCommand, type DataZoneClient, CreateAssetCommand, CreateAssetOutput } from '@aws-sdk/client-datazone';
+import { GetAssetCommand, type DataZoneClient, CreateAssetCommand, CreateAssetOutput, CreateAssetRevisionCommand } from '@aws-sdk/client-datazone';
 import { NotFoundError } from '@df/resource-api-base';
 import { EventBridgeEventBuilder, type EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_HUB_CREATE_REQUEST_EVENT } from '@df/events';
 import { getObjectArnFromUri } from '../../common/s3Utils.js';
@@ -180,14 +180,7 @@ export class DataAssetService {
         if(assetFormName){
             const input = this.createFormInput(assetFormName, asset);
             formsInput.push(input);
-            // formsInput.push({
-            //     formName: assetForm,
-            //     content: JSON.stringify({
-            //         arn: getObjectArnFromUri(asset.workflow.dataset.connection.dataLake.s3.path),
-            //         accountId: asset.catalog.accountId,
-            //         region: asset.workflow.dataset.connection.dataLake.s3.region
-            //     })
-            // })
+
         }
 
         this.log.debug(`DataAssetService > createDataZoneAsset > formsInput ${JSON.stringify(formsInput)}`);
@@ -203,7 +196,53 @@ export class DataAssetService {
         return assetId;
     }
 
+
+    public async updateDataZoneProfile(asset: DataAsset, profile:DataProfile) : Promise<CreateAssetOutput>{
+        this.log.debug(`DataAssetService > updateDataZoneProfile > profile:${JSON.stringify(profile)}`);
+        
+        // Get the current forms from the existing data zone asset
+        const dzAsset = await this.dzClient.send(new GetAssetCommand({
+            domainIdentifier: asset.catalog.domainId,
+            identifier: asset.id
+        }));
+
+        const existingForms = dzAsset.formsOutput;
+        
+        const formsInput= [
+            {
+                formName: 'df_summary_profile_form',
+                typeIdentifier: 'df_summary_profile_form',
+                content: JSON.stringify(profile.summary),
+            }
+        ];
+
+        for ( const form of existingForms){
+            if (form.formName !== 'df_summary_profile_form'){
+                const updatedForm = {
+                    formName: form.formName,
+                    typeIdentifier: form.typeName,
+                    content: form.content 
+                }
+                formsInput.push(updatedForm);
+            }
+        }
+
+        this.log.debug(`DataAssetService > updateDataZoneProfile > formsInput ${JSON.stringify(formsInput)}`);
+        // Update revisioned assets with profile metadata
+        const props ={
+            identifier: asset.id,
+            name: asset.catalog.assetName,
+            domainIdentifier: asset.catalog.domainId,            
+            formsInput
+         };
+        this.log.debug(`DataAssetService > updateDataZoneProfile > props:${JSON.stringify(props)}`);
+        const assetId = await this.dzClient.send(new CreateAssetRevisionCommand(props))
+        this.log.debug(`DataAssetService > updateDataZoneProfile > exit`);
+        return assetId;
+    }
+
     private createFormInput(formName:string, asset:NewDataAsset): any{
+        this.log.debug(`DataAssetService > createFormInput > formName:${formName}`);
         let input = {}
         switch (formName) {
             case 'df_s3_asset_form':
@@ -216,6 +255,15 @@ export class DataAssetService {
                     })
                 };
 				break;
+            case 'S3ObjectCollectionForm':
+                    input = {
+                        formName,
+                        typeIdentifier: 'amazon.datazone.S3ObjectCollectionFormType',
+                        content: JSON.stringify({
+                            bucketArn: getObjectArnFromUri(asset.workflow.dataset.connection.dataLake.s3.path)
+                        })
+                    };
+                break;
             default:
                 break;
         }

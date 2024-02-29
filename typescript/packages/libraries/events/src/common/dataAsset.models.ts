@@ -92,6 +92,7 @@ export type JobExecution = {
     jobStartTime?: string, 
     jobStopTime?: string, 
     message?:string,
+    profileLocation?: string,
     profileSignedUrl?: string 
 };
 

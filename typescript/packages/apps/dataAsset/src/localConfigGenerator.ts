@@ -2,10 +2,10 @@ import * as fs from 'fs';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 import { dfEventBusName } from '@df/cdk-common';
 
-const { DOMAIN_ID, AWS_REGION  } = process.env;
+const { AWS_REGION  } = process.env;
 
-if (!DOMAIN_ID || !AWS_REGION) {
-	throw new Error(`Environment Variable DOMAIN_ID or AWS_REGION is not being specified`);
+if (!AWS_REGION) {
+	throw new Error(`Environment Variable  AWS_REGION is not being specified`);
 }
 
 const ssm = new SSMClient({ region: process.env['AWS_REGION'] });
@@ -30,10 +30,11 @@ const getValues = async (module: string, mapping: Record<string, string>) => {
 	}
 };
 
-let outputFile = `NODE_ENV=${DOMAIN_ID}\r\n`;
+let outputFile = `NODE_ENV=local\r\n`;
 outputFile += 'MODULE_NAME=dataAsset\r\n';
 outputFile += 'ENABLE_DELETE_RESOURCE=true\r\n';
 outputFile += `EVENT_BUS_NAME=${dfEventBusName}\r\n`;
+outputFile += `LOG_LEVEL=debug\r\n`;
 
 await getValues('shared', {
 	
