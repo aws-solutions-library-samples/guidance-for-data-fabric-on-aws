@@ -25,7 +25,7 @@ const spokeAccountIds = getOrThrow(app, 'spokeAccountIds').toString().split(',')
 
 const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
 
-// manditory (for now) AWS Organizations parameters
+// mandatory (for now) AWS Organizations parameters
 const orgId = getOrThrow(app, 'orgId');
 const orgRootId = getOrThrow(app, 'orgRootId');
 const orgOuId = getOrThrow(app, 'orgOuId');

@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
 import { AccessManagementStack } from './accessManagement/accessManagement.stack.js';
-import { getOrThrow } from '@df/cdk-common';
+import { DataAssetStack } from './dataAsset/dataAsset.stack.js';
+
+import { getOrThrow, OrganizationUnitPath } from '@df/cdk-common';
 import * as fs from 'fs';
 import path from "path";
 import { fileURLToPath } from "url";
@@ -15,6 +17,17 @@ const app = new cdk.App();
 
 // mandatory parameters
 const hubAccountId = getOrThrow(app, 'hubAccountId');
+
+// mandatory (for now) AWS Organizations parameters
+const orgId = getOrThrow(app, 'orgId');
+const orgRootId = getOrThrow(app, 'orgRootId');
+const orgOuId = getOrThrow(app, 'orgOuId');
+const orgPath: OrganizationUnitPath = {
+    orgId,
+    rootId: orgRootId,
+    ouId: orgOuId
+};
+
 
 const stackNamePrefix = `df-shared`;
 
@@ -32,6 +45,19 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         region: process.env?.['DF_REGION'] || callerEnvironment?.region,
         account: callerEnvironment?.accountId
       },
+  });
+
+  new DataAssetStack(app, 'DataAssetStack', {
+    stackName: stackName('dataAsset'),
+    description: platformStackDescription('DataAsset'),
+    moduleName: 'dataAsset',
+    hubAccountId: hubAccountId,
+    orgPath: orgPath,
+    env: {
+      // The DF_REGION domainId variable
+      region: process.env?.['DF_REGION'] || callerEnvironment?.region,
+      account: callerEnvironment?.accountId
+    },
   });
 
   // tags the entire platform with cost allocation tags

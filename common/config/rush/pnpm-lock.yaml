@@ -116,6 +116,9 @@ importers:
       '@df/cdk-common':
         specifier: workspace:*
         version: link:../../typescript/packages/libraries/cdk-common
+      '@df/events':
+        specifier: workspace:*
+        version: link:../../typescript/packages/libraries/events
       ajv:
         specifier: 8.12.0
         version: 8.12.0
