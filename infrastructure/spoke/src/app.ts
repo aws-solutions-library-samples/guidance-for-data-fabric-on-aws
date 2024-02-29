@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
 import { AccessManagementStack } from './accessManagement/accessManagement.stack.js';
-import { DataAssetStack } from './dataAsset/dataAsset.stack.js';
+import { DataAssetSpokeStack } from './dataAsset/dataAsset.stack.js';
 
 import { getOrThrow, OrganizationUnitPath } from '@df/cdk-common';
 import * as fs from 'fs';
@@ -47,7 +47,7 @@ const deploySpoke = (callerEnvironment?: { accountId?: string, region?: string }
       },
   });
 
-  new DataAssetStack(app, 'DataAssetStack', {
+  new DataAssetSpokeStack(app, 'DataAssetStack', {
     stackName: stackName('dataAsset'),
     description: spokeStackDescription('DataAsset'),
     moduleName: 'dataAsset',

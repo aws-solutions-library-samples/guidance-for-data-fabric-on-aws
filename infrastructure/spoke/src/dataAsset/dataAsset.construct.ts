@@ -1,6 +1,6 @@
-import { dfEventBusName, getLambdaArchitecture, OrganizationUnitPath } from '@df/cdk-common';
+import { dfEventBusName, dfEventBusArn, getLambdaArchitecture, OrganizationUnitPath } from '@df/cdk-common';
 import { CfnEventBusPolicy, EventBus, Rule } from 'aws-cdk-lib/aws-events';
-import { Bucket } from 'aws-cdk-lib/aws-s3';
+// import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
@@ -10,9 +10,9 @@ import { Construct } from 'constructs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
-import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { AnyPrincipal, Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
-import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE } from '@df/events';
+import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE } from '@df/events';
 import { LambdaFunction, SfnStateMachine, EventBus as EventBusTarget } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import type { IVpc } from 'aws-cdk-lib/aws-ec2';
@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 
 export type DataAssetSpokeConstructProperties = {
     moduleName: string;
-    hubEventBusName: string;
+    hubAccountId: string;
     spokeEventBusName: string;
     bucketName: string;
     orgPath: OrganizationUnitPath;
@@ -36,13 +36,14 @@ export class DataAssetSpoke extends Construct {
     constructor(scope: Construct, id: string, props: DataAssetSpokeConstructProperties) {
         super(scope, id);
 
-        const namePrefix = `df-spoke`;
-        const hubEventBus = EventBus.fromEventBusName(this, 'EventBus', props.hubEventBusName);
-        const spokeEventBus = EventBus.fromEventBusName(this, 'EventBus', props.spokeEventBusName);
-        const defaultEventBus = EventBus.fromEventBusName(this, 'DefaultEventBus', 'default');
-        const bucket = Bucket.fromBucketName(this,'JobBucket',props.bucketName)
+        const namePrefix = 'df-spoke';
         const accountId = Stack.of(this).account;
         const region = Stack.of(this).region;
+        const hubEventBus = EventBus.fromEventBusArn(this, 'HubEventBus', dfEventBusArn(props.hubAccountId, region));
+        // const spokeEventBus = EventBus.fromEventBusName(this, 'SpokeEventBus', props.spokeEventBusName);
+        const spokeEventBus = EventBus.fromEventBusArn(this, 'SpokeEventBus', dfEventBusArn(accountId, region));
+        const defaultEventBus = EventBus.fromEventBusName(this, 'DefaultEventBus', 'default');
+        // const bucket = Bucket.fromBucketName(this,'JobBucket',props.bucketName)
 
 
         /* Spoke Data Asset State Machine
@@ -75,7 +76,7 @@ export class DataAssetSpoke extends Construct {
 
 
         const createConnectionLambda = new NodejsFunction(this, 'CreateConnectionLambda', {
-            description: `Asset Manager Connection creator Task Handler`,
+            description: 'Asset Manager Connection creator Task Handler',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/connection.handler.ts'),
             functionName: `${namePrefix}-connectionCreationTask`,
             runtime: Runtime.NODEJS_18_X,
@@ -102,7 +103,7 @@ export class DataAssetSpoke extends Construct {
         createConnectionLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
 
         const createDataSetLambda = new NodejsFunction(this, 'CreateDataSetLambda', {
-            description: `Asset Manager dataset creator Task Handler`,
+            description: 'Asset Manager dataset creator Task Handler',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/dataset.handler.ts'),
             functionName: `${namePrefix}-createDataSetTask`,
             runtime: Runtime.NODEJS_18_X,
@@ -129,7 +130,7 @@ export class DataAssetSpoke extends Construct {
         createDataSetLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
 
         const configDataBrewLambda = new NodejsFunction(this, 'ConfigDataBrewLambda', {
-            description: `Asset Manager config data brew Task Handler`,
+            description: 'Asset Manager config data brew Task Handler',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/job.handler.ts'),
             functionName: `${namePrefix}-configDataBrewTask`,
             runtime: Runtime.NODEJS_18_X,
@@ -159,7 +160,7 @@ export class DataAssetSpoke extends Construct {
         spokeEventBus.grantPutEventsTo(configDataBrewLambda);
 
         const runJobLambda = new NodejsFunction(this, 'runJobLambda', {
-            description: `Asset Manager executeJob Task Handler`,
+            description: 'Asset Manager executeJob Task Handler',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/runJob.handler.ts'),
             functionName: `${namePrefix}-runJobTask`,
             runtime: Runtime.NODEJS_18_X,
@@ -308,7 +309,7 @@ export class DataAssetSpoke extends Construct {
             ]
         });
         const jobEnrichmentLambda = new NodejsFunction(this, 'JobEnrichmentLambda', {
-            description: `Job Completion Event Handler`,
+            description: 'Job Completion Event Handler',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/lambda_eventbridge.ts'),
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
@@ -333,7 +334,7 @@ export class DataAssetSpoke extends Construct {
         });
 
         spokeEventBus.grantPutEventsTo(jobEnrichmentLambda);
-        bucket.grantRead(jobEnrichmentLambda);
+        // bucket.grantRead(jobEnrichmentLambda);
         jobEnrichmentLambda.addToRolePolicy(JobEnrichmentPolicy);
 
 
@@ -407,41 +408,36 @@ export class DataAssetSpoke extends Construct {
             }                        
         });
 
-        // Add eventBus Policy to allow spoke accounts to subscribe their bus to the hub bus for outgoing (hub to spoke) events
-        new CfnEventBusPolicy(this,'JobEventBusSubscribePolicy', {
-            eventBusName: dfEventBusName,
-            statementId: 'AllowSpokeAccountsToSubscribeForJobEvents',
-            statement:{
-                Effect: Effect.ALLOW,
-                Action: [
-                    'events:PutRule',
-                    'events:PutTargets',
-                    'events:DeleteRule',
-                    'events:RemoveTargets',
-                    'events:DisableRule',
-                    'events:EnableRule',
-                    'events:TagResource',
-                    'events:UntagResource',
-                    'events:DescribeRule',
-                    'events:ListTargetsByRule',
-                    'events:ListTagsForResource'
-                ],
-                Resource: [`arn:aws:events:${region}:${accountId}:event-bus/${dfEventBusName}`],
-                Principal: '*',
-                Condition: {
-                    'StringEqualsIfExists': {
-                        'events:source': [DATA_ASSET_SPOKE_EVENT_SOURCE],
-                        'events:detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT],
-                        'events:targetArn': 'arn:aws:events:*:${aws:PrincipalAccount}:event-bus/*',
-                        'events:creatorAccount': '${aws:PrincipalAccount}'
-                    },
-                    'ForAnyValue:StringEquals': {
-                        'aws:PrincipalOrgPaths': `${props.orgPath.orgId}/${props.orgPath.rootId}/${props.orgPath.ouId}/`
-                    },
+        // Create resources which enable the spoke account to subscribe to job events from the hub
+        // Add role in this spoke account which will be used by the target in the hub account to publish hub events to this spoke bus
+        const dfSpokeSubscriptionRuleTargetRole = new Role(
+            this,
+            "DfSpokeSubscriptionRuleTargetRole",
+            {
+            roleName: "DfSpokeSubscriptionRuleTargetRole",
+            assumedBy: new ServicePrincipal("events.amazonaws.com"),
+            }
+        );
+        spokeEventBus.grantPutEventsTo(dfSpokeSubscriptionRuleTargetRole);
 
-                }
-            }                        
-        });
+        // Add rule and target to hub bus to subscribe to job events
+        const spokeSubscriptionRule = new Rule(
+            this,
+            'SpokeSubscriptionRule',
+            {
+            eventBus: hubEventBus,
+            eventPattern: {
+                detailType: [DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
+                source: [DATA_ASSET_HUB_EVENT_SOURCE],
+            },
+            }
+        );
+
+        spokeSubscriptionRule.addTarget(
+            new EventBusTarget(spokeEventBus, {
+            role: dfSpokeSubscriptionRuleTargetRole,
+            })
+        );
 
         NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
             [
@@ -453,7 +449,7 @@ export class DataAssetSpoke extends Construct {
                 },
                 {
                     id: 'AwsSolutions-IAM5',
-                    appliesTo: [`Resource::<DataAssetTable6F964C73.Arn>/index/*`],
+                    appliesTo: ['Resource::<DataAssetTable6F964C73.Arn>/index/*'],
                     reason: 'This policy is required for the lambda to access the dataAsset table.'
 
                 },
@@ -468,23 +464,23 @@ export class DataAssetSpoke extends Construct {
             ],
             true);
 
-            NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
-                [
+        NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
+            [
 
-                    {
-                        id: 'AwsSolutions-IAM5',
-                        appliesTo: [
-                            `Action::s3:GetBucket*`,
-                            `Action::s3:GetObject*`,
-                            `Action::s3:List*`,
-                            `Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfsharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*`,
-                            `Resource::arn:aws:databrew:<AWS::Region>:<AWS::AccountId>:job/*`
-                        ],
-                        reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'
-    
-                    }
-                ],
-                true);
+                {
+                    id: 'AwsSolutions-IAM5',
+                    appliesTo: [
+                        'Action::s3:GetBucket*',
+                        'Action::s3:GetObject*',
+                        'Action::s3:List*',
+                        'Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfsharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*',
+                        `Resource::arn:aws:databrew:${region}:${accountId}:job/*`
+                    ],
+                    reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'
+
+                }
+            ],
+            true);
 
         NagSuppressions.addResourceSuppressions([createConnectionLambda, createDataSetLambda, configDataBrewLambda, runJobLambda],
             [
@@ -498,11 +494,11 @@ export class DataAssetSpoke extends Construct {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
                         'Resource::*',
-                        `Resource::arn:aws:databrew:<AWS::Region>:<AWS::AccountId>:dataset/*`,
-                        `Resource::arn:aws:databrew:<AWS::Region>:<AWS::AccountId>:job/*`,
-                        `Resource::arn:aws:iam::<AWS::AccountId>:role/service-role/*`
+                        `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
+                        `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
+                        `Resource::arn:aws:iam::${accountId}:role/service-role/*`
                     ],
-                    reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments actions.'
+                    reason: 'This policy is required for the lambda to perform profiling.'
 
                 }
             ],
@@ -532,6 +528,5 @@ export class DataAssetSpoke extends Construct {
 
                 }],
             true);
-
     }
 }

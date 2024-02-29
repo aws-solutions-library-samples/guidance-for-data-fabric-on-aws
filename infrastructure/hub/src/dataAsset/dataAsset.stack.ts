@@ -29,7 +29,7 @@ export class DataAssetStack extends Stack {
 
 
 
-        const dataAsset = new DataAsset(this, 'DataAsset', {
+        const dataAsset = new DataAsset(this, 'DataAssetHub', {
             moduleName: props.moduleName,
             eventBusName: dfEventBusName,
             bucketName,
