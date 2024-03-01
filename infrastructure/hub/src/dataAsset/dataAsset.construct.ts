@@ -643,8 +643,6 @@ export class DataAsset extends Construct {
                 Condition: {
                     'StringEqualsIfExists': {
                         'events:source': [DATA_ASSET_HUB_EVENT_SOURCE],
-                        'events:detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
-                        'events:targetArn': 'arn:aws:events:*:${aws:PrincipalAccount}:event-bus/*',
                         'events:creatorAccount': '${aws:PrincipalAccount}'
                     },
                     'ForAnyValue:StringEquals': {
