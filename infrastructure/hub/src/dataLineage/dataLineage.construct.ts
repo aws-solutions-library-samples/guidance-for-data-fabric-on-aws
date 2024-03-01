@@ -82,6 +82,7 @@ export class DataLineage extends Construct {
 		const dataLineageIngestionRule = new Rule(this, 'DataLineageIngestionRule', {
 			eventBus: eventBus,
 			eventPattern: {
+				source: [DATA_LINEAGE_SPOKE_EVENT_SOURCE],
 				detailType: [DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT]
 			}
 		});

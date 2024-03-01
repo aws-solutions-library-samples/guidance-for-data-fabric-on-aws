@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
-import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE } from '@df/events';
+import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE } from '@df/events';
 import { LambdaFunction, SfnStateMachine } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 
@@ -638,12 +638,12 @@ export class DataAsset extends Construct {
                     'events:ListTargetsByRule',
                     'events:ListTagsForResource'
                 ],
-                Resource: [`arn:aws:events:${region}:${accountId}:event-bus/${dfEventBusName}`],
+                Resource: [`arn:aws:events:${region}:${accountId}:rule/${dfEventBusName}/*`],
                 Principal: '*',
                 Condition: {
                     'StringEqualsIfExists': {
-                        'events:source': [DATA_ASSET_SPOKE_EVENT_SOURCE],
-                        'events:detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT],
+                        'events:source': [DATA_ASSET_HUB_EVENT_SOURCE],
+                        'events:detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
                         'events:targetArn': 'arn:aws:events:*:${aws:PrincipalAccount}:event-bus/*',
                         'events:creatorAccount': '${aws:PrincipalAccount}'
                     },
@@ -665,7 +665,7 @@ export class DataAsset extends Construct {
                 },
                 {
                     id: 'AwsSolutions-IAM5',
-                    appliesTo: [`Resource::<DataAssetTable6F964C73.Arn>/index/*`],
+                    appliesTo: [`Resource::<DataAssetHubTable6553B766.Arn>/index/*`],
                     reason: 'This policy is required for the lambda to access the dataAsset table.'
 
                 },
@@ -726,10 +726,10 @@ export class DataAsset extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
-                        'Resource::<DataAssetConfigDataBrewLambda370000FD.Arn>:*',
-                        'Resource::<DataAssetCreateConnectionLambdaB2BEBF46.Arn>:*',
-                        'Resource::<DataAssetCreateDataSetLambdaC40ED46C.Arn>:*',
-                        'Resource::<DataAssetrunJobLambda5C1FC594.Arn>:*'
+                        'Resource::<DataAssetHubConfigDataBrewLambdaCDAA539A.Arn>:*',
+                        'Resource::<DataAssetHubCreateConnectionLambda8ADC406F.Arn>:*',
+                        'Resource::<DataAssetHubCreateDataSetLambdaB1F66CA7.Arn>:*',
+                        'Resource::<DataAssetHubrunJobLambdaF5235915.Arn>:*'
                     ],
                     reason: 'this policy is required to invoke lambda specified in the state machine definition'
                 },

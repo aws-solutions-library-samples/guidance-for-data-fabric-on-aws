@@ -420,31 +420,12 @@ export class DataAssetSpoke extends Construct {
         );
         spokeEventBus.grantPutEventsTo(dfSpokeSubscriptionRuleTargetRole);
 
-        // const spokeSubscriptionRule = new Rule(
-        //     this,
-        //     'SpokeSubscriptionRule',
-        //     {
-            
-        //     eventBus: hubEventBus,
-        //     eventPattern: {
-        //         detailType: [DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
-        //         source: [DATA_ASSET_HUB_EVENT_SOURCE],
-        //     },
-        //     }
-        // );
-
-        // spokeSubscriptionRule.addTarget(
-        //     new EventBusTarget(spokeEventBus, {
-        //     role: dfSpokeSubscriptionRuleTargetRole,
-        //     })
-        // );
-
         // Add rule and target to hub bus to subscribe to job events
         // need CfnRule as events.Rule does not allow specifying the bus ARN (to add a rule to a bus in another account)
         new CfnRule(this, 'SpokeSubscriptionRule', {
             eventBusName: hubEventBus.eventBusArn,
             eventPattern: {
-                detailType: [DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
+                'detail-type': [DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
                 source: [DATA_ASSET_HUB_EVENT_SOURCE]
             },
             targets: [
@@ -455,10 +436,6 @@ export class DataAssetSpoke extends Construct {
                 }
             ]
         });
-
-
-
-
         
         NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
             [
@@ -530,10 +507,10 @@ export class DataAssetSpoke extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
-                        'Resource::<DataAssetConfigDataBrewLambda370000FD.Arn>:*',
-                        'Resource::<DataAssetCreateConnectionLambdaB2BEBF46.Arn>:*',
-                        'Resource::<DataAssetCreateDataSetLambdaC40ED46C.Arn>:*',
-                        'Resource::<DataAssetrunJobLambda5C1FC594.Arn>:*'
+                        'Resource::<DataAssetSpokeConfigDataBrewLambda57672EF5.Arn>:*',
+                        'Resource::<DataAssetSpokeCreateConnectionLambda931C6392.Arn>:*',
+                        'Resource::<DataAssetSpokeCreateDataSetLambda6B3E2D95.Arn>:*',
+                        'Resource::<DataAssetSpokerunJobLambda95EF4411.Arn>:*'
                     ],
                     reason: 'this policy is required to invoke lambda specified in the state machine definition'
                 },
