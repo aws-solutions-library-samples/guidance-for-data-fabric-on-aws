@@ -1,5 +1,5 @@
 import { dfEventBusName, dfEventBusArn, getLambdaArchitecture, OrganizationUnitPath } from '@df/cdk-common';
-import { CfnEventBusPolicy, EventBus, Rule } from 'aws-cdk-lib/aws-events';
+import { CfnEventBusPolicy, CfnRule, EventBus, Rule } from 'aws-cdk-lib/aws-events';
 // import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -420,25 +420,46 @@ export class DataAssetSpoke extends Construct {
         );
         spokeEventBus.grantPutEventsTo(dfSpokeSubscriptionRuleTargetRole);
 
+        // const spokeSubscriptionRule = new Rule(
+        //     this,
+        //     'SpokeSubscriptionRule',
+        //     {
+            
+        //     eventBus: hubEventBus,
+        //     eventPattern: {
+        //         detailType: [DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
+        //         source: [DATA_ASSET_HUB_EVENT_SOURCE],
+        //     },
+        //     }
+        // );
+
+        // spokeSubscriptionRule.addTarget(
+        //     new EventBusTarget(spokeEventBus, {
+        //     role: dfSpokeSubscriptionRuleTargetRole,
+        //     })
+        // );
+
         // Add rule and target to hub bus to subscribe to job events
-        const spokeSubscriptionRule = new Rule(
-            this,
-            'SpokeSubscriptionRule',
-            {
-            eventBus: hubEventBus,
+        // need CfnRule as events.Rule does not allow specifying the bus ARN (to add a rule to a bus in another account)
+        new CfnRule(this, 'SpokeSubscriptionRule', {
+            eventBusName: hubEventBus.eventBusArn,
             eventPattern: {
                 detailType: [DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
-                source: [DATA_ASSET_HUB_EVENT_SOURCE],
+                source: [DATA_ASSET_HUB_EVENT_SOURCE]
             },
-            }
-        );
+            targets: [
+                {
+                    id: 'SubscribeTarget',
+                    arn: spokeEventBus.eventBusArn,
+                    roleArn: dfSpokeSubscriptionRuleTargetRole.roleArn
+                }
+            ]
+        });
 
-        spokeSubscriptionRule.addTarget(
-            new EventBusTarget(spokeEventBus, {
-            role: dfSpokeSubscriptionRuleTargetRole,
-            })
-        );
 
+
+
+        
         NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
             [
                 {
