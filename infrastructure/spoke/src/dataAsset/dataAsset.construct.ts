@@ -418,31 +418,12 @@ export class DataAssetSpoke extends Construct {
         );
         spokeEventBus.grantPutEventsTo(dfSpokeSubscriptionRuleTargetRole);
 
-        // const spokeSubscriptionRule = new Rule(
-        //     this,
-        //     'SpokeSubscriptionRule',
-        //     {
-            
-        //     eventBus: hubEventBus,
-        //     eventPattern: {
-        //         detailType: [DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
-        //         source: [DATA_ASSET_HUB_EVENT_SOURCE],
-        //     },
-        //     }
-        // );
-
-        // spokeSubscriptionRule.addTarget(
-        //     new EventBusTarget(spokeEventBus, {
-        //     role: dfSpokeSubscriptionRuleTargetRole,
-        //     })
-        // );
-
         // Add rule and target to hub bus to subscribe to job events
         // need CfnRule as events.Rule does not allow specifying the bus ARN (to add a rule to a bus in another account)
         new CfnRule(this, 'SpokeSubscriptionRule', {
             eventBusName: hubEventBus.eventBusArn,
             eventPattern: {
-                detailType: [DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
+                'detail-type': [DATA_ASSET_HUB_CREATE_REQUEST_EVENT],
                 source: [DATA_ASSET_HUB_EVENT_SOURCE]
             },
             targets: [
@@ -453,10 +434,6 @@ export class DataAssetSpoke extends Construct {
                 }
             ]
         });
-
-
-
-
         
         NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
             [
