@@ -6,8 +6,8 @@ export interface S3SpokeConstructProperties {
 	deleteBucket: boolean;
 }
 
-export const bucketNameParameter = `/df/shared/bucketName`;
-export const bucketArnParameter = `/df/shared/bucketArn`;
+export const bucketNameParameter = `/df/spoke/shared/bucketName`;
+export const bucketArnParameter = `/df/spoke/shared/bucketArn`;
 
 export class S3Spoke extends Construct {
 	public readonly bucketName: string;

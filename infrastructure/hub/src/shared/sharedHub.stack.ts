@@ -49,7 +49,7 @@ export class SharedHubInfrastructureStack extends Stack {
 			userPoolIdParameter,
 		});
 
-        new Bus(this, 'EventBus');
+        new Bus(this, 'EventBus', false);
 
         new SSM(this, 'ApiFunctionNameParameters');
 

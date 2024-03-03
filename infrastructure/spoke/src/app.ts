@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
-import { AccessManagementStack } from './accessManagement/accessManagement.stack.js';
+import { SharedSpokeInfrastructureStack } from './shared/sharedSpoke.stack.js';
 import { DataAssetSpokeStack } from './dataAsset/dataAsset.stack.js';
 
-import { getOrThrow, OrganizationUnitPath } from '@df/cdk-common';
+import { getOrThrow, OrganizationUnitPath, tryGetBooleanContext } from '@df/cdk-common';
 import * as fs from 'fs';
 import path from "path";
 import { fileURLToPath } from "url";
@@ -28,26 +28,30 @@ const orgPath: OrganizationUnitPath = {
     ouId: orgOuId
 };
 
+//Optional parameters
+const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
 
-const stackNamePrefix = `df-shared`;
+
+const stackNamePrefix = `df-spoke`;
 
 const stackName = (suffix: string) => `${stackNamePrefix}-${suffix}`;
 const spokeStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
 
 const deploySpoke = (callerEnvironment?: { accountId?: string, region?: string }): void => {
 
-  new AccessManagementStack(app, 'AccessManagementStack', {
-      stackName: stackName('accessManagement'),
-      description: spokeStackDescription('AccessManagement'),
-      hubAccountId: hubAccountId,
-      env: {
-        // The DF_REGION domainId variable
-        region: process.env?.['DF_REGION'] || callerEnvironment?.region,
-        account: callerEnvironment?.accountId
-      },
+  const shared = new SharedSpokeInfrastructureStack(app, 'SharedSpoke', {
+    stackName: stackName('shared'),
+    description: spokeStackDescription('shared'),
+    hubAccountId: hubAccountId,
+    deleteBucket,
+    env: {
+      // The DF_REGION domainId variable
+      region: process.env?.['DF_REGION'] || callerEnvironment?.region,
+      account: callerEnvironment?.accountId
+    },
   });
 
-  new DataAssetSpokeStack(app, 'DataAssetStack', {
+  const dataAsset = new DataAssetSpokeStack(app, 'DataAssetStack', {
     stackName: stackName('dataAsset'),
     description: spokeStackDescription('DataAsset'),
     moduleName: 'dataAsset',
@@ -59,6 +63,8 @@ const deploySpoke = (callerEnvironment?: { accountId?: string, region?: string }
       account: callerEnvironment?.accountId
     },
   });
+
+  dataAsset.node.addDependency(shared);
 
   // tags the entire platform with cost allocation tags
   cdk.Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));

@@ -3,6 +3,7 @@ import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 import type { DataAssetEvent } from './models.js';
 import { CreateProfileJobCommand, CreateProfileJobCommandInput, StartJobRunCommand, type DataBrewClient } from '@aws-sdk/client-databrew';
 import { DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_START_EVENT, DataAssetJobStartEvent, EventBridgeEventBuilder, EventPublisher } from '@df/events';
+import { ulid } from 'ulid';
 
 export class JobTask {
 
@@ -62,6 +63,10 @@ export class JobTask {
 		// TODO allow overriding profiling config
 		// TODO allow the use of recipes
 
+		// Create Lineage event
+		const lineageRunId = ulid().toLowerCase();
+		// TODO Construct the Lineage start event using the lineageRunId
+
 		// Create default profile job
 		const command: CreateProfileJobCommandInput = {
 			Name: jobName,
@@ -77,9 +82,12 @@ export class JobTask {
 				domainId: event.dataAssetEvent.detail.catalog.domainId,
 				projectId: event.dataAssetEvent.detail.catalog.projectId,
 				assetName: event.dataAssetEvent.detail.catalog.assetName,
-				assetId: event.dataAssetEvent.detail.id
+				assetId: event.dataAssetEvent.detail.id,
+				LineageRunId : lineageRunId
 			}
 		}
+
+		// TODO Construct the Lineage COMPLETE event using the lineageRunId
 
 		this.log.info(`JobTask > createProfilingJob > command:${JSON.stringify(command)}`);
 

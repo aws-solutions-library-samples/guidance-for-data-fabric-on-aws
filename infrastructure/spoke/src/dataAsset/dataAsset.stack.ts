@@ -4,7 +4,7 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
 
 import { DataAssetSpoke } from "./dataAsset.construct.js";
-import { dfEventBusName, OrganizationUnitPath } from '@df/cdk-common';
+import { dfSpokeEventBusName, OrganizationUnitPath } from '@df/cdk-common';
 // import { bucketNameParameter } from '../shared/s3.construct.js';
 
 export type DataAssetSpokeStackProperties = StackProps & {
@@ -30,7 +30,7 @@ export class DataAssetSpokeStack extends Stack {
         const dataAsset = new DataAssetSpoke(this, 'DataAssetSpoke', {
             moduleName: props.moduleName,
             hubAccountId: props.hubAccountId,
-            spokeEventBusName: dfEventBusName,
+            spokeEventBusName: dfSpokeEventBusName,
             bucketName: 'not-an-actual-bucket-todo-replace',        // TODO: this needs to change if we actually need a bucket
             orgPath: props.orgPath,
         });

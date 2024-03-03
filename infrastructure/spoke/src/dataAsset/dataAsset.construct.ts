@@ -1,4 +1,4 @@
-import { dfEventBusName, dfEventBusArn, getLambdaArchitecture, OrganizationUnitPath } from '@df/cdk-common';
+import { dfEventBusArn, dfSpokeEventBusArn, getLambdaArchitecture, OrganizationUnitPath, dfSpokeEventBusName } from '@df/cdk-common';
 import { CfnEventBusPolicy, CfnRule, EventBus, Rule } from 'aws-cdk-lib/aws-events';
 // import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
@@ -40,10 +40,8 @@ export class DataAssetSpoke extends Construct {
         const accountId = Stack.of(this).account;
         const region = Stack.of(this).region;
         const hubEventBus = EventBus.fromEventBusArn(this, 'HubEventBus', dfEventBusArn(props.hubAccountId, region));
-        // const spokeEventBus = EventBus.fromEventBusName(this, 'SpokeEventBus', props.spokeEventBusName);
-        const spokeEventBus = EventBus.fromEventBusArn(this, 'SpokeEventBus', dfEventBusArn(accountId, region));
+        const spokeEventBus = EventBus.fromEventBusArn(this, 'SpokeEventBus', dfSpokeEventBusArn(accountId, region));
         const defaultEventBus = EventBus.fromEventBusName(this, 'DefaultEventBus', 'default');
-        // const bucket = Bucket.fromBucketName(this,'JobBucket',props.bucketName)
 
 
         /* Spoke Data Asset State Machine
@@ -389,12 +387,12 @@ export class DataAssetSpoke extends Construct {
 
         // Add eventBus Policy for incoming job events
         new CfnEventBusPolicy(this,'JobEventBusPutEventPolicy', {
-            eventBusName: dfEventBusName,
+            eventBusName: dfSpokeEventBusName,
             statementId: 'AllowSpokeAccountsToPutJobEvents',
             statement:{
                 Effect: Effect.ALLOW,
                 Action: ['events:PutEvents'],
-                Resource: [`arn:aws:events:${region}:${accountId}:event-bus/${dfEventBusName}`],
+                Resource: [`arn:aws:events:${region}:${accountId}:event-bus/${dfSpokeEventBusName}`],
                 Principal: '*',
                 Condition: {
                     'StringEquals': {
@@ -530,10 +528,10 @@ export class DataAssetSpoke extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
-                        'Resource::<DataAssetConfigDataBrewLambda370000FD.Arn>:*',
-                        'Resource::<DataAssetCreateConnectionLambdaB2BEBF46.Arn>:*',
-                        'Resource::<DataAssetCreateDataSetLambdaC40ED46C.Arn>:*',
-                        'Resource::<DataAssetrunJobLambda5C1FC594.Arn>:*'
+                        'Resource::<DataAssetSpokeConfigDataBrewLambda57672EF5.Arn>:*',
+                        'Resource::<DataAssetSpokeCreateConnectionLambda931C6392.Arn>:*',
+                        'Resource::<DataAssetSpokeCreateDataSetLambda6B3E2D95.Arn>:*',
+                        'Resource::<DataAssetSpokerunJobLambda95EF4411.Arn>:*'
                     ],
                     reason: 'this policy is required to invoke lambda specified in the state machine definition'
                 },

@@ -665,7 +665,7 @@ export class DataAsset extends Construct {
                 },
                 {
                     id: 'AwsSolutions-IAM5',
-                    appliesTo: [`Resource::<DataAssetTable6F964C73.Arn>/index/*`],
+                    appliesTo: [`Resource::<DataAssetHubTable6553B766.Arn>/index/*`],
                     reason: 'This policy is required for the lambda to access the dataAsset table.'
 
                 },
@@ -726,10 +726,10 @@ export class DataAsset extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
-                        'Resource::<DataAssetConfigDataBrewLambda370000FD.Arn>:*',
-                        'Resource::<DataAssetCreateConnectionLambdaB2BEBF46.Arn>:*',
-                        'Resource::<DataAssetCreateDataSetLambdaC40ED46C.Arn>:*',
-                        'Resource::<DataAssetrunJobLambda5C1FC594.Arn>:*'
+                        'Resource::<DataAssetHubConfigDataBrewLambdaCDAA539A.Arn>:*',
+                        'Resource::<DataAssetHubCreateConnectionLambda8ADC406F.Arn>:*',
+                        'Resource::<DataAssetHubCreateDataSetLambdaB1F66CA7.Arn>:*',
+                        'Resource::<DataAssetHubrunJobLambdaF5235915.Arn>:*'
                     ],
                     reason: 'this policy is required to invoke lambda specified in the state machine definition'
                 },
