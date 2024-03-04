@@ -40,3 +40,46 @@ The following example deploys the spoke stack to our spoke account `354851405923
 cd df-core/infrastructure/spoke
 npm run cdk -- deploy -c orgId=o-lq7e4opv1i -c orgRootId=r-0cic -c orgOuId=ou-0cic-70sjyito -c hubAccountId=767397689259 --require-approval never --concurrency=10 --all
 ```
+
+##Testing locally
+Currently we do not have an auth components for our API requests, due to this testing the APIs via APIGW is not currently supported.
+to run locally:
+```
+cd df-core/typescript/packages/apps/dataAsset
+export AWS_REGION=us-west-2
+npm run start
+```
+
+Sample Post request:
+```
+curl --location 'http://localhost:30004/dataassets' \
+--header 'Accept: application/json' \
+--header 'accept-version: 1.0.0' \
+--header 'Content-Type: application/json' \
+--data '{
+    "catalog": {
+        "domainId": "dzd_63b65t71bnodxs",         
+        "projectId": "bqznvzbgpv9w28",        
+        "assetName": "user-profile",        
+        "accountId": "767397689259",        
+        "autoPublish": true,
+        "revision": "1"       
+    },
+    "workflow": {
+        "name": "testWorkflow",
+        "roleArn": "arn:aws:iam::767397875118:role/df-AWSGlueDataBrewServiceRole-test",
+        "dataset": {
+            "name": "testDataSet1",
+            "format": "json",
+            "connection": {
+                "dataLake": {
+                    "s3": {
+                        "path": "s3://df-767397875118-us-west-2-data-source/users_100k.json",
+                        "region": "us-west-2"
+                    }
+                }
+            }
+        }
+    }
+}'
+```
