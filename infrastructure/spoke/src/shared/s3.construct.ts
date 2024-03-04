@@ -1,6 +1,6 @@
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
-import {RemovalPolicy, Duration, Stack} from 'aws-cdk-lib';
+import { RemovalPolicy, Duration, Stack } from 'aws-cdk-lib';
 
 export interface S3SpokeConstructProperties {
 	deleteBucket: boolean;

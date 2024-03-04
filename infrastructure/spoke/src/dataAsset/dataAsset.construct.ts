@@ -1,6 +1,5 @@
 import { dfEventBusArn, dfSpokeEventBusArn, getLambdaArchitecture, OrganizationUnitPath, dfSpokeEventBusName } from '@df/cdk-common';
 import { CfnEventBusPolicy, CfnRule, EventBus, Rule } from 'aws-cdk-lib/aws-events';
-// import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
@@ -16,6 +15,7 @@ import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DAT
 import { LambdaFunction, SfnStateMachine, EventBus as EventBusTarget } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import type { IVpc } from 'aws-cdk-lib/aws-ec2';
+import { Bucket } from 'aws-cdk-lib/aws-s3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,6 +42,7 @@ export class DataAssetSpoke extends Construct {
         const hubEventBus = EventBus.fromEventBusArn(this, 'HubEventBus', dfEventBusArn(props.hubAccountId, region));
         const spokeEventBus = EventBus.fromEventBusArn(this, 'SpokeEventBus', dfSpokeEventBusArn(accountId, region));
         const defaultEventBus = EventBus.fromEventBusName(this, 'DefaultEventBus', 'default');
+        const bucket = Bucket.fromBucketName(this, 'jobsOutputBucket', props.bucketName);
 
 
         /* Spoke Data Asset State Machine
@@ -332,12 +333,13 @@ export class DataAssetSpoke extends Construct {
         });
 
         spokeEventBus.grantPutEventsTo(jobEnrichmentLambda);
-        // bucket.grantRead(jobEnrichmentLambda);
+        bucket.grantRead(jobEnrichmentLambda);
         jobEnrichmentLambda.addToRolePolicy(JobEnrichmentPolicy);
+        
 
 
-         // Rule for Job Enrichment events
-         const jobEnrichmentRule = new Rule(this, 'JobEnrichmentRule', {
+        // Rule for Job Enrichment events
+        const jobEnrichmentRule = new Rule(this, 'JobEnrichmentRule', {
             eventBus: defaultEventBus,
             eventPattern: {
                 source: ['aws.databrew'],
@@ -353,7 +355,7 @@ export class DataAssetSpoke extends Construct {
             })
         );
 
-       
+
 
 
         // Rule for Job Start events
@@ -365,13 +367,13 @@ export class DataAssetSpoke extends Construct {
         });
 
         jobStartRule.addTarget(
-            new EventBusTarget(hubEventBus,{
+            new EventBusTarget(hubEventBus, {
                 deadLetterQueue: deadLetterQueue
             })
         );
 
-         // Rule for Job completion events
-         const jobCompletionRule = new Rule(this, 'JobCompletionRule', {
+        // Rule for Job completion events
+        const jobCompletionRule = new Rule(this, 'JobCompletionRule', {
             eventBus: spokeEventBus,
             eventPattern: {
                 detailType: [DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
@@ -379,17 +381,17 @@ export class DataAssetSpoke extends Construct {
         });
 
         jobCompletionRule.addTarget(
-            new EventBusTarget(hubEventBus,{
+            new EventBusTarget(hubEventBus, {
                 deadLetterQueue: deadLetterQueue
             })
         );
 
 
         // Add eventBus Policy for incoming job events
-        new CfnEventBusPolicy(this,'JobEventBusPutEventPolicy', {
+        new CfnEventBusPolicy(this, 'JobEventBusPutEventPolicy', {
             eventBusName: dfSpokeEventBusName,
             statementId: 'AllowSpokeAccountsToPutJobEvents',
-            statement:{
+            statement: {
                 Effect: Effect.ALLOW,
                 Action: ['events:PutEvents'],
                 Resource: [`arn:aws:events:${region}:${accountId}:event-bus/${dfSpokeEventBusName}`],
@@ -403,7 +405,7 @@ export class DataAssetSpoke extends Construct {
                         'aws:PrincipalOrgPaths': `${props.orgPath.orgId}/${props.orgPath.rootId}/${props.orgPath.ouId}/`
                     }
                 }
-            }                        
+            }
         });
 
         // Create resources which enable the spoke account to subscribe to job events from the hub
@@ -412,8 +414,8 @@ export class DataAssetSpoke extends Construct {
             this,
             "DfSpokeSubscriptionRuleTargetRole",
             {
-            roleName: "DfSpokeSubscriptionRuleTargetRole",
-            assumedBy: new ServicePrincipal("events.amazonaws.com"),
+                roleName: "DfSpokeSubscriptionRuleTargetRole",
+                assumedBy: new ServicePrincipal("events.amazonaws.com"),
             }
         );
         spokeEventBus.grantPutEventsTo(dfSpokeSubscriptionRuleTargetRole);
@@ -434,19 +436,13 @@ export class DataAssetSpoke extends Construct {
                 }
             ]
         });
-        
+
         NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
                     appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
                     reason: 'This policy is the one generated by CDK.'
-
-                },
-                {
-                    id: 'AwsSolutions-IAM5',
-                    appliesTo: ['Resource::<DataAssetTable6F964C73.Arn>/index/*'],
-                    reason: 'This policy is required for the lambda to access the dataAsset table.'
 
                 },
                 {
@@ -469,7 +465,7 @@ export class DataAssetSpoke extends Construct {
                         'Action::s3:GetBucket*',
                         'Action::s3:GetObject*',
                         'Action::s3:List*',
-                        'Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfsharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*',
+                        'Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfspokesharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*',
                         `Resource::arn:aws:databrew:${region}:${accountId}:job/*`
                     ],
                     reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'

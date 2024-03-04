@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 import { dfEventBusName } from '@df/cdk-common';
 
-const { AWS_REGION  } = process.env;
+const { AWS_REGION } = process.env;
 
 if (!AWS_REGION) {
 	throw new Error(`Environment Variable  AWS_REGION is not being specified`);
@@ -37,7 +37,7 @@ outputFile += `EVENT_BUS_NAME=${dfEventBusName}\r\n`;
 outputFile += `LOG_LEVEL=debug\r\n`;
 
 await getValues('shared', {
-	
+
 });
 
 await getValues('dataAsset', {

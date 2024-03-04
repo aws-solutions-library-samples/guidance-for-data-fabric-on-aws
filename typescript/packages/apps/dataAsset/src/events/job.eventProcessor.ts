@@ -1,4 +1,4 @@
-import { type DataAssetJobStartEvent, type DataAssetJobCompletionEvent, type JobStateChangeEvent, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, EventBridgeEventBuilder, EventPublisher, DataAssetSpokeJobCompletionEvent } from '@df/events';
+import { type DataAssetJobStartEvent, type DataAssetJobCompletionEvent, type JobStateChangeEvent, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, EventBridgeEventBuilder, EventPublisher, DataAssetSpokeJobCompletionEvent, DATA_ASSET_SPOKE_EVENT_SOURCE } from '@df/events';
 import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 import type { DataAssetService } from '../api/dataAsset/service';
@@ -81,7 +81,7 @@ export class JobEventProcessor {
 
 		// provide profiling information from S3 objects 
 		// TODO we will need to deal with multiple output files, need to figure out how to correctly target the profiling jobs
-		const signedUrl = await this.getSignedUrl(this.s3Client, new GetObjectCommand({ Bucket: job.Outputs[0].Location.Bucket, Key: run.Outputs[0].Location.Key }), { expiresIn: 300 });
+		const signedUrl = await this.getSignedUrl(this.s3Client, new GetObjectCommand({ Bucket: job.Outputs[0].Location.Bucket, Key: run.Outputs[0].Location.Key }), { expiresIn: 3600 });
 
 		// We supply a minimum payload with job status and asset info
 		const eventPayload: DataAssetJobCompletionEvent = {
@@ -109,7 +109,7 @@ export class JobEventProcessor {
 
 		const publishEvent = new EventBridgeEventBuilder()
 			.setEventBusName(this.eventBusName)
-			.setSource(DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT)
+			.setSource(DATA_ASSET_SPOKE_EVENT_SOURCE)
 			.setDetailType(DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT)
 			.setDetail(eventPayload);
 

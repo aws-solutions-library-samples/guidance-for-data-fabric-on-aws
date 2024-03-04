@@ -119,7 +119,8 @@ export class DataAsset extends Construct {
             actions: [
                 'datazone:CreateAssetRevision',
                 'datazone:CreateAsset',
-                'datazone:DeleteAsset'
+                'datazone:DeleteAsset',
+                'datazone:CreateListingChangeSet'
             ],
             resources: [`*`]
         });
@@ -282,8 +283,8 @@ export class DataAsset extends Construct {
             })
         );
 
-         // Rule for Job completion events
-         const jobCompletionRule = new Rule(this, 'JobCompletionRule', {
+        // Rule for Job completion events
+        const jobCompletionRule = new Rule(this, 'JobCompletionRule', {
             eventBus: eventBus,
             eventPattern: {
                 detailType: [DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
@@ -300,10 +301,10 @@ export class DataAsset extends Construct {
 
 
         // Add eventBus Policy for incoming job events
-        new CfnEventBusPolicy(this,'JobEventBusPutEventPolicy', {
+        new CfnEventBusPolicy(this, 'JobEventBusPutEventPolicy', {
             eventBusName: dfEventBusName,
             statementId: 'AllowSpokeAccountsToPutJobEvents',
-            statement:{
+            statement: {
                 Effect: Effect.ALLOW,
                 Action: ['events:PutEvents'],
                 Resource: [`arn:aws:events:${region}:${accountId}:event-bus/${dfEventBusName}`],
@@ -317,14 +318,14 @@ export class DataAsset extends Construct {
                         'aws:PrincipalOrgPaths': `${props.orgPath.orgId}/${props.orgPath.rootId}/${props.orgPath.ouId}/`
                     }
                 }
-            }                        
+            }
         });
 
         // Add eventBus Policy to allow spoke accounts to subscribe their bus to the hub bus for outgoing (hub to spoke) events
-        new CfnEventBusPolicy(this,'JobEventBusSubscribePolicy', {
+        new CfnEventBusPolicy(this, 'JobEventBusSubscribePolicy', {
             eventBusName: dfEventBusName,
             statementId: 'AllowSpokeAccountsToSubscribeForJobEvents',
-            statement:{
+            statement: {
                 Effect: Effect.ALLOW,
                 Action: [
                     'events:PutRule',
@@ -351,7 +352,7 @@ export class DataAsset extends Construct {
                     },
 
                 }
-            }                        
+            }
         });
 
         NagSuppressions.addResourceSuppressions([apiLambda, jobCompletionEventLambda],

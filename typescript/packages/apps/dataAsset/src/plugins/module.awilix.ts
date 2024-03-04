@@ -12,10 +12,10 @@ import { DataAssetRepository } from '../api/dataAsset/repository.js';
 import { DataAssetService } from '../api/dataAsset/service.js';
 import { BaseCradle, registerBaseAwilix } from '@df/resource-api-base';
 import { EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE } from '@df/events';
- import { ConnectionTask} from '../stepFunction/tasks/connectionTask.js';
- import { JobTask} from '../stepFunction/tasks/jobTask.js';
- import { DataSetTask} from '../stepFunction/tasks/dataSetTask.js';
- import { RunJobTask} from '../stepFunction/tasks/runJobTask.js';
+import { ConnectionTask } from '../stepFunction/tasks/connectionTask.js';
+import { JobTask } from '../stepFunction/tasks/jobTask.js';
+import { DataSetTask } from '../stepFunction/tasks/dataSetTask.js';
+import { RunJobTask } from '../stepFunction/tasks/runJobTask.js';
 import { GlueClient } from '@aws-sdk/client-glue';
 import { DataBrewClient } from '@aws-sdk/client-databrew';
 import { S3Client } from '@aws-sdk/client-s3';
@@ -39,10 +39,10 @@ declare module '@fastify/awilix' {
 		eventPublisher: EventPublisher;
 		dataAssetRepository: DataAssetRepository;
 		dataAssetService: DataAssetService;
-		connectionTask:ConnectionTask;
-		jobTask:JobTask;
-		dataSetTask:DataSetTask;
-		runJobTask:RunJobTask;
+		connectionTask: ConnectionTask;
+		jobTask: JobTask;
+		dataSetTask: DataSetTask;
+		runJobTask: RunJobTask;
 	}
 }
 
@@ -97,8 +97,8 @@ const registerContainer = (app?: FastifyInstance) => {
 	const eventBusName = process.env['EVENT_BUS_NAME'];
 	// const hubStateMachineArn = process.env['ASSET_MANAGEMENT_HUB_STATE_MACHINE_ARN'];
 	const JobsBucketName = process.env['JOBS_BUCKET_NAME'];
-	const JobsBucketPrefix= process.env['JOBS_BUCKET_PREFIX'];
-	const TableName= process.env['TABLE_NAME'];
+	const JobsBucketPrefix = process.env['JOBS_BUCKET_PREFIX'];
+	const TableName = process.env['TABLE_NAME'];
 
 	diContainer.register({
 
@@ -133,7 +133,7 @@ const registerContainer = (app?: FastifyInstance) => {
 		eventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, eventBusName, DATA_ASSET_HUB_EVENT_SOURCE), {
 			...commonInjectionOptions
 		}),
-		
+
 		// Event PRocessors
 		jobEventProcessor: asFunction(
 			(container) =>
@@ -144,7 +144,7 @@ const registerContainer = (app?: FastifyInstance) => {
 					eventBusName,
 					container.eventPublisher,
 					container.s3Client,
-					getSignedUrl			),
+					getSignedUrl),
 			{
 				...commonInjectionOptions
 			}
@@ -172,7 +172,6 @@ const registerContainer = (app?: FastifyInstance) => {
 				new DataAssetService(
 					app.log,
 					container.dataAssetRepository,
-					// container.stepFunctionClient,
 					container.dataZoneClient,
 					container.eventPublisher,
 					eventBusName
@@ -188,7 +187,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		jobTask: asFunction((container: Cradle) => new JobTask(app.log, container.stepFunctionClient, container.dataBrewClient, eventBusName, container.eventPublisher , JobsBucketName, JobsBucketPrefix), {
+		jobTask: asFunction((container: Cradle) => new JobTask(app.log, container.stepFunctionClient, container.dataBrewClient, eventBusName, container.eventPublisher, JobsBucketName, JobsBucketPrefix), {
 			...commonInjectionOptions
 		}),
 
@@ -200,7 +199,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		
+
 	});
 };
 

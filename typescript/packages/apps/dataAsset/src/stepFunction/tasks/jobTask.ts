@@ -28,7 +28,7 @@ export class JobTask {
 		const res = await this.dataBrewClient.send(new CreateProfileJobCommand(profileCommand));
 
 		// TODO scheduled jobs are yet to be implemented
-		
+
 		// Run the Job if the job is on Demand
 		const run = await this.dataBrewClient.send(new StartJobRunCommand({ Name: res.Name }));
 		const eventPayload: DataAssetJobStartEvent = {
@@ -83,7 +83,7 @@ export class JobTask {
 				projectId: event.dataAssetEvent.detail.catalog.projectId,
 				assetName: event.dataAssetEvent.detail.catalog.assetName,
 				assetId: event.dataAssetEvent.detail.id,
-				LineageRunId : lineageRunId
+				LineageRunId: lineageRunId
 			}
 		}
 

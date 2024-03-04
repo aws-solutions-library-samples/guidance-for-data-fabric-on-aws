@@ -10,20 +10,20 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 
 
 export type SharedHubStackProperties = StackProps & {
-	deleteBucket?: boolean;
-	userVpcConfig?: DfVpcConfig;
+    deleteBucket?: boolean;
+    userVpcConfig?: DfVpcConfig;
 };
 
 
 export class SharedHubInfrastructureStack extends Stack {
-	vpcId: string;
-	constructor(scope: Construct, id: string, props: SharedHubStackProperties) {
-		super(scope, id, props);
+    vpcId: string;
+    constructor(scope: Construct, id: string, props: SharedHubStackProperties) {
+        super(scope, id, props);
 
-		const network = new Network(this, 'Network', {
-			deleteBucket: props.deleteBucket,
-			userVpcConfig: props.userVpcConfig ? props.userVpcConfig : undefined
-		});
+        const network = new Network(this, 'Network', {
+            deleteBucket: props.deleteBucket,
+            userVpcConfig: props.userVpcConfig ? props.userVpcConfig : undefined
+        });
 
         new Compute(this, 'Compute', {
             vpc: network.vpc,
@@ -45,13 +45,13 @@ export class SharedHubInfrastructureStack extends Stack {
             stringValue: s3.bucketArn
         });
 
-		new Cognito(this, 'Cognito',{
-			userPoolIdParameter,
-		});
+        new Cognito(this, 'Cognito', {
+            userPoolIdParameter,
+        });
 
         new Bus(this, 'EventBus', false);
 
         new SSM(this, 'ApiFunctionNameParameters');
 
-	}
+    }
 }

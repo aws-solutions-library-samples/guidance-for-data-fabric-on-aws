@@ -1,4 +1,4 @@
-import { Bus, eventBusHubReplicationRuleTargetRoleArn} from "@df/cdk-common";
+import { Bus, eventBusHubReplicationRuleTargetRoleArn } from "@df/cdk-common";
 import { Construct } from "constructs";
 import * as iam from "aws-cdk-lib/aws-iam";
 
@@ -27,6 +27,6 @@ export class EventBusSpoke extends Construct {
       resources: [dfSpokeEventBus.eventBus.eventBusArn],
     }));
 
-    
+
   }
 }

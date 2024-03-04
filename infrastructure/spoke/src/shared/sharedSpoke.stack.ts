@@ -35,7 +35,6 @@ export class SharedSpokeInfrastructureStack extends Stack {
         });
 
         // DF Job bucket access policy
-
         const jobBucketAccessPolicy = new ManagedPolicy(this, 'JobBucketAccessPolicy', {
             managedPolicyName: `df-databrew-access-policy`,
             statements: [
