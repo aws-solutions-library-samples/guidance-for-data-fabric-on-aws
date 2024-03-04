@@ -1,4 +1,3 @@
-// import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import type { FastifyBaseLogger } from 'fastify';
 import type { EditDataAsset, NewDataAsset, DataAssetListOptions, DataAsset, Catalog, Workflow, DataProfile } from './schemas.js';
 import { validateNotEmpty, validateRegularExpression } from '@df/validators';
@@ -79,6 +78,7 @@ export class DataAssetService {
     public async get(dataAssetId: string): Promise<DataAsset> {
         this.log.debug(`DataAssetService > get > in dataAssetId:${dataAssetId}`);
 
+        // 1- We first check if Asset exists in our table
         const dataAsset = await this.repository.get(dataAssetId);
         this.log.debug(`DataAssetService > get > exit`);
         return dataAsset;
@@ -87,7 +87,7 @@ export class DataAssetService {
 
     public async list(options: DataAssetListOptions): Promise<void> {
         this.log.debug(`DataAssetService > list > in options:${JSON.stringify(options)}`);
-
+        // TODO
         this.log.debug(`DataAssetService > list > exit`);
 
     }
@@ -100,6 +100,7 @@ export class DataAssetService {
         if (existing.id) {
             //TODO validate asset data against data zone
             this.log.debug(`DataAssetService > update > in dataZone domainId :${updatedAsset.catalog.domainId}, assetId:${dataAssetId}`);
+            
             const dzAsset = await this.dzClient.send(new GetAssetCommand({
                 domainIdentifier: updatedAsset.catalog.domainId,
                 identifier: dataAssetId
@@ -116,7 +117,8 @@ export class DataAssetService {
         existing.updatedAt = new Date(Date.now()).toISOString();
         existing.updatedBy = 'TBD';
 
-
+        // TODO the actual update command need to determine if we are using only DZ or we can use repo for the update
+        
         this.log.debug(`DataAssetService > update > exit`);
         return existing;
     }
@@ -165,7 +167,6 @@ export class DataAssetService {
 
         }
 
-        this.log.debug(`DataAssetService > createDataZoneAsset > formsInput ${JSON.stringify(formsInput)}`);
         const result = await this.dzClient.send(new CreateAssetCommand({
             name: asset.catalog.assetName,
             domainIdentifier: asset.catalog.domainId,
@@ -228,7 +229,7 @@ export class DataAssetService {
             domainIdentifier: asset.catalog.domainId,
             formsInput
         };
-        this.log.debug(`DataAssetService > updateDataZoneProfile > props:${JSON.stringify(props)}`);
+        
         const assetId = await this.dzClient.send(new CreateAssetRevisionCommand(props))
         this.log.debug(`DataAssetService > updateDataZoneProfile > exit`);
         return assetId;

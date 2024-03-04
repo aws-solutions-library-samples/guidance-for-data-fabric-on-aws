@@ -15,7 +15,7 @@ export type DataAssetSpokeStackProperties = StackProps & {
 };
 
 
-export const dataAssetStateMachineArnParameter = `/df/dataAsset/stateMachineArn`;
+export const dataAssetStateMachineArnParameter = `/df/spoke/dataAsset/stateMachineArn`;
 
 export class DataAssetSpokeStack extends Stack {
     constructor(scope: Construct, id: string, props: DataAssetSpokeStackProperties) {

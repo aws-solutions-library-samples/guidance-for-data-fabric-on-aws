@@ -17,13 +17,6 @@ export class DataSetTask {
 	public async process(event: DataAssetEvent): Promise<any> {
 		this.log.debug(`DataSetTask > process > in > event: ${JSON.stringify(event)}`);
 
-		// TODO function to construct the data set based on the connection type
-
-		// TODO create dataset in data brew
-		// if ( event.dataAsset.workflow.dataset?.connectionId){
-
-		// }
-		
 		const input = this.constructInputCommand(event);
 
 		await this.dataBrewClient.send(new CreateDatasetCommand(input));

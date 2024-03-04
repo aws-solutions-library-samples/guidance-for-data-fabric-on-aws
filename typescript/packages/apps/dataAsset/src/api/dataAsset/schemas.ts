@@ -20,12 +20,6 @@ export const updatedAt = Type.String({
 });
 
 export const state = Type.String({ description: 'State of the Data asset.' });
-// export const state = stringEnum(
-//     ['pending creation', 'created', 'creation failed',
-//         'pending update', 'updated', 'update failed',
-//         'pending deletion', 'deletion failed'],
-//     'State of the Data asset.'
-// );
 
 export const format = stringEnum(
     ['avro', 'csv', 'json', 'parquet', 'orc', 'grok'],

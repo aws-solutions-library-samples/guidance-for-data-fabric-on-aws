@@ -34,7 +34,7 @@ export class SharedSpokeInfrastructureStack extends Stack {
             stringValue: s3.bucketArn
         });
 
-        // DF Job bucket access policy
+        // DF Job bucket access policy, this policy can be used by end users to grant access to databrew to put the result in our bucket 
         const jobBucketAccessPolicy = new ManagedPolicy(this, 'JobBucketAccessPolicy', {
             managedPolicyName: `df-databrew-access-policy`,
             statements: [
