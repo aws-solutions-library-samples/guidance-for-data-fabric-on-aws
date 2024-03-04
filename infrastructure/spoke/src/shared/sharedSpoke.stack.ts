@@ -4,12 +4,14 @@ import type { Construct } from 'constructs';
 import { S3Spoke, bucketArnParameter, bucketNameParameter } from './s3.construct.js';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import type { OrganizationUnitPath } from '@df/cdk-common';
 import { NagSuppressions } from 'cdk-nag';
 
 
 export type SharedSpokeStackProperties = StackProps & {
     deleteBucket?: boolean;
     hubAccountId: string;
+    orgPath: OrganizationUnitPath;
 };
 
 export const JobBucketAccessPolicyNameParameter = `/df/spoke/shared/databrew/jobBucket-policy-name`;
@@ -67,7 +69,8 @@ export class SharedSpokeInfrastructureStack extends Stack {
         });
 
         new EventBusSpoke(this, 'SpokeEventBus', {
-            hubAccountId: props.hubAccountId
+            hubAccountId: props.hubAccountId,
+            orgPath: props.orgPath
         }
         );
 

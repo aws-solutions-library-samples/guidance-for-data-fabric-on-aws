@@ -43,6 +43,7 @@ const deploySpoke = (callerEnvironment?: { accountId?: string, region?: string }
     stackName: stackName('shared'),
     description: spokeStackDescription('shared'),
     hubAccountId: hubAccountId,
+    orgPath: orgPath,
     deleteBucket,
     env: {
       // The DF_REGION domainId variable
@@ -68,7 +69,6 @@ const deploySpoke = (callerEnvironment?: { accountId?: string, region?: string }
 
   // tags the entire platform with cost allocation tags
   cdk.Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
-
 };
 
 const getCallerEnvironment = (): { accountId?: string, region?: string } | undefined => {

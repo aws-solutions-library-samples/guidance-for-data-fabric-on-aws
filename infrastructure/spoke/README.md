@@ -3,6 +3,9 @@
 Sample command to deploy the CDK stack:
 ```
 npm run cdk -- deploy \
---require-approval never --concurrency=10 \
--c hubAccountId=<AWS Account ID for the Hub account>
+-c hubAccountId= <AWS Account ID of Hub Account> \
+-c orgId=<AWS Organization ID> \
+-c orgRootId=<AWS Organization Root ID> \
+-c orgOuId=<AWS Organization OU ID> \
+--require-approval never --concurrency=10
 ``` 

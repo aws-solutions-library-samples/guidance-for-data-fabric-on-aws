@@ -12,16 +12,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import { DataAssetStack } from './dataAsset/dataAsset.stack.js';
-import { AccessManagementStack } from './accessManagement/accessManagement.stack.js';
 import { DiscoveryStack } from "./discovery/discovery.stack.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = new cdk.App();
-
-// mandatory requirements
-const spokeAccountIds = getOrThrow(app, 'spokeAccountIds').toString().split(',');
 
 const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
 
@@ -81,8 +77,6 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             account: callerEnvironment?.accountId
         }
     });
-
-    
     
     if (identityStoreId) {
         const discoveryStack = new DiscoveryStack(app, "DiscoveryStack", {
@@ -91,14 +85,6 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             identityStoreId: identityStoreId
         })
         discoveryStack.node.addDependency(sharedStack);
-
-        const accessManagementStack = new AccessManagementStack(app, "AccessManagementStack", {
-            stackName: stackName('accessManagement'),
-            description: stackDescription('AccessManagement'),
-            spokeAccountIds,
-            identityStoreId: identityStoreId
-        })
-        accessManagementStack.node.addDependency(sharedStack);
     }
 
     if (samlMetaDataUrl && callbackUrls) {
@@ -152,8 +138,6 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         });
         ssoCustomStack.node.addDependency(sharedStack);
     }
-
-
 };
 
 const getCallerEnvironment = (): { accountId?: string, region?: string } | undefined => {
@@ -168,7 +152,3 @@ const getCallerEnvironment = (): { accountId?: string, region?: string } | undef
 };
 
 deployPlatform(getCallerEnvironment());
-
-
-
-

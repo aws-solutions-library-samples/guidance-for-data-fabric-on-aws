@@ -420,12 +420,6 @@
 			"reviewCategory": "library",
 			"shouldPublish": true
 		},
-		{
-			"packageName": "@df/access-management",
-			"projectFolder": "typescript/packages/apps/access-management",
-			"reviewCategory": "production",
-			"shouldPublish": true
-		  },
 		  {
 			"packageName": "@df/discovery",
 			"projectFolder": "typescript/packages/apps/discovery",

@@ -1,6 +1,6 @@
 import { EventBus } from 'aws-cdk-lib/aws-events';
 import { Construct } from 'constructs';
-import { dfEventBusName, dfSpokeEventBusName } from '../accessManagement/util.js';
+import { dfEventBusName, dfSpokeEventBusName } from './util.js';
 
 export interface EventBusConstructProperties {
 }
