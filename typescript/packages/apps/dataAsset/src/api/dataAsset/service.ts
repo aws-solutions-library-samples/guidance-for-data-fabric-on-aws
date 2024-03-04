@@ -1,4 +1,4 @@
-import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
+// import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import type { FastifyBaseLogger } from 'fastify';
 import type {  EditDataAsset,  NewDataAsset,  DataAssetListOptions,  DataAsset,  Catalog, Workflow, DataProfile } from './schemas.js';
 import { validateNotEmpty, validateRegularExpression } from '@df/validators';
@@ -12,30 +12,30 @@ import { AssetTypeToFormMap, ConnectionToAssetTypeMap, getConnectionType } from 
 export class DataAssetService {
     private readonly log: FastifyBaseLogger;
 	private readonly repository: DataAssetRepository;
-    private readonly sfnClient: SFNClient;
+    // private readonly sfnClient: SFNClient;
     private readonly dzClient: DataZoneClient;
     private readonly eventPublisher: EventPublisher;
     private readonly eventBusName:string;
-    private readonly createAssetStateMachineArn:string;
+    // private readonly createAssetStateMachineArn:string;
 
 
 
     public constructor(
         log: FastifyBaseLogger,
 		repository: DataAssetRepository,
-        sfnClient:SFNClient,
+        // sfnClient:SFNClient,
         dzClient:DataZoneClient,
         eventPublisher: EventPublisher,
         eventBusName:string,
-        createAssetStateMachineArn:string,
+        // createAssetStateMachineArn:string,
     ){
         this.log = log;
         this.repository = repository;
-        this.sfnClient = sfnClient;
+        // this.sfnClient = sfnClient;
         this.dzClient = dzClient;
         this.eventPublisher = eventPublisher;
         this.eventBusName = eventBusName;
-        this.createAssetStateMachineArn = createAssetStateMachineArn;
+        // this.createAssetStateMachineArn = createAssetStateMachineArn;
     }
 
 
@@ -66,7 +66,7 @@ export class DataAssetService {
             workflow: asset.workflow
         } 
 
-        this.log.debug(`DataAssetService > create > start stateMachine asset: ${JSON.stringify(fullAsset)}, stateMachineArn:${this.createAssetStateMachineArn}`);
+        this.log.debug(`DataAssetService > create > start stateMachine asset: ${JSON.stringify(fullAsset)}`);
         
         // Publish event
         const event = new EventBridgeEventBuilder()
@@ -77,11 +77,11 @@ export class DataAssetService {
         await this.eventPublisher.publish(event);
         
         //always skip SFN for now
-        const callStepFunction= false;
-        if (callStepFunction){
-            // Invoke the state machine
-            await this.sfnClient.send(new StartExecutionCommand({ stateMachineArn: this.createAssetStateMachineArn, input: JSON.stringify(fullAsset) }));
-        }
+        // const callStepFunction= false;
+        // if (callStepFunction){
+        //     // Invoke the state machine
+        //     await this.sfnClient.send(new StartExecutionCommand({ stateMachineArn: this.createAssetStateMachineArn, input: JSON.stringify(fullAsset) }));
+        // }
         
 
         // Store record
@@ -242,7 +242,7 @@ export class DataAssetService {
     }
 
     private createFormInput(formName:string, asset:NewDataAsset): any{
-        this.log.debug(`DataAssetService > createFormInput > formName:${formName}`);
+        this.log.debug(`DataAssetService > createFormInput > in formName:${formName}`);
         let input = {}
         switch (formName) {
             case 'df_s3_asset_form':
@@ -267,6 +267,7 @@ export class DataAssetService {
             default:
                 break;
         }
+        this.log.debug(`DataAssetService > createFormInput > exit`);
         return input;
 
     }

@@ -41,8 +41,7 @@ await getValues('shared', {
 });
 
 await getValues('dataAsset', {
-	TABLE_NAME: 'tableName',
-	ASSET_MANAGEMENT_HUB_STATE_MACHINE_ARN: 'stateMachineArn'
+	TABLE_NAME: 'tableName'
 });
 
 fs.writeFileSync('.env', outputFile);

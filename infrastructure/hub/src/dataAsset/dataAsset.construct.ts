@@ -1,6 +1,5 @@
 import { dfEventBusName, getLambdaArchitecture, OrganizationUnitPath } from '@df/cdk-common';
 import { CfnEventBusPolicy, EventBus, Rule } from 'aws-cdk-lib/aws-events';
-import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
@@ -8,16 +7,14 @@ import { AttributeType, BillingMode, ProjectionType, Table, TableEncryption } fr
 import { RemovalPolicy, Aspects, Stack, Duration } from 'aws-cdk-lib';
 import { UserPool } from 'aws-cdk-lib/aws-cognito';
 import { AccessLogFormat, AuthorizationType, CfnMethod, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
-import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 
 import { Construct } from 'constructs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
-import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE } from '@df/events';
-import { LambdaFunction, SfnStateMachine } from 'aws-cdk-lib/aws-events-targets';
+import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT } from '@df/events';
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,7 +23,6 @@ const __dirname = path.dirname(__filename);
 export type DataAssetConstructProperties = {
     moduleName: string;
     eventBusName: string;
-    bucketName: string;
     cognitoUserPoolId: string;
     orgPath: OrganizationUnitPath
 };
@@ -38,16 +34,13 @@ export class DataAsset extends Construct {
     public readonly functionName: string;
     public readonly apiUrl: string;
     public readonly apiName: string;
-    public readonly stateMachineArn: string;
 
     constructor(scope: Construct, id: string, props: DataAssetConstructProperties) {
         super(scope, id);
 
         const namePrefix = `df`;
         const eventBus = EventBus.fromEventBusName(this, 'EventBus', props.eventBusName);
-        // const eventBus:EventBus = EventBus.bind(iEventBus);
-        const defaultEventBus = EventBus.fromEventBusName(this, 'DefaultEventBus', 'default');
-        const bucket = Bucket.fromBucketName(this,'JobBucket',props.bucketName)
+
         const accountId = Stack.of(this).account;
         const region = Stack.of(this).region;
 
@@ -214,197 +207,6 @@ export class DataAsset extends Construct {
         this.apiUrl = apigw.url;
         this.apiName = apigw.restApiName;
 
-        // const SFNGetExecutionHistoryPolicy = new PolicyStatement({
-        //     actions: ['states:GetExecutionHistory', 'states:DescribeExecution'],
-        //     resources: [`arn:aws:states:${region}:${accountId}:execution:df-data-asset:*`]
-        // });
-
-        // apiLambda.addToRolePolicy(SFNGetExecutionHistoryPolicy);
-
-        /* TODO Temp Data Asset State MAchine to
-            1- create data brew connection
-            2- create asset
-            3- create job/schedule
-            4- run job
-            After initial testing this State Machine will be moved to the sub account 
-        */
-
-        const SFNSendTaskSuccessPolicy = new PolicyStatement({
-            actions: [
-                'states:SendTaskSuccess',
-                'databrew:CreateDataset',
-                'databrew:TagResource',
-                'databrew:CreateProfileJob',
-                'databrew:CreateRecipe',
-                'databrew:CreateRecipeJob',
-                'databrew:CreateRuleset',
-                'databrew:CreateSchedule',
-                'iam:PassRole',
-                'databrew:StartJobRun'
-            ],
-            resources: [
-                `arn:aws:states:${region}:${accountId}:stateMachine:df-data-asset`,
-                `arn:aws:databrew:${region}:${accountId}:dataset/*`,
-                `arn:aws:databrew:${region}:${accountId}:job/*`,
-                `arn:aws:iam::${accountId}:role/service-role/*`
-            ]
-        });
-
-
-        const createConnectionLambda = new NodejsFunction(this, 'CreateConnectionLambda', {
-            description: `Asset Manager Connection creator Task Handler`,
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/connection.handler.ts'),
-            functionName: `${namePrefix}-connectionCreationTask`,
-            runtime: Runtime.NODEJS_18_X,
-            tracing: Tracing.ACTIVE,
-            memorySize: 512,
-            logRetention: RetentionDays.ONE_WEEK,
-            timeout: Duration.minutes(5),
-            environment: {
-                EVENT_BUS_NAME: props.eventBusName
-            },
-            bundling: {
-                minify: true,
-                format: OutputFormat.ESM,
-                target: 'node18.16',
-                sourceMap: false,
-                sourcesContent: false,
-                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-                externalModules: ['aws-sdk', 'pg-native']
-            },
-            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-            architecture: getLambdaArchitecture(scope)
-        });
-
-        createConnectionLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
-
-        const createDataSetLambda = new NodejsFunction(this, 'CreateDataSetLambda', {
-            description: `Asset Manager dataset creator Task Handler`,
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/dataset.handler.ts'),
-            functionName: `${namePrefix}-createDataSetTask`,
-            runtime: Runtime.NODEJS_18_X,
-            tracing: Tracing.ACTIVE,
-            memorySize: 512,
-            logRetention: RetentionDays.ONE_WEEK,
-            timeout: Duration.minutes(5),
-            environment: {
-                EVENT_BUS_NAME: props.eventBusName
-            },
-            bundling: {
-                minify: true,
-                format: OutputFormat.ESM,
-                target: 'node18.16',
-                sourceMap: false,
-                sourcesContent: false,
-                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-                externalModules: ['aws-sdk', 'pg-native']
-            },
-            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-            architecture: getLambdaArchitecture(scope)
-        });
-
-        createDataSetLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
-
-        const configDataBrewLambda = new NodejsFunction(this, 'ConfigDataBrewLambda', {
-            description: `Asset Manager config data brew Task Handler`,
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/job.handler.ts'),
-            functionName: `${namePrefix}-configDataBrewTask`,
-            runtime: Runtime.NODEJS_18_X,
-            tracing: Tracing.ACTIVE,
-            memorySize: 512,
-            logRetention: RetentionDays.ONE_WEEK,
-            timeout: Duration.minutes(5),
-            environment: {
-                EVENT_BUS_NAME: props.eventBusName,
-                JOBS_BUCKET_NAME: props.bucketName,
-                JOBS_BUCKET_PREFIX: 'jobs'
-            },
-            bundling: {
-                minify: true,
-                format: OutputFormat.ESM,
-                target: 'node18.16',
-                sourceMap: false,
-                sourcesContent: false,
-                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-                externalModules: ['aws-sdk', 'pg-native']
-            },
-            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-            architecture: getLambdaArchitecture(scope)
-        });
-
-        configDataBrewLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
-        eventBus.grantPutEventsTo(configDataBrewLambda);
-
-        const runJobLambda = new NodejsFunction(this, 'runJobLambda', {
-            description: `Asset Manager executeJob Task Handler`,
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/runJob.handler.ts'),
-            functionName: `${namePrefix}-runJobTask`,
-            runtime: Runtime.NODEJS_18_X,
-            tracing: Tracing.ACTIVE,
-            memorySize: 512,
-            logRetention: RetentionDays.ONE_WEEK,
-            timeout: Duration.minutes(5),
-            environment: {
-                EVENT_BUS_NAME: props.eventBusName
-            },
-            bundling: {
-                minify: true,
-                format: OutputFormat.ESM,
-                target: 'node18.16',
-                sourceMap: false,
-                sourcesContent: false,
-                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-                externalModules: ['aws-sdk', 'pg-native']
-            },
-            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-            architecture: getLambdaArchitecture(scope)
-        });
-
-        runJobLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
-
-        const createConnectionTask = new LambdaInvoke(this, 'CreateConnectionTask', {
-            lambdaFunction: createConnectionLambda,
-            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
-            payload: TaskInput.fromObject({
-                'dataAssetEvent.$': '$',
-                'execution': {
-                    'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
-                    'taskToken': JsonPath.taskToken
-                }
-            }),
-            outputPath: '$.dataAssetEvent'
-        });
-
-        const createDataSetTask = new LambdaInvoke(this, 'CreateDataSetTask', {
-            lambdaFunction: createDataSetLambda,
-            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
-            payload: TaskInput.fromObject({
-                'dataAssetEvent.$': '$',
-                'execution': {
-                    'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
-                    'taskToken': JsonPath.taskToken
-                }
-            }),
-            outputPath: '$.dataAssetEvent'
-        });
-
-        const configDataBrewTask = new LambdaInvoke(this, 'ConfigDataBrewTask', {
-            lambdaFunction: configDataBrewLambda,
-            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
-            payload: TaskInput.fromObject({
-                'dataAssetEvent.$': '$',
-                'execution': {
-                    'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
-                    'taskToken': JsonPath.taskToken
-                }
-            }),
-            outputPath: '$.dataAssetEvent'
-        });
-
-
         const deadLetterQueue = new Queue(this, 'DeadLetterQueue');
         deadLetterQueue.addToResourcePolicy(new PolicyStatement({
             sid: 'enforce-ssl',
@@ -429,107 +231,6 @@ export class DataAsset extends Construct {
             ],
             true);
 
-        const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset`, removalPolicy: RemovalPolicy.DESTROY });
-
-        const dataAssetStateMachine = new StateMachine(this, 'DataAssetStateMachine', {
-            definitionBody: DefinitionBody.fromChainable(
-                new Choice(this, 'Connection data Found ?')
-                    .otherwise(createDataSetTask.next(configDataBrewTask))
-                    .when(Condition.or(Condition.isPresent('$.workflow.dataset.connectionId'), Condition.isPresent('$.workflow.dataset.connection')),
-                        new Choice(this, 'Is connectionId present?')
-                            .otherwise(createConnectionTask.next(createDataSetTask))
-                            .when(Condition.isPresent('$.workflow.dataset.connectionId'), createDataSetTask)
-                    )
-            ),
-            logs: { destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
-            stateMachineName: `${namePrefix}-data-asset`,
-            tracingEnabled: true
-        });
-
-        createConnectionLambda.grantInvoke(dataAssetStateMachine);
-        createDataSetLambda.grantInvoke(dataAssetStateMachine);
-        configDataBrewLambda.grantInvoke(dataAssetStateMachine);
-        runJobLambda.grantInvoke(dataAssetStateMachine);
-
-
-        const triggerStateMachineRule = new Rule(this, 'TriggerStateMachineRule', {
-            eventBus: eventBus,
-            eventPattern: {
-                detailType: [DATA_ASSET_HUB_CREATE_REQUEST_EVENT]
-            }
-        });
-
-        triggerStateMachineRule.addTarget(
-            new SfnStateMachine(dataAssetStateMachine, {
-                deadLetterQueue: deadLetterQueue,
-                maxEventAge: Duration.minutes(5),
-                retryAttempts: 2
-            })
-        );
-
-        this.stateMachineArn = dataAssetStateMachine.stateMachineArn;
-
-
-        /*
-            * Job Enrichment Listener
-            * Will Enrich job events once a job status change is detected
-        */
-
-        const JobEnrichmentPolicy = new PolicyStatement({
-            actions: [
-                'databrew:DescribeJob',
-                'databrew:DescribeJobRun',
-            ],
-            resources: [
-                `arn:aws:databrew:${region}:${accountId}:job/*`,
-            ]
-        });
-        const jobEnrichmentLambda = new NodejsFunction(this, 'JobEnrichmentLambda', {
-            description: `Job Completion Event Handler`,
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/lambda_eventbridge.ts'),
-            runtime: Runtime.NODEJS_18_X,
-            tracing: Tracing.ACTIVE,
-            functionName: `${namePrefix}-dataAsset-jobEnrichment`,
-            timeout: Duration.seconds(30),
-            memorySize: 512,
-            logRetention: RetentionDays.ONE_WEEK,
-            environment: {
-                EVENT_BUS_NAME: props.eventBusName,
-            },
-            bundling: {
-                minify: true,
-                format: OutputFormat.ESM,
-                target: 'node18.16',
-                sourceMap: false,
-                sourcesContent: false,
-                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-                externalModules: ['aws-sdk', 'pg-native']
-            },
-            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-            architecture: getLambdaArchitecture(scope)
-        });
-
-        eventBus.grantPutEventsTo(jobEnrichmentLambda);
-        bucket.grantRead(jobEnrichmentLambda);
-        jobEnrichmentLambda.addToRolePolicy(JobEnrichmentPolicy);
-
-
-         // Rule for Job Enrichment events
-         const jobEnrichmentRule = new Rule(this, 'JobEnrichmentRule', {
-            eventBus: defaultEventBus,
-            eventPattern: {
-                source: ['aws.databrew'],
-                detailType: [DATA_BREW_JOB_STATE_CHANGE]
-            }
-        });
-
-        jobEnrichmentRule.addTarget(
-            new LambdaFunction(jobEnrichmentLambda, {
-                deadLetterQueue: deadLetterQueue,
-                maxEventAge: Duration.minutes(5),
-                retryAttempts: 2
-            })
-        );
 
         /*
             * Job Completion Listener
@@ -653,7 +354,7 @@ export class DataAsset extends Construct {
             }                        
         });
 
-        NagSuppressions.addResourceSuppressions([apiLambda, jobCompletionEventLambda, jobEnrichmentLambda],
+        NagSuppressions.addResourceSuppressions([apiLambda, jobCompletionEventLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -676,72 +377,6 @@ export class DataAsset extends Construct {
 
                 }
             ],
-            true);
-
-            NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
-                [
-
-                    {
-                        id: 'AwsSolutions-IAM5',
-                        appliesTo: [
-                            `Action::s3:GetBucket*`,
-                            `Action::s3:GetObject*`,
-                            `Action::s3:List*`,
-                            `Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfsharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*`,
-                            `Resource::arn:aws:databrew:<AWS::Region>:<AWS::AccountId>:job/*`
-                        ],
-                        reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'
-    
-                    }
-                ],
-                true);
-
-        NagSuppressions.addResourceSuppressions([createConnectionLambda, createDataSetLambda, configDataBrewLambda, runJobLambda],
-            [
-                {
-                    id: 'AwsSolutions-IAM4',
-                    appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
-                    reason: 'This policy is the one generated by CDK.'
-
-                },
-                {
-                    id: 'AwsSolutions-IAM5',
-                    appliesTo: [
-                        'Resource::*',
-                        `Resource::arn:aws:databrew:<AWS::Region>:<AWS::AccountId>:dataset/*`,
-                        `Resource::arn:aws:databrew:<AWS::Region>:<AWS::AccountId>:job/*`,
-                        `Resource::arn:aws:iam::<AWS::AccountId>:role/service-role/*`
-                    ],
-                    reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments actions.'
-
-                }
-            ],
-            true);
-
-
-        NagSuppressions.addResourceSuppressions([dataAssetStateMachine],
-            [
-                {
-                    id: 'AwsSolutions-IAM5',
-                    appliesTo: [
-                        'Resource::<DataAssetHubConfigDataBrewLambdaCDAA539A.Arn>:*',
-                        'Resource::<DataAssetHubCreateConnectionLambda8ADC406F.Arn>:*',
-                        'Resource::<DataAssetHubCreateDataSetLambdaB1F66CA7.Arn>:*',
-                        'Resource::<DataAssetHubrunJobLambdaF5235915.Arn>:*'
-                    ],
-                    reason: 'this policy is required to invoke lambda specified in the state machine definition'
-                },
-                {
-                    id: 'AwsSolutions-SF1',
-                    reason: 'We only care about logging the error for now.'
-
-                },
-                {
-                    id: 'AwsSolutions-IAM5',
-                    reason: 'This resource policy only applies to log.',
-                    appliesTo: ['Resource::*']
-
-                }],
             true);
 
         NagSuppressions.addResourceSuppressions([apigw],

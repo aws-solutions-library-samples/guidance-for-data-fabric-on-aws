@@ -15,7 +15,7 @@ export class EventBusSpoke extends Construct {
     super(scope, id);
 
 
-    // DF Event Bus
+    // DF Spoke Event Bus
     const dfSpokeEventBus = new Bus(this, "SpokeEventBus", true);
 
     // Allow hub account role to put events to this event bus

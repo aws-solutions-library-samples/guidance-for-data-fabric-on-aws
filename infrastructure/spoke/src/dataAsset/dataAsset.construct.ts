@@ -65,10 +65,10 @@ export class DataAssetSpoke extends Construct {
                 'databrew:StartJobRun'
             ],
             resources: [
-                `arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-data-asset}`,
+                `arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-data-asset`,
                 `arn:aws:databrew:${region}:${accountId}:dataset/*`,
                 `arn:aws:databrew:${region}:${accountId}:job/*`,
-                `arn:aws:iam::${accountId}:role/service-role/*`
+                `arn:aws:iam::${accountId}:role/df-*` // we Only allow assume roles for roles that have a df- prefix 
             ]
         });
 
@@ -492,7 +492,7 @@ export class DataAssetSpoke extends Construct {
                         'Resource::*',
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
-                        `Resource::arn:aws:iam::${accountId}:role/service-role/*`
+                        `Resource::arn:aws:iam::${accountId}:role/df-*`
                     ],
                     reason: 'This policy is required for the lambda to perform profiling.'
 

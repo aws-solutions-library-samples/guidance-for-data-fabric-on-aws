@@ -95,7 +95,7 @@ const registerContainer = (app?: FastifyInstance) => {
 
 	const awsRegion = process.env['AWS_REGION'];
 	const eventBusName = process.env['EVENT_BUS_NAME'];
-	const hubStateMachineArn = process.env['ASSET_MANAGEMENT_HUB_STATE_MACHINE_ARN'];
+	// const hubStateMachineArn = process.env['ASSET_MANAGEMENT_HUB_STATE_MACHINE_ARN'];
 	const JobsBucketName = process.env['JOBS_BUCKET_NAME'];
 	const JobsBucketPrefix= process.env['JOBS_BUCKET_PREFIX'];
 	const TableName= process.env['TABLE_NAME'];
@@ -172,11 +172,10 @@ const registerContainer = (app?: FastifyInstance) => {
 				new DataAssetService(
 					app.log,
 					container.dataAssetRepository,
-					container.stepFunctionClient,
+					// container.stepFunctionClient,
 					container.dataZoneClient,
 					container.eventPublisher,
-					eventBusName,
-					hubStateMachineArn
+					eventBusName
 				),
 			{
 				...commonInjectionOptions,

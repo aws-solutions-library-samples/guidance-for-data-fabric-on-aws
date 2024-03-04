@@ -5,7 +5,6 @@ import { baseConfigSchema, convertFromTypeBoxIntersectToJSONSchema } from '@df/r
 
 // eslint-disable-next-line @rushstack/typedef-var
 export const moduleConfigSchema = Type.Object({
-	ASSET_MANAGEMENT_HUB_STATE_MACHINE_ARN: Type.String(),
 	EVENT_BUS_NAME: Type.String(),
 	PORT: Type.Number({ default: 30004 }),
 	TABLE_NAME: Type.String()
