@@ -34,9 +34,11 @@ Sample command to deploy the CDK stack:
 ```
 npm run cdk -- deploy \
 --require-approval never --concurrency=10 \
--c spokeAccountIds=<Comma delimited list of account IDs with no spaces> \
--c identityStoreId=<Identity Store ID> 
-``` 
+-c identityStoreId=<Identity Store ID> \
+-c orgId=<AWS Organization ID> \
+-c orgRootId=<AWS Organization Root ID> \
+-c orgOuId=<AWS Organization OU ID>
+```
 
 You have now deployed the shared infrastructure needed to integrate with `IAM Identity Center` 
 
@@ -93,5 +95,7 @@ npm run cdk -- deploy \
     -c callbackUrls=<enter a comma separated list of urls> \
     -c adminEmail=<enter the admin email you want to be used>\
     -c identityStoreId=<Identity Store ID> \
-    -c spokeAccountIds=<Comma delimited list of account IDs with no spaces>
+    -c orgId=<AWS Organization ID> \
+    -c orgRootId=<AWS Organization Root ID> \
+    -c orgOuId=<AWS Organization OU ID>
 ```
