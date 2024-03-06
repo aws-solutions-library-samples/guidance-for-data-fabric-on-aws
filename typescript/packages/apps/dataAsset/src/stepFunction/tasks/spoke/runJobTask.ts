@@ -1,6 +1,6 @@
 import type { BaseLogger } from 'pino';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
-import type{ DataAssetEvent } from './models.js';
+import type{ DataAssetTask } from '../models.js';
 
 export class RunJobTask {
 
@@ -9,7 +9,7 @@ export class RunJobTask {
 	}
 
 
-	public async process(event: DataAssetEvent): Promise<any> {
+	public async process(event: DataAssetTask): Promise<any> {
 		this.log.info(`RunJobTask > process > in > event: ${JSON.stringify(event)}`);
 
 			await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken:event.execution.taskToken }));

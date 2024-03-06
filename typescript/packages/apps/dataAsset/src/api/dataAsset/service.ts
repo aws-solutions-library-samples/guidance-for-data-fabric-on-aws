@@ -3,17 +3,21 @@ import type { EditDataAsset, NewDataAsset, DataAssetListOptions, DataAsset, Cata
 import { validateNotEmpty, validateRegularExpression } from '@df/validators';
 import type { DataAssetRepository } from './repository.js';
 import { GetAssetCommand, type DataZoneClient, CreateAssetCommand, CreateAssetOutput, CreateAssetRevisionCommand, CreateListingChangeSetCommand } from '@aws-sdk/client-datazone';
-import { NotFoundError } from '@df/resource-api-base';
-import { EventBridgeEventBuilder, type EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_HUB_CREATE_REQUEST_EVENT } from '@df/events';
+// import { NotFoundError } from '@df/resource-api-base';
+// import { EventBridgeEventBuilder, type EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_HUB_CREATE_REQUEST_EVENT } from '@df/events';
 import { getObjectArnFromUri } from '../../common/s3Utils.js';
 import { AssetTypeToFormMap, ConnectionToAssetTypeMap, getConnectionType } from '../../common/utils.js';
+import { ulid } from 'ulid';
+import { StartExecutionCommand, type SFNClient } from '@aws-sdk/client-sfn';
 
 export class DataAssetService {
     private readonly log: FastifyBaseLogger;
     private readonly repository: DataAssetRepository;
     private readonly dzClient: DataZoneClient;
-    private readonly eventPublisher: EventPublisher;
-    private readonly eventBusName: string;
+    // private readonly eventPublisher: EventPublisher;
+    // private readonly eventBusName: string;
+    private readonly sfnClient: SFNClient;
+    private readonly createAssetStateMachineArn:string;
 
 
 
@@ -21,14 +25,18 @@ export class DataAssetService {
         log: FastifyBaseLogger,
         repository: DataAssetRepository,
         dzClient: DataZoneClient,
-        eventPublisher: EventPublisher,
-        eventBusName: string,
+        // eventPublisher: EventPublisher,
+        // eventBusName: string,
+        sfnClient:SFNClient,
+        createAssetStateMachineArn:string,
     ) {
         this.log = log;
         this.repository = repository;
         this.dzClient = dzClient;
-        this.eventPublisher = eventPublisher;
-        this.eventBusName = eventBusName;
+        // this.eventPublisher = eventPublisher;
+        // this.eventBusName = eventBusName;
+        this.sfnClient = sfnClient;
+        this.createAssetStateMachineArn = createAssetStateMachineArn;
     }
 
 
@@ -39,35 +47,30 @@ export class DataAssetService {
 
         this.validateWorkflow(asset.workflow);
 
-        const now = new Date(Date.now()).toISOString();
         // Set the data version to 0
-        asset.catalog['dataVersion'] = 0;
+        // asset.catalog['dataVersion'] = 0;
 
-        const dzAsset = await this.createDataZoneAsset(asset);
+        // const dzAsset = await this.createDataZoneAsset(asset);
 
         const fullAsset: DataAsset = {
-            id: dzAsset.id,
-            state: 'pending creation',
-            version: 0, // We start with version 0 and update to 1 when asset is ready to be created in datazone
-            createdBy: 'TBD', //Waiting for access control integration
-            createdAt: now,
-            updatedBy: 'TBD', //Waiting for access control integration
-            updatedAt: now,
+            requestId: ulid().toLowerCase(),
             catalog: asset.catalog,
             workflow: asset.workflow
         }
 
+        await this.sfnClient.send(new StartExecutionCommand({ stateMachineArn: this.createAssetStateMachineArn, input: JSON.stringify(fullAsset) }));
+
         // Publish event
-        const event = new EventBridgeEventBuilder()
-            .setEventBusName(this.eventBusName)
-            .setSource(DATA_ASSET_HUB_EVENT_SOURCE)
-            .setDetailType(DATA_ASSET_HUB_CREATE_REQUEST_EVENT)
-            .setDetail(fullAsset);
-        await this.eventPublisher.publish(event);
+        // const event = new EventBridgeEventBuilder()
+        //     .setEventBusName(this.eventBusName)
+        //     .setSource(DATA_ASSET_HUB_EVENT_SOURCE)
+        //     .setDetailType(DATA_ASSET_HUB_CREATE_REQUEST_EVENT)
+        //     .setDetail(fullAsset);
+        // await this.eventPublisher.publish(event);
 
 
         // Store record
-        await this.repository.create(fullAsset);
+        // await this.repository.create(fullAsset);
 
         this.log.debug(`DataAssetService >  create > exit`);
 
@@ -94,30 +97,13 @@ export class DataAssetService {
     public async update(dataAssetId: string, updatedAsset: EditDataAsset): Promise<DataAsset> {
         this.log.debug(`DataAssetService > update > in dataAssetId:${dataAssetId}, asset:${JSON.stringify(updatedAsset)}`);
 
-        const existing = await this.repository.get(dataAssetId);
-
-        // Asset Id exists validate against data zone 
-        if (existing.id) {
-            //TODO validate asset data against data zone
-            this.log.debug(`DataAssetService > update > in dataZone domainId :${updatedAsset.catalog.domainId}, assetId:${dataAssetId}`);
-            
-            const dzAsset = await this.dzClient.send(new GetAssetCommand({
-                domainIdentifier: updatedAsset.catalog.domainId,
-                identifier: dataAssetId
-            }));
-            if (!dzAsset) {
-                throw new NotFoundError(`Asset not found in Data Zone !!!`)
-            }
+        const existing: DataAsset = {
+            requestId : dataAssetId,
+            ...updatedAsset
         }
 
-        // merge the existing and to be updated
-        existing.catalog = updatedAsset.catalog;
-        existing.workflow = updatedAsset.workflow;
-        existing.execution = updatedAsset.execution
-        existing.updatedAt = new Date(Date.now()).toISOString();
-        existing.updatedBy = 'TBD';
+        // Run the update step function 
 
-        // TODO the actual update command need to determine if we are using only DZ or we can use repo for the update
         
         this.log.debug(`DataAssetService > update > exit`);
         return existing;
@@ -197,7 +183,7 @@ export class DataAssetService {
         // Get the current forms from the existing data zone asset
         const dzAsset = await this.dzClient.send(new GetAssetCommand({
             domainIdentifier: asset.catalog.domainId,
-            identifier: asset.id
+            identifier: asset.catalog.assetId
         }));
 
         const existingForms = dzAsset.formsOutput;
@@ -224,7 +210,7 @@ export class DataAssetService {
         this.log.debug(`DataAssetService > updateDataZoneProfile > formsInput ${JSON.stringify(formsInput)}`);
         // Update revisioned assets with profile metadata
         const props = {
-            identifier: asset.id,
+            identifier: asset.catalog.assetId,
             name: asset.catalog.assetName,
             domainIdentifier: asset.catalog.domainId,
             formsInput

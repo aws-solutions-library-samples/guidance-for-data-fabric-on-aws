@@ -20,19 +20,22 @@ export class JobEventProcessor {
 	) {
 	}
 
+	// TODO remove this function in the future
 	public async jobStartEvent(event: DataAssetJobStartEvent): Promise<void> {
 		this.log.info(`JobEventProcessor > jobStartEvent > event: ${JSON.stringify(event)}`);
 
-		validateNotEmpty(event, 'Job start event');
+		// validateNotEmpty(event, 'Job start event');
 
-		const dataAsset = await this.dataAssetService.get(event.dataAsset.id);
-		if (!dataAsset?.execution) {
-			dataAsset['execution'] = {};
-		}
-		dataAsset.execution.jobRunId = event.job.jobRunId;
-		dataAsset.execution.jobRunStatus = event.job.jobRunStatus;
-		dataAsset.execution.jobStartTime = event.job.jobStartTime;
-		await this.dataAssetService.update(dataAsset.id, dataAsset);
+		// const dataAsset = await this.dataAssetService.get(event.dataAsset.id);
+		// if (!dataAsset?.execution) {
+		// 	dataAsset['execution'] = {};
+		// }
+		// dataAsset.execution.profilingJob.jobRunId = event.job.jobRunId;
+		// dataAsset.execution.profilingJob.jobRunStatus = event.job.jobRunStatus;
+		// dataAsset.execution.profilingJob.jobStartTime = event.job.jobStartTime;
+
+		// // TODO we dont need Job start event or this lookup anymore
+		// await this.dataAssetService.update(dataAsset.id, dataAsset);
 		
 		this.log.info(`JobEventProcessor > jobStartEvent > exit`);
 		return;
@@ -60,12 +63,18 @@ export class JobEventProcessor {
 		dataAsset.execution['jobRunStatus'] = event.detail.job.jobRunStatus;
 		dataAsset.execution['jobStartTime'] = event.detail.job.jobStartTime;
 		dataAsset.execution['jobStopTime'] = event.detail.job.jobStopTime;
-		await this.dataAssetService.update(dataAsset.id, dataAsset);
+		await this.dataAssetService.update(dataAsset.requestId, dataAsset);
 
 		this.log.info(`JobEventProcessor > jobCompletionEvent > exit`);
 		return;
 	}
 
+
+	// TODO John: you need to add the event process for the recipe jobs here. this file will be modified and the name of the functions will be refactored.
+	// Feel free to split it into another event file
+	public async recipeJobCompletionEvent(event: DataAssetSpokeJobCompletionEvent): Promise<void> {
+		this.log.info(`JobEventProcessor > recipeJobCompletionEvent > in ${JSON.stringify(event)}`);
+	}
 
 	// This event needs to move to the spoke app
 	public async jobEnrichmentEvent(event: JobStateChangeEvent): Promise<void> {
@@ -92,6 +101,8 @@ export class JobEventProcessor {
 					domainId: job.Tags['domainId'],
 					projectId: job.Tags['projectId'],
 					assetId: job.Tags['assetId'],
+					environmentId: job.Tags['environmentId'],
+					region: job.Tags['region'],
 					autoPublish: true
 
 				}

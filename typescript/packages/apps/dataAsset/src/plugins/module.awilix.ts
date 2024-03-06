@@ -12,14 +12,18 @@ import { DataAssetRepository } from '../api/dataAsset/repository.js';
 import { DataAssetService } from '../api/dataAsset/service.js';
 import { BaseCradle, registerBaseAwilix } from '@df/resource-api-base';
 import { EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE } from '@df/events';
-import { ConnectionTask } from '../stepFunction/tasks/connectionTask.js';
-import { JobTask } from '../stepFunction/tasks/jobTask.js';
-import { DataSetTask } from '../stepFunction/tasks/dataSetTask.js';
-import { RunJobTask } from '../stepFunction/tasks/runJobTask.js';
+import { ConnectionTask } from '../stepFunction/tasks/spoke/connectionTask.js';
+import { ProfileJobTask } from '../stepFunction/tasks/spoke/profileJobTask.js';
+import { DataSetTask } from '../stepFunction/tasks/spoke/dataSetTask.js';
+import { RunJobTask } from '../stepFunction/tasks/spoke/runJobTask.js';
 import { GlueClient } from '@aws-sdk/client-glue';
 import { DataBrewClient } from '@aws-sdk/client-databrew';
 import { S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { StartTask } from '../stepFunction/tasks/hub/create/startTask.js';
+import { SpokeResponseTask } from '../stepFunction/tasks/hub/create/spokeResponseTask.js';
+import { LineageTask } from '../stepFunction/tasks/hub/create/lineageTask.js';
+import { CreateDataSourceTask } from '../stepFunction/tasks/hub/create/createDataSourceTask.js';
 
 
 
@@ -39,8 +43,15 @@ declare module '@fastify/awilix' {
 		eventPublisher: EventPublisher;
 		dataAssetRepository: DataAssetRepository;
 		dataAssetService: DataAssetService;
+		// Hub Tasks
+		startTask: StartTask;
+		spokeResponseTask: SpokeResponseTask;
+		createDataSourceTask: CreateDataSourceTask,
+		lineageTask: LineageTask
+
+		//Spoke Tasks
 		connectionTask: ConnectionTask;
-		jobTask: JobTask;
+		profileJobTask: ProfileJobTask;
 		dataSetTask: DataSetTask;
 		runJobTask: RunJobTask;
 	}
@@ -94,8 +105,10 @@ const registerContainer = (app?: FastifyInstance) => {
 	};
 
 	const awsRegion = process.env['AWS_REGION'];
-	const eventBusName = process.env['EVENT_BUS_NAME'];
-	// const hubStateMachineArn = process.env['ASSET_MANAGEMENT_HUB_STATE_MACHINE_ARN'];
+	const hubEventBusName = process.env['HUB_EVENT_BUS_NAME'];
+	const spokeEventBusName = process.env['SPOKE_EVENT_BUS_NAME'];
+	const hubCreateStateMachineArn = process.env['HUB_CREATE_STATE_MACHINE_ARN'];
+	// const spokeCreateStateMachineArn = process.env['SPOKE_CREATE_STATE_MACHINE_ARN'];
 	const JobsBucketName = process.env['JOBS_BUCKET_NAME'];
 	const JobsBucketPrefix = process.env['JOBS_BUCKET_PREFIX'];
 	const TableName = process.env['TABLE_NAME'];
@@ -130,7 +143,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions,
 		}),
 
-		eventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, eventBusName, DATA_ASSET_HUB_EVENT_SOURCE), {
+		eventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, hubEventBusName, DATA_ASSET_HUB_EVENT_SOURCE), {
 			...commonInjectionOptions
 		}),
 
@@ -141,7 +154,7 @@ const registerContainer = (app?: FastifyInstance) => {
 					app.log,
 					container.dataAssetService,
 					container.dataBrewClient,
-					eventBusName,
+					spokeEventBusName,
 					container.eventPublisher,
 					container.s3Client,
 					getSignedUrl),
@@ -173,21 +186,41 @@ const registerContainer = (app?: FastifyInstance) => {
 					app.log,
 					container.dataAssetRepository,
 					container.dataZoneClient,
-					container.eventPublisher,
-					eventBusName
+					container.stepFunctionClient,
+					hubCreateStateMachineArn
+					// container.eventPublisher,
+					// eventBusName
 				),
 			{
 				...commonInjectionOptions,
 			}
 		),
 
-		// Tasks
+		// Hub Tasks
+		startTask: asFunction((container: Cradle) => new StartTask(app.log, hubEventBusName, container.eventPublisher), {
+			...commonInjectionOptions
+		}),
+
+		spokeResponseTask: asFunction((container: Cradle) => new SpokeResponseTask(app.log, container.stepFunctionClient), {
+			...commonInjectionOptions
+		}),
+
+		createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneClient, container.stepFunctionClient), {
+			...commonInjectionOptions
+		}),
+
+		lineageTask: asFunction((container: Cradle) => new LineageTask(app.log, container.stepFunctionClient, hubEventBusName, container.eventPublisher), {
+			...commonInjectionOptions
+		}),
+
+
+		// Spoke Tasks
 
 		connectionTask: asFunction((container: Cradle) => new ConnectionTask(app.log, container.stepFunctionClient), {
 			...commonInjectionOptions
 		}),
 
-		jobTask: asFunction((container: Cradle) => new JobTask(app.log, container.stepFunctionClient, container.dataBrewClient, eventBusName, container.eventPublisher, JobsBucketName, JobsBucketPrefix), {
+		profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log,container.dataBrewClient, JobsBucketName, JobsBucketPrefix), {
 			...commonInjectionOptions
 		}),
 

@@ -17,34 +17,8 @@
       "def-0": {
         "type": "object",
         "properties": {
-          "id": {
-            "description": "Unique id.",
-            "type": "string"
-          },
-          "state": {
-            "description": "State of the Data asset.",
-            "type": "string"
-          },
-          "version": {
-            "description": "specify the version number",
-            "type": "number"
-          },
-          "createdBy": {
-            "description": "ID of owner.",
-            "type": "string"
-          },
-          "createdAt": {
-            "description": "Date/time created",
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedBy": {
-            "description": "Last ID of user who made a change.",
-            "type": "string"
-          },
-          "updatedAt": {
-            "description": "Date/time updated",
-            "format": "date-time",
+          "requestId": {
+            "description": "Unique id of the request.",
             "type": "string"
           },
           "execution": {
@@ -58,21 +32,68 @@
                 "description": "The Spoke execution id of the state machine",
                 "type": "string"
               },
-              "jobRunId": {
-                "description": "The job runId from databrew",
-                "type": "string"
+              "profilingJob": {
+                "type": "object",
+                "properties": {
+                  "jobRunId": {
+                    "description": "The job runId from databrew",
+                    "type": "string"
+                  },
+                  "jobRunStatus": {
+                    "description": "The run status of the job",
+                    "type": "string"
+                  },
+                  "jobStartTime": {
+                    "description": "The start time of the last job run",
+                    "type": "string"
+                  },
+                  "jobStopTime": {
+                    "description": "The stop time of the last job run",
+                    "type": "string"
+                  }
+                }
               },
-              "jobRunStatus": {
-                "description": "The run status of the job",
-                "type": "string"
+              "transformJob": {
+                "type": "object",
+                "properties": {
+                  "jobRunId": {
+                    "description": "The job runId from databrew",
+                    "type": "string"
+                  },
+                  "jobRunStatus": {
+                    "description": "The run status of the job",
+                    "type": "string"
+                  },
+                  "jobStartTime": {
+                    "description": "The start time of the last job run",
+                    "type": "string"
+                  },
+                  "jobStopTime": {
+                    "description": "The stop time of the last job run",
+                    "type": "string"
+                  }
+                }
               },
-              "jobStartTime": {
-                "description": "The start time of the last job run",
-                "type": "string"
-              },
-              "jobStopTime": {
-                "description": "The stop time of the last job run",
-                "type": "string"
+              "dataSourceRun": {
+                "type": "object",
+                "properties": {
+                  "jobRunId": {
+                    "description": "The job runId from databrew",
+                    "type": "string"
+                  },
+                  "jobRunStatus": {
+                    "description": "The run status of the job",
+                    "type": "string"
+                  },
+                  "jobStartTime": {
+                    "description": "The start time of the last job run",
+                    "type": "string"
+                  },
+                  "jobStopTime": {
+                    "description": "The stop time of the last job run",
+                    "type": "string"
+                  }
+                }
               }
             }
           },
@@ -83,8 +104,20 @@
                 "description": "Data Zone domain id",
                 "type": "string"
               },
+              "environmentId": {
+                "description": "Data Zone environment id",
+                "type": "string"
+              },
               "projectId": {
                 "description": "Data Zone project id",
+                "type": "string"
+              },
+              "region": {
+                "description": "Data Zone environment region",
+                "type": "string"
+              },
+              "dataSourceId": {
+                "description": "Data Zone asset data source id",
                 "type": "string"
               },
               "assetName": {
@@ -111,7 +144,7 @@
             },
             "required": [
               "domainId",
-              "projectId",
+              "environmentId",
               "assetName",
               "accountId",
               "autoPublish"
@@ -332,10 +365,7 @@
           }
         },
         "required": [
-          "id",
-          "state",
-          "createdBy",
-          "createdAt",
+          "requestId",
           "catalog",
           "workflow"
         ],
@@ -351,8 +381,20 @@
                 "description": "Data Zone domain id",
                 "type": "string"
               },
+              "environmentId": {
+                "description": "Data Zone environment id",
+                "type": "string"
+              },
               "projectId": {
                 "description": "Data Zone project id",
+                "type": "string"
+              },
+              "region": {
+                "description": "Data Zone environment region",
+                "type": "string"
+              },
+              "dataSourceId": {
+                "description": "Data Zone asset data source id",
                 "type": "string"
               },
               "assetName": {
@@ -379,7 +421,7 @@
             },
             "required": [
               "domainId",
-              "projectId",
+              "environmentId",
               "assetName",
               "accountId",
               "autoPublish"
@@ -512,39 +554,6 @@
       "def-2": {
         "type": "object",
         "properties": {
-          "state": {
-            "description": "State of the Data asset.",
-            "type": "string"
-          },
-          "execution": {
-            "type": "object",
-            "properties": {
-              "hubExecutionArn": {
-                "description": "The hub execution id of the state machine",
-                "type": "string"
-              },
-              "spokeExecutionArn": {
-                "description": "The Spoke execution id of the state machine",
-                "type": "string"
-              },
-              "jobRunId": {
-                "description": "The job runId from databrew",
-                "type": "string"
-              },
-              "jobRunStatus": {
-                "description": "The run status of the job",
-                "type": "string"
-              },
-              "jobStartTime": {
-                "description": "The start time of the last job run",
-                "type": "string"
-              },
-              "jobStopTime": {
-                "description": "The stop time of the last job run",
-                "type": "string"
-              }
-            }
-          },
           "catalog": {
             "type": "object",
             "properties": {
@@ -552,8 +561,20 @@
                 "description": "Data Zone domain id",
                 "type": "string"
               },
+              "environmentId": {
+                "description": "Data Zone environment id",
+                "type": "string"
+              },
               "projectId": {
                 "description": "Data Zone project id",
+                "type": "string"
+              },
+              "region": {
+                "description": "Data Zone environment region",
+                "type": "string"
+              },
+              "dataSourceId": {
+                "description": "Data Zone asset data source id",
                 "type": "string"
               },
               "assetName": {
@@ -580,7 +601,7 @@
             },
             "required": [
               "domainId",
-              "projectId",
+              "environmentId",
               "assetName",
               "accountId",
               "autoPublish"
@@ -705,7 +726,6 @@
           }
         },
         "required": [
-          "state",
           "catalog",
           "workflow"
         ],
@@ -958,34 +978,8 @@
                   "description": "Success.",
                   "type": "object",
                   "properties": {
-                    "id": {
-                      "description": "Unique id.",
-                      "type": "string"
-                    },
-                    "state": {
-                      "description": "State of the Data asset.",
-                      "type": "string"
-                    },
-                    "version": {
-                      "description": "specify the version number",
-                      "type": "number"
-                    },
-                    "createdBy": {
-                      "description": "ID of owner.",
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "description": "Date/time created",
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    "updatedBy": {
-                      "description": "Last ID of user who made a change.",
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "description": "Date/time updated",
-                      "format": "date-time",
+                    "requestId": {
+                      "description": "Unique id of the request.",
                       "type": "string"
                     },
                     "execution": {
@@ -999,21 +993,68 @@
                           "description": "The Spoke execution id of the state machine",
                           "type": "string"
                         },
-                        "jobRunId": {
-                          "description": "The job runId from databrew",
-                          "type": "string"
+                        "profilingJob": {
+                          "type": "object",
+                          "properties": {
+                            "jobRunId": {
+                              "description": "The job runId from databrew",
+                              "type": "string"
+                            },
+                            "jobRunStatus": {
+                              "description": "The run status of the job",
+                              "type": "string"
+                            },
+                            "jobStartTime": {
+                              "description": "The start time of the last job run",
+                              "type": "string"
+                            },
+                            "jobStopTime": {
+                              "description": "The stop time of the last job run",
+                              "type": "string"
+                            }
+                          }
                         },
-                        "jobRunStatus": {
-                          "description": "The run status of the job",
-                          "type": "string"
+                        "transformJob": {
+                          "type": "object",
+                          "properties": {
+                            "jobRunId": {
+                              "description": "The job runId from databrew",
+                              "type": "string"
+                            },
+                            "jobRunStatus": {
+                              "description": "The run status of the job",
+                              "type": "string"
+                            },
+                            "jobStartTime": {
+                              "description": "The start time of the last job run",
+                              "type": "string"
+                            },
+                            "jobStopTime": {
+                              "description": "The stop time of the last job run",
+                              "type": "string"
+                            }
+                          }
                         },
-                        "jobStartTime": {
-                          "description": "The start time of the last job run",
-                          "type": "string"
-                        },
-                        "jobStopTime": {
-                          "description": "The stop time of the last job run",
-                          "type": "string"
+                        "dataSourceRun": {
+                          "type": "object",
+                          "properties": {
+                            "jobRunId": {
+                              "description": "The job runId from databrew",
+                              "type": "string"
+                            },
+                            "jobRunStatus": {
+                              "description": "The run status of the job",
+                              "type": "string"
+                            },
+                            "jobStartTime": {
+                              "description": "The start time of the last job run",
+                              "type": "string"
+                            },
+                            "jobStopTime": {
+                              "description": "The stop time of the last job run",
+                              "type": "string"
+                            }
+                          }
                         }
                       }
                     },
@@ -1024,8 +1065,20 @@
                           "description": "Data Zone domain id",
                           "type": "string"
                         },
+                        "environmentId": {
+                          "description": "Data Zone environment id",
+                          "type": "string"
+                        },
                         "projectId": {
                           "description": "Data Zone project id",
+                          "type": "string"
+                        },
+                        "region": {
+                          "description": "Data Zone environment region",
+                          "type": "string"
+                        },
+                        "dataSourceId": {
+                          "description": "Data Zone asset data source id",
                           "type": "string"
                         },
                         "assetName": {
@@ -1052,7 +1105,7 @@
                       },
                       "required": [
                         "domainId",
-                        "projectId",
+                        "environmentId",
                         "assetName",
                         "accountId",
                         "autoPublish"
@@ -1273,10 +1326,7 @@
                     }
                   },
                   "required": [
-                    "id",
-                    "state",
-                    "createdBy",
-                    "createdAt",
+                    "requestId",
                     "catalog",
                     "workflow"
                   ]
@@ -1446,7 +1496,7 @@
             "in": "path",
             "name": "assetId",
             "required": true,
-            "description": "Unique id."
+            "description": "Unique id of the request."
           },
           {
             "schema": {
@@ -1476,34 +1526,8 @@
                   "description": "Success.",
                   "type": "object",
                   "properties": {
-                    "id": {
-                      "description": "Unique id.",
-                      "type": "string"
-                    },
-                    "state": {
-                      "description": "State of the Data asset.",
-                      "type": "string"
-                    },
-                    "version": {
-                      "description": "specify the version number",
-                      "type": "number"
-                    },
-                    "createdBy": {
-                      "description": "ID of owner.",
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "description": "Date/time created",
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    "updatedBy": {
-                      "description": "Last ID of user who made a change.",
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "description": "Date/time updated",
-                      "format": "date-time",
+                    "requestId": {
+                      "description": "Unique id of the request.",
                       "type": "string"
                     },
                     "execution": {
@@ -1517,21 +1541,68 @@
                           "description": "The Spoke execution id of the state machine",
                           "type": "string"
                         },
-                        "jobRunId": {
-                          "description": "The job runId from databrew",
-                          "type": "string"
+                        "profilingJob": {
+                          "type": "object",
+                          "properties": {
+                            "jobRunId": {
+                              "description": "The job runId from databrew",
+                              "type": "string"
+                            },
+                            "jobRunStatus": {
+                              "description": "The run status of the job",
+                              "type": "string"
+                            },
+                            "jobStartTime": {
+                              "description": "The start time of the last job run",
+                              "type": "string"
+                            },
+                            "jobStopTime": {
+                              "description": "The stop time of the last job run",
+                              "type": "string"
+                            }
+                          }
                         },
-                        "jobRunStatus": {
-                          "description": "The run status of the job",
-                          "type": "string"
+                        "transformJob": {
+                          "type": "object",
+                          "properties": {
+                            "jobRunId": {
+                              "description": "The job runId from databrew",
+                              "type": "string"
+                            },
+                            "jobRunStatus": {
+                              "description": "The run status of the job",
+                              "type": "string"
+                            },
+                            "jobStartTime": {
+                              "description": "The start time of the last job run",
+                              "type": "string"
+                            },
+                            "jobStopTime": {
+                              "description": "The stop time of the last job run",
+                              "type": "string"
+                            }
+                          }
                         },
-                        "jobStartTime": {
-                          "description": "The start time of the last job run",
-                          "type": "string"
-                        },
-                        "jobStopTime": {
-                          "description": "The stop time of the last job run",
-                          "type": "string"
+                        "dataSourceRun": {
+                          "type": "object",
+                          "properties": {
+                            "jobRunId": {
+                              "description": "The job runId from databrew",
+                              "type": "string"
+                            },
+                            "jobRunStatus": {
+                              "description": "The run status of the job",
+                              "type": "string"
+                            },
+                            "jobStartTime": {
+                              "description": "The start time of the last job run",
+                              "type": "string"
+                            },
+                            "jobStopTime": {
+                              "description": "The stop time of the last job run",
+                              "type": "string"
+                            }
+                          }
                         }
                       }
                     },
@@ -1542,8 +1613,20 @@
                           "description": "Data Zone domain id",
                           "type": "string"
                         },
+                        "environmentId": {
+                          "description": "Data Zone environment id",
+                          "type": "string"
+                        },
                         "projectId": {
                           "description": "Data Zone project id",
+                          "type": "string"
+                        },
+                        "region": {
+                          "description": "Data Zone environment region",
+                          "type": "string"
+                        },
+                        "dataSourceId": {
+                          "description": "Data Zone asset data source id",
                           "type": "string"
                         },
                         "assetName": {
@@ -1570,7 +1653,7 @@
                       },
                       "required": [
                         "domainId",
-                        "projectId",
+                        "environmentId",
                         "assetName",
                         "accountId",
                         "autoPublish"
@@ -1791,10 +1874,7 @@
                     }
                   },
                   "required": [
-                    "id",
-                    "state",
-                    "createdBy",
-                    "createdAt",
+                    "requestId",
                     "catalog",
                     "workflow"
                   ]

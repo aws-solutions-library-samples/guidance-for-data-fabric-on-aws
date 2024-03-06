@@ -6,7 +6,7 @@ import { stringEnum } from '../../common/types.js'
 /**
  * Resource specific path parameters
  */
-export const id = Type.String({ description: 'Unique id.' });
+export const id = Type.String({ description: 'Unique id of the request.' });
 export const version = Type.Optional(Type.Number({ description: 'specify the version number' }));
 export const createdBy = Type.String({ description: 'ID of owner.' });
 export const createdAt = Type.String({
@@ -47,7 +47,10 @@ export type Tags = Static<typeof tags>;
 
 export const catalog = Type.Object({
     domainId: Type.String({ description: 'Data Zone domain id' }),
-    projectId: Type.String({ description: 'Data Zone project id' }),
+    environmentId: Type.String({ description: 'Data Zone environment id' }),
+    projectId: Type.Optional(Type.String({ description: 'Data Zone project id' })),
+    region: Type.Optional(Type.String({ description: 'Data Zone environment region' })),
+    dataSourceId: Type.Optional(Type.String({ description: 'Data Zone asset data source id' })),
     assetName: Type.String({ description: 'Data Zone asset name' }),
     assetId: Type.Optional(Type.String({ description: 'Data Zone asset id' })),
     accountId: Type.String({ description: 'The account id here the asset resides' }),
@@ -142,9 +145,7 @@ export const workflow = Type.Object({
     tags,
 });
 
-export const execution = Type.Object({
-    hubExecutionArn: Type.Optional(Type.String({ description: 'The hub execution id of the state machine' }))   ,
-    spokeExecutionArn: Type.Optional(Type.String({ description: 'The Spoke execution id of the state machine' })),
+export const job = Type.Object({
     jobRunId: Type.Optional(Type.String({ description: 'The job runId from databrew' })),
     jobRunStatus: Type.Optional(Type.String({ description: 'The run status of the job' })),
     jobStartTime: Type.Optional(Type.String({ description: 'The start time of the last job run' })),
@@ -152,14 +153,16 @@ export const execution = Type.Object({
 
 });
 
+export const execution = Type.Object({
+    hubExecutionArn: Type.Optional(Type.String({ description: 'The hub execution id of the state machine' }))   ,
+    spokeExecutionArn: Type.Optional(Type.String({ description: 'The Spoke execution id of the state machine' })),
+    profilingJob: Type.Optional(job),
+    transformJob: Type.Optional(job),
+    dataSourceRun: Type.Optional(job)
+});
+
 export const dataAssetResource = Type.Object({
-    id,
-    state,
-    version,
-    createdBy: createdBy,
-    createdAt: createdAt,
-    updatedBy: Type.Optional(updatedBy),
-    updatedAt: Type.Optional(updatedAt),
+    requestId: id,
     execution: Type.Optional(execution),
     catalog,
     workflow,
@@ -175,8 +178,6 @@ export const newDataAssetResource = Type.Object({
 );
 
 export const editDataAssetResource = Type.Object({
-    state,
-    execution: Type.Optional(execution),
     catalog,
     workflow
 }, {

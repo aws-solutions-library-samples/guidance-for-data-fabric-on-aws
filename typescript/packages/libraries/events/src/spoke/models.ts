@@ -9,6 +9,7 @@ export const DATA_ASSET_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.dataAsset
 export const DATA_ASSET_SPOKE_JOB_START_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>job>start`
 export const DATA_BREW_JOB_STATE_CHANGE: string = 'DataBrew Job State Change';
 export const DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>job>complete`
+export const DATA_ASSET_SPOKE_CRAWLER_COMPLETE_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>crawler>complete`
 
 export type JobState = 'FAILED'| 'SUCCEEDED';
 export interface jobStateChangeDetail {
@@ -28,4 +29,24 @@ export interface jobStateChangeEvent {
     detail: jobStateChangeDetail,
 };
 
+export interface crawlerStateChangeDetail {
+    accountId: string,
+    crawlerName: string,
+    state: string,
+    startTime: string,
+    stopTime: string,
+    message: string
+};
+
+export interface crawlerStateChangeEvent {
+    id: string,
+    account: string,
+    region: string,
+    source: string,
+    'detail-type': string,
+    time: string,
+    detail: crawlerStateChangeDetail,
+};
+
 export type {jobStateChangeEvent as JobStateChangeEvent};
+export type {crawlerStateChangeEvent as CrawlerStateChangeEvent};

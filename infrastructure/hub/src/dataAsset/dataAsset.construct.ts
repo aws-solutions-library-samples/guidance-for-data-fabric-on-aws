@@ -16,6 +16,8 @@ import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT } from '@df/events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
+import { DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
+import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +36,7 @@ export class DataAsset extends Construct {
     public readonly functionName: string;
     public readonly apiUrl: string;
     public readonly apiName: string;
+    public readonly createStateMachineArn: string;
 
     constructor(scope: Construct, id: string, props: DataAssetConstructProperties) {
         super(scope, id);
@@ -126,6 +129,165 @@ export class DataAsset extends Construct {
         });
 
         /**
+         * DCreate State Machine
+         */
+        const SFNSendTaskSuccessPolicy = new PolicyStatement({
+            actions: [
+                'states:SendTaskSuccess',
+                'iam:PassRole',
+            ],
+            resources: [
+                `arn:aws:states:${region}:${accountId}:stateMachine:df-*`,
+            ]
+        });
+
+        const startCreateFlowLambda = new NodejsFunction(this, 'StartCreateFlowLambda', {
+            description: 'Asset Manager Handler for Start Asset Creation flow',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/start.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-startCreateFlow`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                HUB_EVENT_BUS_NAME: props.eventBusName
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+        startCreateFlowLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        eventBus.grantPutEventsTo(startCreateFlowLambda);
+
+        const startTask = new LambdaInvoke(this, 'StartCreateFlowTask', {
+            lambdaFunction: startCreateFlowLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        const DataZoneDataSourcePolicy = new PolicyStatement({
+            actions: [
+                'datazone:CreateDataSource',
+                'datazone:GetDataSource',
+                'datazone:StartDataSourceRun',
+                'datazone:GetDataSourceRun',
+            ],
+            resources: [`*`]
+        });
+
+        const runDataSourceLambda = new NodejsFunction(this, 'RunDataSourceLambda', {
+            description: 'Create and run the datazone data source as part of the asset creation flow',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/createDataSource.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-createDataSource`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                HUB_EVENT_BUS_NAME: props.eventBusName
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+        runDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        runDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
+
+        const dataSourceTask = new LambdaInvoke(this, 'RunDataSourceTask', {
+            lambdaFunction: runDataSourceLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        const publishLineageLambda = new NodejsFunction(this, 'PublishLineageLambda', {
+            description: 'Asset Manager Handler for publishing asset lineage',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/lineage.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-publishLineage`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                HUB_EVENT_BUS_NAME: props.eventBusName
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+        publishLineageLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        eventBus.grantPutEventsTo(publishLineageLambda);
+
+        const lineAgeTask = new LambdaInvoke(this, 'PublishLineageTask', {
+            lambdaFunction: publishLineageLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset-create`, removalPolicy: RemovalPolicy.DESTROY });
+
+        const dataAssetCreateStateMachine = new StateMachine(this, 'DataAssetCreateStateMachine', {
+            definitionBody: DefinitionBody.fromChainable(
+                startTask.next(dataSourceTask.next(lineAgeTask))
+            ),
+            logs: { destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
+            stateMachineName: `${namePrefix}-data-asset`,
+            tracingEnabled: true
+        });
+
+        this.createStateMachineArn = dataAssetCreateStateMachine.stateMachineArn;
+
+        /**
          * Define the API Lambda
          */
         const apiLambda = new NodejsFunction(this, 'Apilambda', {
@@ -140,6 +302,7 @@ export class DataAsset extends Construct {
                 EVENT_BUS_NAME: props.eventBusName,
                 TABLE_NAME: table.tableName,
                 WORKER_QUEUE_URL: 'not used',
+                HUB_CREATE_STATE_MACHINE_ARN: dataAssetCreateStateMachine.stateMachineArn
             },
 
             bundling: {
@@ -160,6 +323,8 @@ export class DataAsset extends Construct {
         eventBus.grantPutEventsTo(apiLambda);
         apiLambda.addToRolePolicy(DataZoneAssetReadPolicy);
         apiLambda.addToRolePolicy(DataZoneAssetWritePolicy);
+        dataAssetCreateStateMachine.grantStartExecution(apiLambda)
+        
 
         this.functionName = apiLambda.functionName;
 
@@ -355,6 +520,7 @@ export class DataAsset extends Construct {
             }
         });
 
+
         NagSuppressions.addResourceSuppressions([apiLambda, jobCompletionEventLambda],
             [
                 {
@@ -403,5 +569,49 @@ export class DataAsset extends Construct {
                 },
             ],
             true);
+        
+            NagSuppressions.addResourceSuppressions([startCreateFlowLambda, runDataSourceLambda, publishLineageLambda],
+                [
+                    {
+                        id: 'AwsSolutions-IAM4',
+                        appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+                        reason: 'This policy is the one generated by CDK.'
+    
+                    },
+                    {
+                        id: 'AwsSolutions-IAM5',
+                        appliesTo: [
+                            'Resource::*',
+                            `Resource::arn:aws:states:<AWS::Region>:<AWS::AccountId>:stateMachine:df-*`
+                        ],
+                        reason: 'This policy is required for the lambda to perform profiling.'
+    
+                    }
+                ],
+                true);
+
+                NagSuppressions.addResourceSuppressions([dataAssetCreateStateMachine],
+                    [
+                        {
+                            id: 'AwsSolutions-IAM5',
+                            appliesTo: [
+                                'Resource::<DataAssetHubPublishLineageLambda5C9E11C9.Arn>:*',
+                                'Resource::<DataAssetHubRunDataSourceLambdaF6EEC600.Arn>:*',
+                                'Resource::<DataAssetHubStartCreateFlowLambdaEDB66652.Arn>:*',
+                            ],
+                            reason: 'this policy is required to invoke lambda specified in the state machine definition'
+                        },
+                        {
+                            id: 'AwsSolutions-SF1',
+                            reason: 'We only care about logging the error for now.'
+        
+                        },
+                        {
+                            id: 'AwsSolutions-IAM5',
+                            reason: 'This resource policy only applies to log.',
+                            appliesTo: ['Resource::*']
+        
+                        }],
+                    true);
     }
 }

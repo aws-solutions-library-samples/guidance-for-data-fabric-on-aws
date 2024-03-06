@@ -66,7 +66,7 @@ export class DataAssetSpoke extends Construct {
                 'databrew:StartJobRun'
             ],
             resources: [
-                `arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-data-asset`,
+                `arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
                 `arn:aws:databrew:${region}:${accountId}:dataset/*`,
                 `arn:aws:databrew:${region}:${accountId}:job/*`,
                 `arn:aws:iam::${accountId}:role/df-*` // we Only allow assume roles for roles that have a df- prefix 
@@ -76,15 +76,15 @@ export class DataAssetSpoke extends Construct {
 
         const createConnectionLambda = new NodejsFunction(this, 'CreateConnectionLambda', {
             description: 'Asset Manager Connection creator Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/connection.handler.ts'),
-            functionName: `${namePrefix}-connectionCreationTask`,
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/connection.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-connectionCreationTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
             timeout: Duration.minutes(5),
             environment: {
-                EVENT_BUS_NAME: props.spokeEventBusName
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName
             },
             bundling: {
                 minify: true,
@@ -103,15 +103,15 @@ export class DataAssetSpoke extends Construct {
 
         const createDataSetLambda = new NodejsFunction(this, 'CreateDataSetLambda', {
             description: 'Asset Manager dataset creator Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/dataset.handler.ts'),
-            functionName: `${namePrefix}-createDataSetTask`,
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/dataset.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-createDataSetTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
             timeout: Duration.minutes(5),
             environment: {
-                EVENT_BUS_NAME: props.spokeEventBusName
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName
             },
             bundling: {
                 minify: true,
@@ -130,15 +130,15 @@ export class DataAssetSpoke extends Construct {
 
         const configDataBrewLambda = new NodejsFunction(this, 'ConfigDataBrewLambda', {
             description: 'Asset Manager config data brew Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/job.handler.ts'),
-            functionName: `${namePrefix}-configDataBrewTask`,
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/job.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-configDataBrewTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
             timeout: Duration.minutes(5),
             environment: {
-                EVENT_BUS_NAME: props.spokeEventBusName,
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
                 JOBS_BUCKET_NAME: props.bucketName,
                 JOBS_BUCKET_PREFIX: 'jobs'
             },
@@ -160,15 +160,15 @@ export class DataAssetSpoke extends Construct {
 
         const runJobLambda = new NodejsFunction(this, 'runJobLambda', {
             description: 'Asset Manager executeJob Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/runJob.handler.ts'),
-            functionName: `${namePrefix}-runJobTask`,
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/runJob.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-runJobTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
             timeout: Duration.minutes(5),
             environment: {
-                EVENT_BUS_NAME: props.spokeEventBusName
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName
             },
             bundling: {
                 minify: true,
@@ -196,35 +196,35 @@ export class DataAssetSpoke extends Construct {
                     'taskToken': JsonPath.taskToken
                 }
             }),
-            outputPath: '$.dataAssetEvent'
+            outputPath: '$.dataAsset'
         });
 
         const createDataSetTask = new LambdaInvoke(this, 'CreateDataSetTask', {
             lambdaFunction: createDataSetLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
-                'dataAssetEvent.$': '$',
+                'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
                     'executionArn.$': '$$.Execution.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
-            outputPath: '$.dataAssetEvent'
+            outputPath: '$.dataAsset'
         });
 
         const configDataBrewTask = new LambdaInvoke(this, 'ConfigDataBrewTask', {
             lambdaFunction: configDataBrewLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
-                'dataAssetEvent.$': '$',
+                'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
                     'executionArn.$': '$$.Execution.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
-            outputPath: '$.dataAssetEvent'
+            outputPath: '$.dataAsset'
         });
 
 
@@ -317,7 +317,7 @@ export class DataAssetSpoke extends Construct {
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
             environment: {
-                EVENT_BUS_NAME: props.spokeEventBusName,
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
             },
             bundling: {
                 minify: true,
@@ -488,7 +488,9 @@ export class DataAssetSpoke extends Construct {
                         'Resource::*',
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
-                        `Resource::arn:aws:iam::${accountId}:role/df-*`
+                        `Resource::arn:aws:iam::${accountId}:role/df-*`,
+                        `Resource::arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`
+                        
                     ],
                     reason: 'This policy is required for the lambda to perform profiling.'
 

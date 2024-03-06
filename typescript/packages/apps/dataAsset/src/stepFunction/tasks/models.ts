@@ -21,8 +21,11 @@ export type DataAssetEvent = {
     execution: DataAssetExecutionDetails
 }
 
+export type DataAssetTask ={
+    dataAsset:DataAsset
+    execution: DataAssetExecutionDetails
+}
 
-export type ConnectionTaskHandler = Handler<DataAssetEvent>;
-export type DataBrewTaskHandler = Handler<DataAssetEvent>;
-export type DataSetTaskHandler = Handler<DataAssetEvent>;
-export type RunJobTaskHandler = Handler<DataAssetEvent>;
+export type DataAssetEventHandler = Handler<DataAssetEvent>;
+export type DataAssetTaskHandler = Handler<DataAssetTask>;
+

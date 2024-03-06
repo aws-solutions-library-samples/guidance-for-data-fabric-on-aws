@@ -1,10 +1,12 @@
 export type DataAssetCatalog = {
     domainId: string,
-    projectId: string,
+    projectId?: string,
+    environmentId: string,
+    region?: string,
     assetName: string,
     assetId?: string,
     accountId: string,
-    autoPublish: boolean
+    autoPublish?: boolean
 }
 
 export type DataAssetDataLakeConnection ={
@@ -73,13 +75,7 @@ export type DataAssetExecution = {
 };
 
 export type DataAsset = {
-    id: string,
-    state: string,
-    version?: number,
-    createdBy: string,
-    createdAt: string,
-    updatedBy?: string,
-    updatedAt?: string,
+    requestId: string,
     execution?: DataAssetExecution,
     catalog: DataAssetCatalog,
     workflow: DataAssetWorkflow
@@ -87,13 +83,15 @@ export type DataAsset = {
 
 export type JobExecution = {
     assetId?: string,
+    requestId?:string,
     jobRunId?: string,
     jobRunStatus?: string,
     jobStartTime?: string, 
     jobStopTime?: string, 
     message?:string,
     profileLocation?: string,
-    profileSignedUrl?: string 
+    profileSignedUrl?: string,
+    hubTaskToken?: string,
 };
 
 export type DataAssetJobStartEvent = {
@@ -106,4 +104,11 @@ export type DataAssetJobCompletionEvent = {
         catalog:DataAssetCatalog
     }
     job: JobExecution
+};
+
+export type DataAssetCrawlerCompletionEvent = {
+    dataAsset:{
+        catalog:DataAssetCatalog
+    }
+    crawler: JobExecution
 };

@@ -16,6 +16,8 @@ export const dataAssetApiUrlParameter = `/df/dataAsset/apiUrl`;
 export const dataAssetFunctionNameParameter = `/df/dataAsset/functionName`;
 export const dataAssetTableNameParameter = `/df/dataAsset/tableName`;
 export const dataAssetTableArnParameter = `/df/dataAsset/tableArn`;
+export const dataAssetCreateStateMachineArnParameter = `/df/dataAsset/createStateMachineArn`;
+export const dataAssetUpdateStateMachineArnParameter = `/df/dataAsset/updateStateMachineArn`;
 
 export class DataAssetStack extends Stack {
     constructor(scope: Construct, id: string, props: DataAssetStackProperties) {
@@ -48,6 +50,11 @@ export class DataAssetStack extends Stack {
         new StringParameter(this, 'dataAssetTableArnParameter', {
             parameterName: dataAssetTableArnParameter,
             stringValue: dataAsset.tableArn
+        });
+
+        new StringParameter(this, 'dataAssetCreateStateMachineArnParameter', {
+            parameterName: dataAssetCreateStateMachineArnParameter,
+            stringValue: dataAsset.createStateMachineArn
         });
 
         NagSuppressions.addResourceSuppressionsByPath(this, '/DataAssetStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/DefaultPolicy/Resource',

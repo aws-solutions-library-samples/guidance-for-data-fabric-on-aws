@@ -11,13 +11,7 @@ export class DataAssetRepository {
 	private assemble(i: Record<string, any>): DataAsset {
 		const pk = expandDelimitedAttribute(i['pk']);
 		return {
-			id: pk?.[1] as string,
-            state: i['state'],
-            version: i['version'],
-			createdAt: i['createdAt'],
-			createdBy: i['createdBy'],
-			updatedBy: i['updatedBy'],
-			updatedAt: i['updatedAt'],
+			requestId: pk?.[1] as string,
             catalog: i['catalog'],
 			workflow: i['workflow']
 		};
@@ -53,7 +47,7 @@ export class DataAssetRepository {
 
 	public async create(dataAsset: DataAsset): Promise<void> {
 		this.log.info(`DataAssetRepository> create> dataAsset:${JSON.stringify(dataAsset)}`);
-		const assetId = createDelimitedAttribute(PkType.DataAsset, dataAsset.id);
+		const assetId = createDelimitedAttribute(PkType.DataAsset, dataAsset.requestId);
 		const dataZoneAssetName = createDelimitedAttribute(PkType.DataZoneAsset, dataAsset.catalog.assetName);
 		const jobName = createDelimitedAttribute(PkType.JobName, dataAsset.catalog.accountId, dataAsset.workflow.name);
 		const params = {
@@ -110,7 +104,7 @@ export class DataAssetRepository {
 	public async update(dataAsset: DataAsset): Promise<void> {
 		this.log.debug(`DataAssetRepository> update> dataAsset:${JSON.stringify(dataAsset)}`);
 		
-		const assetId = createDelimitedAttribute(PkType.DataAsset, dataAsset.id);
+		const assetId = createDelimitedAttribute(PkType.DataAsset, dataAsset.requestId);
 		const exp  = this.GenerateUpdateExpression(dataAsset);
 
 		const params:UpdateCommandInput = {
