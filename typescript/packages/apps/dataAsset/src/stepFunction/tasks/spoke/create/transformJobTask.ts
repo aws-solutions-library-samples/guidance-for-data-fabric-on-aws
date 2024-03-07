@@ -1,5 +1,5 @@
 import type { BaseLogger } from 'pino';
-import type { DataAssetTask } from '../models.js';
+import type { DataAssetTask } from '../../models.js';
 import { StartJobRunCommand, type DataBrewClient, CreateRecipeJobCommand, CreateRecipeCommand } from '@aws-sdk/client-databrew';
 import { ulid } from 'ulid';
 

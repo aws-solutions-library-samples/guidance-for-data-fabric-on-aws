@@ -12,18 +12,22 @@ import { DataAssetRepository } from '../api/dataAsset/repository.js';
 import { DataAssetService } from '../api/dataAsset/service.js';
 import { BaseCradle, registerBaseAwilix } from '@df/resource-api-base';
 import { EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE } from '@df/events';
-import { ConnectionTask } from '../stepFunction/tasks/spoke/connectionTask.js';
-import { ProfileJobTask } from '../stepFunction/tasks/spoke/profileJobTask.js';
-import { DataSetTask } from '../stepFunction/tasks/spoke/dataSetTask.js';
-import { RunJobTask } from '../stepFunction/tasks/spoke/runJobTask.js';
+import { ConnectionTask } from '../stepFunction/tasks/spoke/create/connectionTask.js';
+import { ProfileJobTask } from '../stepFunction/tasks/spoke/create/profileJobTask.js';
+import { DataSetTask } from '../stepFunction/tasks/spoke/create/dataSetTask.js';
+import { DataQualityProfileJobTask } from '../stepFunction/tasks/spoke/create/dataQualityProfileJobTask.js';
 import { GlueClient } from '@aws-sdk/client-glue';
 import { DataBrewClient } from '@aws-sdk/client-databrew';
 import { S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { StartTask } from '../stepFunction/tasks/hub/create/startTask.js';
+import { StartTask as HubCreateStartTask} from '../stepFunction/tasks/hub/create/startTask.js';
+import { StartTask as SpokeCreateStartTask} from '../stepFunction/tasks/spoke/create/startTask.js';
 import { SpokeResponseTask } from '../stepFunction/tasks/hub/create/spokeResponseTask.js';
 import { LineageTask } from '../stepFunction/tasks/hub/create/lineageTask.js';
 import { CreateDataSourceTask } from '../stepFunction/tasks/hub/create/createDataSourceTask.js';
+import { SSMClient } from '@aws-sdk/client-ssm';
+import { RecipeJobTask } from '../stepFunction/tasks/spoke/create/recipeJobTask.js';
+import { GlueCrawlerTask } from '../stepFunction/tasks/spoke/create/glueCrawlerTask.js';
 
 
 
@@ -40,20 +44,25 @@ declare module '@fastify/awilix' {
 		glueClient: GlueClient;
 		dataBrewClient: DataBrewClient;
 		s3Client: S3Client;
+		ssmClient: SSMClient;
 		eventPublisher: EventPublisher;
 		dataAssetRepository: DataAssetRepository;
 		dataAssetService: DataAssetService;
+
 		// Hub Tasks
-		startTask: StartTask;
+		hubCreateStartTask: HubCreateStartTask;
 		spokeResponseTask: SpokeResponseTask;
 		createDataSourceTask: CreateDataSourceTask,
 		lineageTask: LineageTask
 
 		//Spoke Tasks
+		spokeCreateStartTask: SpokeCreateStartTask
 		connectionTask: ConnectionTask;
 		profileJobTask: ProfileJobTask;
 		dataSetTask: DataSetTask;
-		runJobTask: RunJobTask;
+		dataQualityProfileJobTask: DataQualityProfileJobTask;
+		recipeJobTask: RecipeJobTask;
+		glueCrawlerTask: GlueCrawlerTask;
 	}
 }
 
@@ -99,6 +108,13 @@ class S3ClientFactory {
 	}
 }
 
+class SSMClientFactory {
+	public static create(region: string): SSMClient {
+		const ssm = captureAWSv3Client(new SSMClient({ region }));
+		return ssm;
+	}
+}
+
 const registerContainer = (app?: FastifyInstance) => {
 	const commonInjectionOptions = {
 		lifetime: Lifetime.SINGLETON
@@ -106,7 +122,7 @@ const registerContainer = (app?: FastifyInstance) => {
 
 	const awsRegion = process.env['AWS_REGION'];
 	const hubEventBusName = process.env['HUB_EVENT_BUS_NAME'];
-	const spokeEventBusName = process.env['SPOKE_EVENT_BUS_NAME'];
+	// const spokeEventBusName = process.env['SPOKE_EVENT_BUS_NAME'];
 	const hubCreateStateMachineArn = process.env['HUB_CREATE_STATE_MACHINE_ARN'];
 	// const spokeCreateStateMachineArn = process.env['SPOKE_CREATE_STATE_MACHINE_ARN'];
 	const JobsBucketName = process.env['JOBS_BUCKET_NAME'];
@@ -139,6 +155,10 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions,
 		}),
 
+		ssmClient: asFunction(() => SSMClientFactory.create(awsRegion), {
+			...commonInjectionOptions,
+		}),
+
 		dynamoDbUtils: asFunction((container: Cradle) => new DynamoDbUtils(app.log, container.dynamoDBDocumentClient), {
 			...commonInjectionOptions,
 		}),
@@ -147,16 +167,16 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		// Event PRocessors
+		// Event Processors
 		jobEventProcessor: asFunction(
 			(container) =>
 				new JobEventProcessor(
 					app.log,
 					container.dataAssetService,
 					container.dataBrewClient,
-					spokeEventBusName,
-					container.eventPublisher,
 					container.s3Client,
+					container.stepFunctionClient,
+					container.ssmClient,
 					getSignedUrl),
 			{
 				...commonInjectionOptions
@@ -197,7 +217,7 @@ const registerContainer = (app?: FastifyInstance) => {
 		),
 
 		// Hub Tasks
-		startTask: asFunction((container: Cradle) => new StartTask(app.log, hubEventBusName, container.eventPublisher), {
+		hubCreateStartTask: asFunction((container: Cradle) => new HubCreateStartTask(app.log, hubEventBusName, container.eventPublisher), {
 			...commonInjectionOptions
 		}),
 
@@ -216,11 +236,15 @@ const registerContainer = (app?: FastifyInstance) => {
 
 		// Spoke Tasks
 
+		spokeCreateStartTask: asFunction((container: Cradle) => new SpokeCreateStartTask(app.log, container.stepFunctionClient), {
+			...commonInjectionOptions
+		}),
+
 		connectionTask: asFunction((container: Cradle) => new ConnectionTask(app.log, container.stepFunctionClient), {
 			...commonInjectionOptions
 		}),
 
-		profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log,container.dataBrewClient, JobsBucketName, JobsBucketPrefix), {
+		profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.ssmClient, JobsBucketName, JobsBucketPrefix), {
 			...commonInjectionOptions
 		}),
 
@@ -228,10 +252,17 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		runJobTask: asFunction((container: Cradle) => new RunJobTask(app.log, container.stepFunctionClient), {
+		dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.stepFunctionClient), {
 			...commonInjectionOptions
 		}),
 
+		recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.stepFunctionClient), {
+			...commonInjectionOptions
+		}),
+		
+		glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log), {
+			...commonInjectionOptions
+		}),
 
 	});
 };

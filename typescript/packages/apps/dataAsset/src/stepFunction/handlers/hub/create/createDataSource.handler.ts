@@ -9,7 +9,7 @@ const di: AwilixContainer = app.diContainer;
 
 export const handler: Handler = async (event, _context, _callback) => {
 	app.log.debug(`CreateDataSourceHandler > handler > event: ${JSON.stringify(event)}`);
-	const task = di.resolve<CreateDataSourceTask>('CreateDataSourceTask');
+	const task = di.resolve<CreateDataSourceTask>('createDataSourceTask');
 	const output = await task.process(event);
 	app.log.debug(`CreateDataSourceHandler > handler > exit:`);
 	return output;

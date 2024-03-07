@@ -1,5 +1,5 @@
 import type { BaseLogger } from 'pino';
-import type { DataAssetEvent } from '../../models.js';
+import type { DataAssetTask } from '../../models.js';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT, DATA_LINEAGE_HUB_EVENT_SOURCE, EventBridgeEventBuilder, type EventPublisher } from '@df/events';
 export class LineageTask {
@@ -12,7 +12,7 @@ export class LineageTask {
 	) {
 	}
 
-	public async process(event: DataAssetEvent): Promise<any> {
+	public async process(event: DataAssetTask): Promise<any> {
 		this.log.info(`LineageTask > process > in > event: ${JSON.stringify(event)}`);
 		
 		// Construct the asset lineage for all created assets 

@@ -1,8 +1,8 @@
-import { buildLightApp } from '../../../app.light';
+import { buildLightApp } from '../../../../app.light';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
-import type { DataSetTask } from '../../tasks/spoke/dataSetTask.js';
-import type { DataAssetEventHandler, DataAssetTaskHandler } from '../../tasks/models.js';
+import type { DataSetTask } from '../../../tasks/spoke/create/dataSetTask.js';
+import type { DataAssetEventHandler, DataAssetTaskHandler } from '../../../tasks/models.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;

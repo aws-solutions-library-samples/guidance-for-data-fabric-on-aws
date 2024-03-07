@@ -9,7 +9,7 @@ const di: AwilixContainer = app.diContainer;
 
 export const handler: Handler = async (event, _context, _callback) => {
 	app.log.debug(`StartCreateFlowHandler > handler > event: ${JSON.stringify(event)}`);
-	const task = di.resolve<StartTask>('StartTask');
+	const task = di.resolve<StartTask>('hubCreateStartTask');
 	const output = await task.process(event);
 	app.log.debug(`StartCreateFlowHandler > handler > exit:`);
 	return output;

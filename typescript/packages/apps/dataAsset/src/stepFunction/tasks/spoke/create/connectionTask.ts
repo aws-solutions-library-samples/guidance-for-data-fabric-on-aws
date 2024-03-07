@@ -1,6 +1,6 @@
 import type { BaseLogger } from 'pino';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
-import type{ DataAssetEvent } from '../models.js';
+import type{ DataAssetEvent } from '../../models.js';
 
 export class ConnectionTask {
 

@@ -1,6 +1,6 @@
 import type { BaseLogger } from 'pino';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
-import type { DataAssetEvent } from '../../models.js';
+import type { DataAssetTask } from '../../models.js';
 
 export class CreateAssetTask {
 
@@ -11,7 +11,7 @@ export class CreateAssetTask {
 	}
 
 
-	public async process(event: DataAssetEvent): Promise<any> {
+	public async process(event: DataAssetTask): Promise<any> {
 		this.log.info(`CreateAssetTask > process > in > event: ${JSON.stringify(event)}`);
 
 		// Create Asset place holder

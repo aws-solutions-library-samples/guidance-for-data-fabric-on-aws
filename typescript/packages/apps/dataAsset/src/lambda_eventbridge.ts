@@ -15,6 +15,7 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 	app.log.info(`EventBridgeLambda > handler > event: ${JSON.stringify(event)}`);
 
 	const eventDetail = event.detail as EventDetails;
+	// TODO Remove Job Start Events we no longer have start events
 	// Filter job start event 
 	if ((event['detail-type'] as string).startsWith(DATA_ASSET_SPOKE_JOB_START_EVENT)) {
 		
@@ -24,12 +25,11 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 	} else if ((event['detail-type'] as string).startsWith(DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT)) {
 		
 		await eventProcessor.jobCompletionEvent(event as DataAssetSpokeJobCompletionEvent);
-			
-		
+				
 	// Filter Job status change events 
 	} else if ( (event['detail-type'] as string) === DATA_BREW_JOB_STATE_CHANGE && event['source'] === 'aws.databrew' ) {
 		
-		await eventProcessor.jobEnrichmentEvent(event as unknown as JobStateChangeEvent);
+		await eventProcessor.profileJobCompletionEvent(event as unknown as JobStateChangeEvent);
 
 	// any other events are not handled
 	} else {

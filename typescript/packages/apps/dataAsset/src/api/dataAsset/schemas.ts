@@ -149,16 +149,20 @@ export const job = Type.Object({
     jobRunId: Type.Optional(Type.String({ description: 'The job runId from databrew' })),
     jobRunStatus: Type.Optional(Type.String({ description: 'The run status of the job' })),
     jobStartTime: Type.Optional(Type.String({ description: 'The start time of the last job run' })),
-    jobStopTime: Type.Optional(Type.String({ description: 'The stop time of the last job run' }))
-
+    jobStopTime: Type.Optional(Type.String({ description: 'The stop time of the last job run' })),
+    status: Type.Optional(Type.String({ description: 'The status of the Job' })),
+    message: Type.Optional(Type.String({ description: 'The message of the Job' })),
+    profileLocation: Type.Optional(Type.String({ description: 'The S3 Location of the profile job results' })),
+    profileSignedUrl: Type.Optional(Type.String({ description: 'The Signed Url for the profile results' })),
 });
 
 export const execution = Type.Object({
     hubExecutionArn: Type.Optional(Type.String({ description: 'The hub execution id of the state machine' }))   ,
     spokeExecutionArn: Type.Optional(Type.String({ description: 'The Spoke execution id of the state machine' })),
-    profilingJob: Type.Optional(job),
+    profileJob: Type.Optional(job),
     transformJob: Type.Optional(job),
-    dataSourceRun: Type.Optional(job)
+    dataSourceRun: Type.Optional(job),
+    crawlerRun: Type.Optional(job),
 });
 
 export const dataAssetResource = Type.Object({

@@ -10,7 +10,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
+import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput, Parallel, Succeed } from 'aws-cdk-lib/aws-stepfunctions';
 import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE } from '@df/events';
 import { LambdaFunction, SfnStateMachine, EventBus as EventBusTarget } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
@@ -52,31 +52,90 @@ export class DataAssetSpoke extends Construct {
             4- run job
         */
 
-        const SFNSendTaskSuccessPolicy = new PolicyStatement({
+        const StateMachinePolicy = new PolicyStatement({
+            actions: [
+                'states:SendTaskSuccess'
+            ],
+            resources: [
+                `arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
+                `arn:aws:databrew:${region}:${accountId}:dataset/*`,
+                `arn:aws:databrew:${region}:${accountId}:job/*`
+            ]
+        });
+
+
+        const IAMPassRolePolicy = new PolicyStatement({
+            actions: [
+                'iam:PassRole'
+            ],
+            resources: [
+                `arn:aws:iam::${accountId}:role/df-*` // we Only allow assume roles for roles that have a df- prefix 
+            ]
+        });
+
+        const DataBrewPolicy = new PolicyStatement({
             actions: [
                 'states:SendTaskSuccess',
                 'databrew:CreateDataset',
+                'databrew:DescribeDataset',
                 'databrew:TagResource',
                 'databrew:CreateProfileJob',
                 'databrew:CreateRecipe',
                 'databrew:CreateRecipeJob',
                 'databrew:CreateRuleset',
                 'databrew:CreateSchedule',
-                'iam:PassRole',
+                'databrew:DescribeJob',
+                'databrew:UpdateJob',
+                'databrew:UpdateProfileJob',
                 'databrew:StartJobRun'
             ],
             resources: [
-                `arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
                 `arn:aws:databrew:${region}:${accountId}:dataset/*`,
-                `arn:aws:databrew:${region}:${accountId}:job/*`,
-                `arn:aws:iam::${accountId}:role/df-*` // we Only allow assume roles for roles that have a df- prefix 
+                `arn:aws:databrew:${region}:${accountId}:job/*`
+            ]
+        });
+
+        const SSMPolicy = new PolicyStatement({
+            actions: [
+                'ssm:GetParameter',
+                'ssm:PutParameter'
+            ],
+            resources: [
+                `arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*` // we Only allow assume roles for roles that have a df- prefix 
             ]
         });
 
 
+        const createStartLambda = new NodejsFunction(this, 'CreateStartLambda', {
+            description: 'Asset Manager Connection creator Task Handler',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/start.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-create-startTask`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+
+        createStartLambda.addToRolePolicy(StateMachinePolicy);
+
         const createConnectionLambda = new NodejsFunction(this, 'CreateConnectionLambda', {
             description: 'Asset Manager Connection creator Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/connection.handler.ts'),
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/connection.handler.ts'),
             functionName: `${namePrefix}-${props.moduleName}-connectionCreationTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
@@ -99,11 +158,12 @@ export class DataAssetSpoke extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
-        createConnectionLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        createConnectionLambda.addToRolePolicy(StateMachinePolicy);
+        createConnectionLambda.addToRolePolicy(IAMPassRolePolicy);
 
         const createDataSetLambda = new NodejsFunction(this, 'CreateDataSetLambda', {
             description: 'Asset Manager dataset creator Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/dataset.handler.ts'),
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/dataset.handler.ts'),
             functionName: `${namePrefix}-${props.moduleName}-createDataSetTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
@@ -126,12 +186,14 @@ export class DataAssetSpoke extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
-        createDataSetLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        createDataSetLambda.addToRolePolicy(StateMachinePolicy);
+        createDataSetLambda.addToRolePolicy(DataBrewPolicy);
+        createDataSetLambda.addToRolePolicy(IAMPassRolePolicy);
 
-        const configDataBrewLambda = new NodejsFunction(this, 'ConfigDataBrewLambda', {
-            description: 'Asset Manager config data brew Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/job.handler.ts'),
-            functionName: `${namePrefix}-${props.moduleName}-configDataBrewTask`,
+        const recipeJobLambda = new NodejsFunction(this, 'RecipeJobLambda', {
+            description: 'Asset Manager Recipe job Task Handler',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/dataQualityProfileJob.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-recipeJobTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             memorySize: 512,
@@ -155,20 +217,24 @@ export class DataAssetSpoke extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
-        configDataBrewLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
-        spokeEventBus.grantPutEventsTo(configDataBrewLambda);
+        recipeJobLambda.addToRolePolicy(StateMachinePolicy);
+        recipeJobLambda.addToRolePolicy(DataBrewPolicy);
+        recipeJobLambda.addToRolePolicy(SSMPolicy);
+        recipeJobLambda.addToRolePolicy(IAMPassRolePolicy);
 
-        const runJobLambda = new NodejsFunction(this, 'runJobLambda', {
-            description: 'Asset Manager executeJob Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/runJob.handler.ts'),
-            functionName: `${namePrefix}-${props.moduleName}-runJobTask`,
+        const profileJobLambda = new NodejsFunction(this, 'ProfileJobLambda', {
+            description: 'Asset Manager profile job Task Handler',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/profileJob.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-profileJobTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
             timeout: Duration.minutes(5),
             environment: {
-                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
+                JOBS_BUCKET_NAME: props.bucketName,
+                JOBS_BUCKET_PREFIX: 'jobs'
             },
             bundling: {
                 minify: true,
@@ -183,13 +249,80 @@ export class DataAssetSpoke extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
-        runJobLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        profileJobLambda.addToRolePolicy(StateMachinePolicy);
+        profileJobLambda.addToRolePolicy(DataBrewPolicy);
+        profileJobLambda.addToRolePolicy(SSMPolicy);
+        profileJobLambda.addToRolePolicy(IAMPassRolePolicy);
 
-        const createConnectionTask = new LambdaInvoke(this, 'CreateConnectionTask', {
-            lambdaFunction: createConnectionLambda,
+        const dqProfileJobLambda = new NodejsFunction(this, 'DQProfileJobLambda', {
+            description: 'Asset Manager DQ profile job Task Handler',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/dataQualityProfileJob.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-dqProfileJobTask`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
+                JOBS_BUCKET_NAME: props.bucketName,
+                JOBS_BUCKET_PREFIX: 'jobs'
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+
+        dqProfileJobLambda.addToRolePolicy(StateMachinePolicy);
+        dqProfileJobLambda.addToRolePolicy(DataBrewPolicy);
+        dqProfileJobLambda.addToRolePolicy(SSMPolicy);
+        dqProfileJobLambda.addToRolePolicy(IAMPassRolePolicy);
+
+        const glueCrawlerLambda = new NodejsFunction(this, 'GlueCrawlerLambda', {
+            description: 'Asset Manager Glue Crawler Task Handler',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/glueCrawler.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-glueCrawlerTask`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
+                JOBS_BUCKET_NAME: props.bucketName,
+                JOBS_BUCKET_PREFIX: 'jobs'
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+
+        glueCrawlerLambda.addToRolePolicy(StateMachinePolicy);
+        glueCrawlerLambda.addToRolePolicy(SSMPolicy);
+        glueCrawlerLambda.addToRolePolicy(IAMPassRolePolicy);
+
+
+        const createStartTask = new LambdaInvoke(this, 'CreateStartTask', {
+            lambdaFunction: createStartLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
-                'dataAssetEvent.$': '$',
+                'dataAsset.$': '$.detail.dataAsset',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
                     'executionArn.$': '$$.Execution.Id',
@@ -199,7 +332,21 @@ export class DataAssetSpoke extends Construct {
             outputPath: '$.dataAsset'
         });
 
-        const createDataSetTask = new LambdaInvoke(this, 'CreateDataSetTask', {
+        const createConnectionTask = new LambdaInvoke(this, 'CreateConnectionTask', {
+            lambdaFunction: createConnectionLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        const recipeCreateDataSetTask = new LambdaInvoke(this, 'RecipeCreateDataSetTask', {
             lambdaFunction: createDataSetLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
@@ -213,8 +360,8 @@ export class DataAssetSpoke extends Construct {
             outputPath: '$.dataAsset'
         });
 
-        const configDataBrewTask = new LambdaInvoke(this, 'ConfigDataBrewTask', {
-            lambdaFunction: configDataBrewLambda,
+        const profileCreateDataSetTask = new LambdaInvoke(this, 'ProfileCreateDataSetTask', {
+            lambdaFunction: createDataSetLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
@@ -226,6 +373,64 @@ export class DataAssetSpoke extends Construct {
             }),
             outputPath: '$.dataAsset'
         });
+
+        const recipeJobTask = new LambdaInvoke(this, 'RecipeJobTask', {
+            lambdaFunction: recipeJobLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        const profileJobTask = new LambdaInvoke(this, 'ProfileJobTask', {
+            lambdaFunction: profileJobLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        const dqProfileJobTask = new LambdaInvoke(this, 'DQProfileJobTask', {
+            lambdaFunction: dqProfileJobLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        const glueCrawlerTask = new LambdaInvoke(this, 'GlueCrawlerTask', {
+            lambdaFunction: dqProfileJobLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+
 
 
         const deadLetterQueue = new Queue(this, 'DeadLetterQueue');
@@ -254,15 +459,28 @@ export class DataAssetSpoke extends Construct {
 
         const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset`, removalPolicy: RemovalPolicy.DESTROY });
 
+        const profilingTasks = new Parallel(this, 'ProfilingTasks')
+			.branch(
+				new Choice(this, 'Data Quality Profile?')
+					.when(Condition.isPresent('$.workflow.profile'),dqProfileJobTask)
+                    .otherwise(new Succeed(this, 'No Data Quality Profile')))       
+			.branch(profileJobTask);
+
+        const transformChoice =  new Choice(this, 'Is transform present Found ?')
+            .otherwise(profileCreateDataSetTask.next( profilingTasks).next(glueCrawlerTask))
+            .when(Condition.isPresent('$.workflow.transforms'), recipeCreateDataSetTask.next(recipeJobTask).next(profileCreateDataSetTask));
+
         const dataAssetStateMachine = new StateMachine(this, 'DataAssetStateMachine', {
             definitionBody: DefinitionBody.fromChainable(
+                createStartTask.next(
                 new Choice(this, 'Connection data Found ?')
-                    .otherwise(createDataSetTask.next(configDataBrewTask))
+                    .otherwise( transformChoice)
                     .when(Condition.or(Condition.isPresent('$.workflow.dataset.connectionId'), Condition.isPresent('$.workflow.dataset.connection')),
                         new Choice(this, 'Is connectionId present?')
-                            .otherwise(createConnectionTask.next(createDataSetTask))
-                            .when(Condition.isPresent('$.workflow.dataset.connectionId'), createDataSetTask)
+                            .otherwise(createConnectionTask.next(transformChoice))
+                            .when(Condition.isPresent('$.workflow.dataset.connectionId'), transformChoice)
                     )
+                )
             ),
             logs: { destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
             stateMachineName: `${namePrefix}-data-asset`,
@@ -271,9 +489,9 @@ export class DataAssetSpoke extends Construct {
 
         createConnectionLambda.grantInvoke(dataAssetStateMachine);
         createDataSetLambda.grantInvoke(dataAssetStateMachine);
-        configDataBrewLambda.grantInvoke(dataAssetStateMachine);
-        runJobLambda.grantInvoke(dataAssetStateMachine);
-
+        recipeJobLambda.grantInvoke(dataAssetStateMachine);
+        profileJobLambda.grantInvoke(dataAssetStateMachine);
+        dqProfileJobLambda.grantInvoke(dataAssetStateMachine);
 
         const triggerStateMachineRule = new Rule(this, 'TriggerStateMachineRule', {
             eventBus: spokeEventBus,
@@ -294,11 +512,11 @@ export class DataAssetSpoke extends Construct {
 
 
         /*
-            * Job Enrichment Listener
-            * Will Enrich job events once a job status change is detected
+            * Job Completion Listener
+            * Will process Data Brew job events once a job status change is detected
         */
 
-        const JobEnrichmentPolicy = new PolicyStatement({
+        const JobCompletionPolicy = new PolicyStatement({
             actions: [
                 'databrew:DescribeJob',
                 'databrew:DescribeJobRun',
@@ -307,12 +525,12 @@ export class DataAssetSpoke extends Construct {
                 `arn:aws:databrew:${region}:${accountId}:job/*`,
             ]
         });
-        const jobEnrichmentLambda = new NodejsFunction(this, 'JobEnrichmentLambda', {
-            description: 'Job Completion Event Handler',
+        const jobCompletionLambda = new NodejsFunction(this, 'JobCompletionLambda', {
+            description: 'Data Brew Job Completion Event Handler',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/lambda_eventbridge.ts'),
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
-            functionName: `${namePrefix}-dataAsset-jobEnrichment`,
+            functionName: `${namePrefix}-dataAsset-jobCompletion`,
             timeout: Duration.seconds(30),
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
@@ -332,12 +550,13 @@ export class DataAssetSpoke extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
-        spokeEventBus.grantPutEventsTo(jobEnrichmentLambda);
-        bucket.grantRead(jobEnrichmentLambda);
-        jobEnrichmentLambda.addToRolePolicy(JobEnrichmentPolicy);
+        spokeEventBus.grantPutEventsTo(jobCompletionLambda);
+        bucket.grantRead(jobCompletionLambda);
+        jobCompletionLambda.addToRolePolicy(JobCompletionPolicy);
+        jobCompletionLambda.addToRolePolicy(SSMPolicy);
+        jobCompletionLambda.addToRolePolicy(StateMachinePolicy);
+
         
-
-
         // Rule for Job Enrichment events
         const jobEnrichmentRule = new Rule(this, 'JobEnrichmentRule', {
             eventBus: defaultEventBus,
@@ -348,7 +567,7 @@ export class DataAssetSpoke extends Construct {
         });
 
         jobEnrichmentRule.addTarget(
-            new LambdaFunction(jobEnrichmentLambda, {
+            new LambdaFunction(jobCompletionLambda, {
                 deadLetterQueue: deadLetterQueue,
                 maxEventAge: Duration.minutes(5),
                 retryAttempts: 2
@@ -412,9 +631,9 @@ export class DataAssetSpoke extends Construct {
         // Add role in this spoke account which will be used by the target in the hub account to publish hub events to this spoke bus
         const dfSpokeSubscriptionRuleTargetRole = new Role(
             this,
-            "DfSpokeSubscriptionRuleTargetRole",
+            `DfSpokeSubscriptionRuleTargetRole-${region}`,
             {
-                roleName: "DfSpokeSubscriptionRuleTargetRole",
+                roleName: `DfSpokeSubscriptionRuleTargetRole-${region}`,
                 assumedBy: new ServicePrincipal("events.amazonaws.com"),
             }
         );
@@ -437,7 +656,7 @@ export class DataAssetSpoke extends Construct {
             ]
         });
 
-        NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
+        NagSuppressions.addResourceSuppressions([jobCompletionLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -456,7 +675,7 @@ export class DataAssetSpoke extends Construct {
             ],
             true);
 
-        NagSuppressions.addResourceSuppressions([jobEnrichmentLambda],
+        NagSuppressions.addResourceSuppressions([jobCompletionLambda],
             [
 
                 {
@@ -466,7 +685,10 @@ export class DataAssetSpoke extends Construct {
                         'Action::s3:GetObject*',
                         'Action::s3:List*',
                         'Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfspokesharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*',
-                        `Resource::arn:aws:databrew:${region}:${accountId}:job/*`
+                        `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
+                        `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`,
+                        `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
+                        `Resource::arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-*`
                     ],
                     reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'
 
@@ -474,7 +696,7 @@ export class DataAssetSpoke extends Construct {
             ],
             true);
 
-        NagSuppressions.addResourceSuppressions([createConnectionLambda, createDataSetLambda, configDataBrewLambda, runJobLambda],
+        NagSuppressions.addResourceSuppressions([createStartLambda,createConnectionLambda, createDataSetLambda, profileJobLambda, dqProfileJobLambda, recipeJobLambda, glueCrawlerLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -489,7 +711,8 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
                         `Resource::arn:aws:iam::${accountId}:role/df-*`,
-                        `Resource::arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`
+                        `Resource::arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
+                        `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`
                         
                     ],
                     reason: 'This policy is required for the lambda to perform profiling.'
@@ -503,10 +726,12 @@ export class DataAssetSpoke extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
-                        'Resource::<DataAssetSpokeConfigDataBrewLambda57672EF5.Arn>:*',
+                        'Resource::<DataAssetSpokeCreateStartLambdaDF598F63.Arn>:*',
+                        'Resource::<DataAssetSpokeProfileJobLambdaED6BD275.Arn>:*',
                         'Resource::<DataAssetSpokeCreateConnectionLambda931C6392.Arn>:*',
                         'Resource::<DataAssetSpokeCreateDataSetLambda6B3E2D95.Arn>:*',
-                        'Resource::<DataAssetSpokerunJobLambda95EF4411.Arn>:*'
+                        'Resource::<DataAssetSpokeRecipeJobLambda27C4CF5E.Arn>:*',
+                        'Resource::<DataAssetSpokeDQProfileJobLambda46CE9CB6.Arn>:*'
                     ],
                     reason: 'this policy is required to invoke lambda specified in the state machine definition'
                 },

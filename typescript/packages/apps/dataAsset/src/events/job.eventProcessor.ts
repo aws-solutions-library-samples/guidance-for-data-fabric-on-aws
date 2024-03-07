@@ -1,4 +1,4 @@
-import { type DataAssetJobStartEvent, type DataAssetJobCompletionEvent, type JobStateChangeEvent, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, EventBridgeEventBuilder, EventPublisher, DataAssetSpokeJobCompletionEvent, DATA_ASSET_SPOKE_EVENT_SOURCE } from '@df/events';
+import type { DataAssetJobStartEvent, JobStateChangeEvent, DataAssetSpokeJobCompletionEvent } from '@df/events';
 import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 import type { DataAssetService } from '../api/dataAsset/service';
@@ -7,15 +7,18 @@ import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { RequestPresigningArguments } from '@aws-sdk/types';
 import axios from 'axios';
 import type { DataProfile, ProfileColumns } from '../api/dataAsset/schemas';
+import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
+import { GetParameterCommand, type SSMClient } from '@aws-sdk/client-ssm';
+import type { DataAssetTask } from '../stepFunction/tasks/models';
 
 export class JobEventProcessor {
 	constructor(
 		private log: BaseLogger,
 		private dataAssetService: DataAssetService,
 		private dataBrewClient: DataBrewClient,
-		private eventBusName: string,
-		private eventPublisher: EventPublisher,
 		private s3Client: S3Client,
+		private sfnClient: SFNClient,
+		private ssmClient: SSMClient,
 		private getSignedUrl: GetSignedUrl
 	) {
 	}
@@ -77,8 +80,8 @@ export class JobEventProcessor {
 	}
 
 	// This event needs to move to the spoke app
-	public async jobEnrichmentEvent(event: JobStateChangeEvent): Promise<void> {
-		this.log.info(`JobEventProcessor > jobEnrichmentEvent >in  event: ${JSON.stringify(event)}`);
+	public async profileJobCompletionEvent(event: JobStateChangeEvent): Promise<void> {
+		this.log.info(`JobEventProcessor > profileJobCompletionEvent >in  event: ${JSON.stringify(event)}`);
 
 		validateNotEmpty(event, 'Job enrichment event');
 
@@ -87,27 +90,18 @@ export class JobEventProcessor {
 
 		//Get the Job startTime
 		const run = await this.dataBrewClient.send(new DescribeJobRunCommand({ RunId: event.detail.jobRunId, Name: event.detail.jobName }));
+		
+		//Get the task payload
+		const param = await this.ssmClient.send( new GetParameterCommand({
+			Name: `/df/spoke/dataAsset/stateMachineExecution/create/${job.Tags['requestId']}`
+		}));
 
-		// provide profiling information from S3 objects 
-		// TODO we will need to deal with multiple output files, need to figure out how to correctly target the profiling jobs
+		const taskInput:DataAssetTask = JSON.parse(param.Parameter.Value); 
 		const signedUrl = await this.getSignedUrl(this.s3Client, new GetObjectCommand({ Bucket: job.Outputs[0].Location.Bucket, Key: run.Outputs[0].Location.Key }), { expiresIn: 3600 });
 
-		// We supply a minimum payload with job status and asset info
-		const eventPayload: DataAssetJobCompletionEvent = {
-			dataAsset: {
-				catalog: {
-					accountId: event.account,
-					assetName: job.Tags['assetName'],
-					domainId: job.Tags['domainId'],
-					projectId: job.Tags['projectId'],
-					assetId: job.Tags['assetId'],
-					environmentId: job.Tags['environmentId'],
-					region: job.Tags['region'],
-					autoPublish: true
 
-				}
-			},
-			job: {
+		taskInput.dataAsset.execution= {
+			profileJob: {
 				jobRunId: event.detail.jobRunId,
 				jobRunStatus: event.detail.state,
 				jobStopTime: run.CompletedOn.toString(),
@@ -118,18 +112,12 @@ export class JobEventProcessor {
 			}
 		}
 
-		const publishEvent = new EventBridgeEventBuilder()
-			.setEventBusName(this.eventBusName)
-			.setSource(DATA_ASSET_SPOKE_EVENT_SOURCE)
-			.setDetailType(DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT)
-			.setDetail(eventPayload);
-
-		await this.eventPublisher.publish(publishEvent);
+		await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken }));
 
 		// TODO Publish Data Lineage event
 		await this.constructDataLineage();
 
-		this.log.info(`JobEventProcessor > jobEnrichmentEvent >exit`);
+		this.log.info(`JobEventProcessor > profileJobCompletionEvent >exit`);
 		return;
 	}
 

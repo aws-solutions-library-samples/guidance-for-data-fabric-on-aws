@@ -1,5 +1,5 @@
 import type { BaseLogger } from 'pino';
-import type { DataAssetTask } from '../models.js';
+import type { DataAssetTask } from '../../models.js';
 
 
 export class GlueCrawlerTask {

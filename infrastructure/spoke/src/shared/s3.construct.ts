@@ -18,7 +18,7 @@ export class S3Spoke extends Construct {
 
 		const accountId = Stack.of(this).account;
 		const region = Stack.of(this).region;
-		const bucketName = `df-${accountId}-${region}-spoke`;
+		const bucketName = `df-spoke-${accountId}-${region}`;
 
 
 		const bucket = new s3.Bucket(this, 'dfBucket', {

@@ -20,6 +20,8 @@ export class SharedSpokeInfrastructureStack extends Stack {
     constructor(scope: Construct, id: string, props: SharedSpokeStackProperties) {
         super(scope, id, props);
 
+        const region = Stack.of(this).region;
+
         const s3 = new S3Spoke(this, 'S3', {
             deleteBucket: false
         });
@@ -38,7 +40,7 @@ export class SharedSpokeInfrastructureStack extends Stack {
 
         // DF Job bucket access policy, this policy can be used by end users to grant access to databrew to put the result in our bucket 
         const jobBucketAccessPolicy = new ManagedPolicy(this, 'JobBucketAccessPolicy', {
-            managedPolicyName: `df-databrew-access-policy`,
+            managedPolicyName: `df-spoke-${region}-databrew-access-policy`,
             statements: [
                 new PolicyStatement({
                     sid: `databrewJobBucketAccess`,
