@@ -256,11 +256,11 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.stepFunctionClient), {
+		recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.stepFunctionClient, container.dataBrewClient, JobsBucketName, JobsBucketPrefix), {
 			...commonInjectionOptions
 		}),
 		
-		glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log), {
+		glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log, container.stepFunctionClient), {
 			...commonInjectionOptions
 		}),
 

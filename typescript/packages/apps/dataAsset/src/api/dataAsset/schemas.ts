@@ -93,8 +93,18 @@ export const sampling = Type.Optional(Type.Object({
     // TODO to be implemented
 }));
 
+export const existingRecipe = Type.Object({
+    name: Type.String({ description: 'The name of the existing recipe' }),
+    version: Type.String({ description: 'The version of the existing recipe' })
+});
+
+export const newRecipe = Type.Object({
+    steps: Type.Array(Type.Any())       // can this be further specified?
+});
+
 export const transforms = Type.Optional(Type.Object({
-    // TODO to be implemented
+    recipeReference: Type.Optional(existingRecipe),
+    recipe: Type.Optional(newRecipe)
 }));
 
 export const schedule = Type.Optional(Type.Object({

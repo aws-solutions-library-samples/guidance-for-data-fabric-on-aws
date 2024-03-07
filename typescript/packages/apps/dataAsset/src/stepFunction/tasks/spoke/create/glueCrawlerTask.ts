@@ -1,9 +1,11 @@
 import type { BaseLogger } from 'pino';
 import type { DataAssetTask } from '../../models.js';
+import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 
 
 export class GlueCrawlerTask {
 	constructor(private log: BaseLogger,
+		private sfnClient: SFNClient,
 	) {
 	}
 
@@ -13,8 +15,10 @@ export class GlueCrawlerTask {
 
 		// Place holder for glue crawler task
 
-		this.log.debug(`GlueCrawlerTask > process > exit:`);
 
+		await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken: event.execution.taskToken }));
+
+		this.log.debug(`GlueCrawlerTask > process > exit:`);
 	}
 
 }

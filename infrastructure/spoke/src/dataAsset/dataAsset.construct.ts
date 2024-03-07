@@ -81,6 +81,7 @@ export class DataAssetSpoke extends Construct {
                 'databrew:TagResource',
                 'databrew:CreateProfileJob',
                 'databrew:CreateRecipe',
+                'databrew:PublishRecipe',
                 'databrew:CreateRecipeJob',
                 'databrew:CreateRuleset',
                 'databrew:CreateSchedule',
@@ -91,6 +92,7 @@ export class DataAssetSpoke extends Construct {
             ],
             resources: [
                 `arn:aws:databrew:${region}:${accountId}:dataset/*`,
+                `arn:aws:databrew:${region}:${accountId}:recipe/*`,
                 `arn:aws:databrew:${region}:${accountId}:job/*`
             ]
         });
@@ -192,7 +194,7 @@ export class DataAssetSpoke extends Construct {
 
         const recipeJobLambda = new NodejsFunction(this, 'RecipeJobLambda', {
             description: 'Asset Manager Recipe job Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/dataQualityProfileJob.handler.ts'),
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/recipeJob.handler.ts'),
             functionName: `${namePrefix}-${props.moduleName}-recipeJobTask`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
@@ -688,6 +690,7 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
                         `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
+                        `Resource::arn:aws:databrew:${region}:${accountId}:recipe/*`,
                         `Resource::arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-*`
                     ],
                     reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'
@@ -709,6 +712,7 @@ export class DataAssetSpoke extends Construct {
                     appliesTo: [
                         'Resource::*',
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
+                        `Resource::arn:aws:databrew:${region}:${accountId}:recipe/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
                         `Resource::arn:aws:iam::${accountId}:role/df-*`,
                         `Resource::arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
