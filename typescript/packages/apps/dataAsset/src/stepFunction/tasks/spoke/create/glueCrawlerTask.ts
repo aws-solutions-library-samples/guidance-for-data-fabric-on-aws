@@ -35,6 +35,7 @@ export class GlueCrawlerTask {
 				res = await this.glueClient.send(new CreateCrawlerCommand(command));
 			}
 		}
+		this.log.debug(`res: ${JSON.stringify(res)}`);
 
 		await this.glueClient.send(new StartCrawlerCommand({
 			Name: crawlerName
