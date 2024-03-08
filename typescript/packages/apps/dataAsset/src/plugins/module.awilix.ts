@@ -128,6 +128,7 @@ const registerContainer = (app?: FastifyInstance) => {
 	const JobsBucketName = process.env['JOBS_BUCKET_NAME'];
 	const JobsBucketPrefix = process.env['JOBS_BUCKET_PREFIX'];
 	const TableName = process.env['TABLE_NAME'];
+	const GlueDatabaseName = process.env['SPOKE_GLUE_DATABASE_NAME'];
 
 	diContainer.register({
 
@@ -260,7 +261,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 		
-		glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log, container.stepFunctionClient), {
+		glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log, container.glueClient, container.ssmClient, GlueDatabaseName), {
 			...commonInjectionOptions
 		}),
 

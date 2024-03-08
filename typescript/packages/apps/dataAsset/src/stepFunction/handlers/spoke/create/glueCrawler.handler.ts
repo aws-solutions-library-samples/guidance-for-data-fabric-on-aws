@@ -8,9 +8,10 @@ const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
 export const handler: Handler = async (event, _context, _callback) => {
-	app.log.debug(`JobHandler > handler > event: ${JSON.stringify(event)}`);
+	app.log.debug(`glueHandler > handler > event: ${JSON.stringify(event)}`);
 	const task = di.resolve<GlueCrawlerTask>('glueCrawlerTask');
+	app.log.debug(`glueHandler > handler > before function invocation`);
 	const output = await task.process(event);
-	app.log.debug(`JobHandler > handler > exit:`);
+	app.log.debug(`glueHandler > handler > exit:`);
 	return output;
 };
