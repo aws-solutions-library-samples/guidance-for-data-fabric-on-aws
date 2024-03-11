@@ -1,4 +1,4 @@
-import type { DataAssetJobStartEvent, JobStateChangeEvent, DataAssetSpokeJobCompletionEvent } from '@df/events';
+import type { JobStateChangeEvent, DataAssetSpokeJobCompletionEvent } from '@df/events';
 import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 import type { DataAssetService } from '../api/dataAsset/service';
@@ -24,8 +24,8 @@ export class JobEventProcessor {
 	}
 
 	// TODO remove this function in the future
-	public async jobStartEvent(event: DataAssetJobStartEvent): Promise<void> {
-		this.log.info(`JobEventProcessor > jobStartEvent > event: ${JSON.stringify(event)}`);
+	// public async jobStartEvent(event: DataAssetJobStartEvent): Promise<void> {
+		// this.log.info(`JobEventProcessor > jobStartEvent > event: ${JSON.stringify(event)}`);
 
 		// validateNotEmpty(event, 'Job start event');
 
@@ -40,9 +40,9 @@ export class JobEventProcessor {
 		// // TODO we dont need Job start event or this lookup anymore
 		// await this.dataAssetService.update(dataAsset.id, dataAsset);
 		
-		this.log.info(`JobEventProcessor > jobStartEvent > exit`);
-		return;
-	}
+	// 	this.log.info(`JobEventProcessor > jobStartEvent > exit`);
+	// 	return;
+	// }
 
 	public async jobCompletionEvent(event: DataAssetSpokeJobCompletionEvent): Promise<void> {
 		this.log.info(`JobEventProcessor > jobCompletionEvent > event: ${JSON.stringify(event)}`);

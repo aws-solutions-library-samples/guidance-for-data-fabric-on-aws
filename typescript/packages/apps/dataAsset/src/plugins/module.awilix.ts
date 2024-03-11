@@ -11,7 +11,7 @@ import { JobEventProcessor } from '../events/job.eventProcessor.js';
 import { DataAssetRepository } from '../api/dataAsset/repository.js';
 import { DataAssetService } from '../api/dataAsset/service.js';
 import { BaseCradle, registerBaseAwilix } from '@df/resource-api-base';
-import { EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE } from '@df/events';
+import { EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_EVENT_SOURCE } from '@df/events';
 import { ConnectionTask } from '../stepFunction/tasks/spoke/create/connectionTask.js';
 import { ProfileJobTask } from '../stepFunction/tasks/spoke/create/profileJobTask.js';
 import { DataSetTask } from '../stepFunction/tasks/spoke/create/dataSetTask.js';
@@ -28,6 +28,7 @@ import { CreateDataSourceTask } from '../stepFunction/tasks/hub/create/createDat
 import { SSMClient } from '@aws-sdk/client-ssm';
 import { RecipeJobTask } from '../stepFunction/tasks/spoke/create/recipeJobTask.js';
 import { GlueCrawlerTask } from '../stepFunction/tasks/spoke/create/glueCrawlerTask.js';
+import { GlueCrawlerEventProcessor } from '../events/glueCrawler.eventProcessor.js';
 
 
 
@@ -37,6 +38,7 @@ const { captureAWSv3Client } = pkg;
 declare module '@fastify/awilix' {
 	interface Cradle extends BaseCradle {
 		jobEventProcessor: JobEventProcessor;
+		glueCrawlerEventProcessor: GlueCrawlerEventProcessor;
 		eventBridgeClient: EventBridgeClient;
 		dynamoDbUtils: DynamoDbUtils;
 		stepFunctionClient: SFNClient;
@@ -45,7 +47,8 @@ declare module '@fastify/awilix' {
 		dataBrewClient: DataBrewClient;
 		s3Client: S3Client;
 		ssmClient: SSMClient;
-		eventPublisher: EventPublisher;
+		hubEventPublisher: EventPublisher;
+		spokeEventPublisher: EventPublisher;
 		dataAssetRepository: DataAssetRepository;
 		dataAssetService: DataAssetService;
 
@@ -122,7 +125,7 @@ const registerContainer = (app?: FastifyInstance) => {
 
 	const awsRegion = process.env['AWS_REGION'];
 	const hubEventBusName = process.env['HUB_EVENT_BUS_NAME'];
-	// const spokeEventBusName = process.env['SPOKE_EVENT_BUS_NAME'];
+	const spokeEventBusName = process.env['SPOKE_EVENT_BUS_NAME'];
 	const hubCreateStateMachineArn = process.env['HUB_CREATE_STATE_MACHINE_ARN'];
 	// const spokeCreateStateMachineArn = process.env['SPOKE_CREATE_STATE_MACHINE_ARN'];
 	const JobsBucketName = process.env['JOBS_BUCKET_NAME'];
@@ -164,7 +167,11 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions,
 		}),
 
-		eventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, hubEventBusName, DATA_ASSET_HUB_EVENT_SOURCE), {
+		hubEventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, hubEventBusName, DATA_ASSET_HUB_EVENT_SOURCE), {
+			...commonInjectionOptions
+		}),
+
+		spokeEventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, spokeEventBusName, DATA_ASSET_SPOKE_EVENT_SOURCE), {
 			...commonInjectionOptions
 		}),
 
@@ -179,6 +186,24 @@ const registerContainer = (app?: FastifyInstance) => {
 					container.stepFunctionClient,
 					container.ssmClient,
 					getSignedUrl),
+			{
+				...commonInjectionOptions
+			}
+		),
+
+		glueCrawlerEventProcessor: asFunction(
+			(container) =>
+				new GlueCrawlerEventProcessor(
+					app.log,
+					container.glueClient,
+					spokeEventBusName,
+					container.spokeEventPublisher,
+					// container.s3Client,
+					// JobsBucketName,
+					container.stepFunctionClient,
+					container.ssmClient,
+					// getSignedUrl
+					),
 			{
 				...commonInjectionOptions
 			}
@@ -218,7 +243,7 @@ const registerContainer = (app?: FastifyInstance) => {
 		),
 
 		// Hub Tasks
-		hubCreateStartTask: asFunction((container: Cradle) => new HubCreateStartTask(app.log, hubEventBusName, container.eventPublisher), {
+		hubCreateStartTask: asFunction((container: Cradle) => new HubCreateStartTask(app.log, hubEventBusName, container.hubEventPublisher), {
 			...commonInjectionOptions
 		}),
 
@@ -230,7 +255,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		lineageTask: asFunction((container: Cradle) => new LineageTask(app.log, container.stepFunctionClient, hubEventBusName, container.eventPublisher), {
+		lineageTask: asFunction((container: Cradle) => new LineageTask(app.log, container.stepFunctionClient, hubEventBusName, container.hubEventPublisher), {
 			...commonInjectionOptions
 		}),
 

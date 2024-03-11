@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput, Parallel, Succeed } from 'aws-cdk-lib/aws-stepfunctions';
-import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE, GLUE_CRAWLER_STATE_CHANGE } from '@df/events';
+import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_HUB_EVENT_SOURCE, DATA_BREW_JOB_STATE_CHANGE, GLUE_CRAWLER_STATE_CHANGE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT } from '@df/events';
 import { LambdaFunction, SfnStateMachine, EventBus as EventBusTarget } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
@@ -115,7 +115,8 @@ export class DataAssetSpoke extends Construct {
                 'glue:GetCrawler',
                 'glue:CreateCrawler',
                 'glue:UpdateCrawler',
-                'glue:StartCrawler'
+                'glue:StartCrawler',
+                'glue:GetTags'
             ],
             resources: [
                 `arn:aws:glue:${region}:${accountId}:crawler/*`
@@ -479,26 +480,26 @@ export class DataAssetSpoke extends Construct {
         const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset`, removalPolicy: RemovalPolicy.DESTROY });
 
         const profilingTasks = new Parallel(this, 'ProfilingTasks')
-			.branch(
-				new Choice(this, 'Data Quality Profile?')
-					.when(Condition.isPresent('$.workflow.profile'),dqProfileJobTask)
-                    .otherwise(new Succeed(this, 'No Data Quality Profile')))       
-			.branch(profileJobTask);
+            .branch(
+                new Choice(this, 'Data Quality Profile?')
+                    .when(Condition.isPresent('$.workflow.profile'), dqProfileJobTask)
+                    .otherwise(new Succeed(this, 'No Data Quality Profile')))
+            .branch(profileJobTask);
 
-        const transformChoice =  new Choice(this, 'Is transform present Found ?')
-            .otherwise(profileCreateDataSetTask.next( profilingTasks).next(glueCrawlerTask))
+        const transformChoice = new Choice(this, 'Is transform present Found ?')
+            .otherwise(profileCreateDataSetTask.next(profilingTasks).next(glueCrawlerTask))
             .when(Condition.isPresent('$.workflow.transforms'), recipeCreateDataSetTask.next(recipeJobTask).next(profileCreateDataSetTask));
 
         const dataAssetStateMachine = new StateMachine(this, 'DataAssetStateMachine', {
             definitionBody: DefinitionBody.fromChainable(
                 createStartTask.next(
-                new Choice(this, 'Connection data Found ?')
-                    .otherwise( transformChoice)
-                    .when(Condition.or(Condition.isPresent('$.workflow.dataset.connectionId'), Condition.isPresent('$.workflow.dataset.connection')),
-                        new Choice(this, 'Is connectionId present?')
-                            .otherwise(createConnectionTask.next(transformChoice))
-                            .when(Condition.isPresent('$.workflow.dataset.connectionId'), transformChoice)
-                    )
+                    new Choice(this, 'Connection data Found ?')
+                        .otherwise(transformChoice)
+                        .when(Condition.or(Condition.isPresent('$.workflow.dataset.connectionId'), Condition.isPresent('$.workflow.dataset.connection')),
+                            new Choice(this, 'Is connectionId present?')
+                                .otherwise(createConnectionTask.next(transformChoice))
+                                .when(Condition.isPresent('$.workflow.dataset.connectionId'), transformChoice)
+                        )
                 )
             ),
             logs: { destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
@@ -544,17 +545,18 @@ export class DataAssetSpoke extends Construct {
                 `arn:aws:databrew:${region}:${accountId}:job/*`,
             ]
         });
-        const jobCompletionLambda = new NodejsFunction(this, 'JobCompletionLambda', {
+        const eventProcessorLambda = new NodejsFunction(this, 'EventProcessorLambda', {
             description: 'Data Brew Job Completion Event Handler',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/lambda_eventbridge.ts'),
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
-            functionName: `${namePrefix}-dataAsset-jobCompletion`,
+            functionName: `${namePrefix}-dataAsset-eventProcessor`,
             timeout: Duration.seconds(30),
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
             environment: {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
+                JOBS_BUCKET_NAME: props.bucketName
             },
             bundling: {
                 minify: true,
@@ -569,24 +571,41 @@ export class DataAssetSpoke extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
-        spokeEventBus.grantPutEventsTo(jobCompletionLambda);
-        bucket.grantRead(jobCompletionLambda);
-        jobCompletionLambda.addToRolePolicy(JobCompletionPolicy);
-        jobCompletionLambda.addToRolePolicy(SSMPolicy);
-        jobCompletionLambda.addToRolePolicy(StateMachinePolicy);
+        spokeEventBus.grantPutEventsTo(eventProcessorLambda);
+        bucket.grantRead(eventProcessorLambda);
+        eventProcessorLambda.addToRolePolicy(JobCompletionPolicy);
+        eventProcessorLambda.addToRolePolicy(SSMPolicy);
+        eventProcessorLambda.addToRolePolicy(StateMachinePolicy);
+        eventProcessorLambda.addToRolePolicy(GluePolicy);
 
-        
-        // Rule for Job Enrichment events
-        const jobEnrichmentRule = new Rule(this, 'JobEnrichmentRule', {
+
+        // Rule for Databrew Job events
+        const databrewJobRule = new Rule(this, 'DatabrewJobRule', {
             eventBus: defaultEventBus,
             eventPattern: {
-                source: ['aws.databrew', 'aws.glue'],
-                detailType: [DATA_BREW_JOB_STATE_CHANGE, GLUE_CRAWLER_STATE_CHANGE]
+                source: ['aws.databrew'],
+                detailType: [DATA_BREW_JOB_STATE_CHANGE]
             }
         });
 
-        jobEnrichmentRule.addTarget(
-            new LambdaFunction(jobCompletionLambda, {
+        databrewJobRule.addTarget(
+            new LambdaFunction(eventProcessorLambda, {
+                deadLetterQueue: deadLetterQueue,
+                maxEventAge: Duration.minutes(5),
+                retryAttempts: 2
+            })
+        );
+
+        const glueCrawlerRule = new Rule(this, 'glueCrawlerRule', {
+            eventBus: defaultEventBus,
+            eventPattern: {
+                source: ['aws.glue'],
+                detailType: [GLUE_CRAWLER_STATE_CHANGE]
+            }
+        });
+
+        glueCrawlerRule.addTarget(
+            new LambdaFunction(eventProcessorLambda, {
                 deadLetterQueue: deadLetterQueue,
                 maxEventAge: Duration.minutes(5),
                 retryAttempts: 2
@@ -595,35 +614,48 @@ export class DataAssetSpoke extends Construct {
 
 
 
+        // // Rule for Job Start events
+        // const jobStartRule = new Rule(this, 'JobStartRule', {
+        //     eventBus: spokeEventBus,
+        //     eventPattern: {
+        //         detailType: [DATA_ASSET_SPOKE_JOB_START_EVENT]
+        //     }
+        // });
 
-        // Rule for Job Start events
-        const jobStartRule = new Rule(this, 'JobStartRule', {
+        // jobStartRule.addTarget(
+        //     new EventBusTarget(hubEventBus, {
+        //         deadLetterQueue: deadLetterQueue
+        //     })
+        // );
+
+        // // Rule for Job completion events
+        // const jobCompletionRule = new Rule(this, 'JobCompletionRule', {
+        //     eventBus: spokeEventBus,
+        //     eventPattern: {
+        //         detailType: [DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
+        //     }
+        // });
+
+        // jobCompletionRule.addTarget(
+        //     new EventBusTarget(hubEventBus, {
+        //         deadLetterQueue: deadLetterQueue
+        //     })
+        // );
+
+
+        // Rule for Create Flow completion events
+        const createFlowCompletionRule = new Rule(this, 'CreateFlowCompletionRule', {
             eventBus: spokeEventBus,
             eventPattern: {
-                detailType: [DATA_ASSET_SPOKE_JOB_START_EVENT]
+                detailType: [DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT]
             }
         });
 
-        jobStartRule.addTarget(
+        createFlowCompletionRule.addTarget(
             new EventBusTarget(hubEventBus, {
                 deadLetterQueue: deadLetterQueue
             })
         );
-
-        // Rule for Job completion events
-        const jobCompletionRule = new Rule(this, 'JobCompletionRule', {
-            eventBus: spokeEventBus,
-            eventPattern: {
-                detailType: [DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
-            }
-        });
-
-        jobCompletionRule.addTarget(
-            new EventBusTarget(hubEventBus, {
-                deadLetterQueue: deadLetterQueue
-            })
-        );
-
 
         // Add eventBus Policy for incoming job events
         new CfnEventBusPolicy(this, 'JobEventBusPutEventPolicy', {
@@ -637,7 +669,7 @@ export class DataAssetSpoke extends Construct {
                 Condition: {
                     'StringEquals': {
                         'events:source': [DATA_ASSET_SPOKE_EVENT_SOURCE],
-                        'events:detail-type': [DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
+                        'events:detail-type': [DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT]
                     },
                     'ForAnyValue:StringEquals': {
                         'aws:PrincipalOrgPaths': `${props.orgPath.orgId}/${props.orgPath.rootId}/${props.orgPath.ouId}/`
@@ -675,7 +707,7 @@ export class DataAssetSpoke extends Construct {
             ]
         });
 
-        NagSuppressions.addResourceSuppressions([jobCompletionLambda],
+        NagSuppressions.addResourceSuppressions([eventProcessorLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -694,7 +726,7 @@ export class DataAssetSpoke extends Construct {
             ],
             true);
 
-        NagSuppressions.addResourceSuppressions([jobCompletionLambda],
+        NagSuppressions.addResourceSuppressions([eventProcessorLambda],
             [
 
                 {
@@ -708,7 +740,8 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:recipe/*`,
-                        `Resource::arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-*`
+                        `Resource::arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-*`,
+                        `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`
                     ],
                     reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'
 
@@ -716,7 +749,7 @@ export class DataAssetSpoke extends Construct {
             ],
             true);
 
-        NagSuppressions.addResourceSuppressions([createStartLambda,createConnectionLambda, createDataSetLambda, profileJobLambda, dqProfileJobLambda, recipeJobLambda, glueCrawlerLambda],
+        NagSuppressions.addResourceSuppressions([createStartLambda, createConnectionLambda, createDataSetLambda, profileJobLambda, dqProfileJobLambda, recipeJobLambda, glueCrawlerLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -735,7 +768,7 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
                         `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`,
                         `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`
-                        
+
                     ],
                     reason: 'This policy is required for the lambda to perform profiling.'
 

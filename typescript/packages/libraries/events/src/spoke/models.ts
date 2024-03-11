@@ -12,6 +12,8 @@ export const GLUE_CRAWLER_STATE_CHANGE: string = 'Glue Crawler State Change';
 
 export const DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>job>complete`
 export const DATA_ASSET_SPOKE_CRAWLER_COMPLETE_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>crawler>complete`
+export const DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>create>response`
+
 
 export type JobState = 'FAILED'| 'SUCCEEDED';
 export interface jobStateChangeDetail {
@@ -32,11 +34,10 @@ export interface jobStateChangeEvent {
 };
 
 export interface crawlerStateChangeDetail {
-    accountId: string,
     crawlerName: string,
     state: string,
-    startTime: string,
-    stopTime: string,
+    'runningTime (sec)': number,
+    completionDate: string,
     message: string
 };
 
