@@ -39,7 +39,9 @@ describe('OpenLineageBuilder', () => {
                 }
             },
             "inputs": [{
-                "namespace": "sample_domain - df.12345", "name": "88888888", "facets": {}, "inputFacets": {}
+                "name": "sampleAssetName",
+                "namespace": "asset.namespace.other",
+                "facets": {}, "inputFacets": {}
             }],
             "outputs": [],
             "eventTime": "2024-03-08T04:46:23.275Z",
@@ -76,7 +78,12 @@ describe('OpenLineageBuilder', () => {
                     "sourceCodeLocation": {"_producer": "external_bash_script", "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/SourceCodeLocationJobFacet.json", "type": "git", "url": "some_git_url"}
                 }
             },
-            "inputs": [{"namespace": "sample_domain - df.12345", "name": "88888888", "facets": {}, "inputFacets": {}}],
+            "inputs": [{
+                "name": "sampleAssetName",
+                "namespace": "asset.namespace.other",
+                "facets": {},
+                "inputFacets": {}
+            }],
             "outputs": [{
                 "namespace": "sample_domain - df.12345", "name": "df.stationary-combustion.77777",
                 "outputFacets": {},
@@ -127,8 +134,11 @@ describe('OpenLineageBuilder', () => {
             const actualStartEvent = builder
                 .setJob(
                     {
+                        // Supplied by StateMachine task
                         jobName: "df_create_dataset",
-                        productName: "SampleCsvAsset",
+                        // Supplied by user
+                        assetName: "SampleCsvAsset",
+                        // TODO: JR & PB - Provided by user when transformation is carried outside of DF
                         sourceCodeLocation: {
                             _producer: 'external_bash_script',
                             type: 'git',
@@ -140,8 +150,11 @@ describe('OpenLineageBuilder', () => {
                         executionId: "8948df56-2116-401f-9349-95c42b646047",
                         startTime: "2024-03-08T04:46:23.275Z"
                     })
+
                 .setDatasetInput({
-                    assetId: "88888888",
+                    // TODO: JR & PB - Provided by user when the specify input from Data Fabric
+                    assetName: "sampleAssetName",
+                    assetNamespace: "asset.namespace.other",
                     type: 'DataFabric',
                 }).build();
 
@@ -149,6 +162,8 @@ describe('OpenLineageBuilder', () => {
 
             builder.setOpenLineageEvent(expectedStartEvent);
 
+
+            // this will be called at the end of the step function
             const actualCompleteEvent = builder
                 .setEndJob(
                     {
@@ -160,6 +175,7 @@ describe('OpenLineageBuilder', () => {
                     name: "df.stationary-combustion.77777",
                     storageLayer: "s3",
                     version: "1.2",
+                    // TODO: JR & PB - Column Lineage information provided by user when transformation is performed outside of DF.
                     customTransformerMetadata: {
                         _producer: 'externalProducer',
                         fields: {
@@ -211,8 +227,8 @@ describe('OpenLineageBuilder', () => {
                     }
                 },
                 "inputs": [{
-                    "namespace": "sample_domain - df.12345",
-                    "name": "88888888",
+                    "name": "sampleAssetName",
+                    "namespace": "asset.namespace.other",
                     "inputFacets": {
                         "dataQualityMetrics": {
                             "_producer": "8948df56-2116-401f-9349-95c42b646047",
@@ -277,8 +293,8 @@ describe('OpenLineageBuilder', () => {
             },
             "inputs": [
                 {
-                    "namespace": "sample_domain - df.12345",
-                    "name": "88888888",
+                    "name": "sampleAssetName",
+                    "namespace": "asset.namespace.other",
                     inputFacets: {},
                     facets: {}
                 }
@@ -345,20 +361,27 @@ describe('OpenLineageBuilder', () => {
             const actualStartEvent = builder
                 .setJob(
                     {
+                        // Provided by StateMachine task.
                         jobName: "df_data_quality_metrics",
-                        productName: "SampleCsvAsset",
+                        // Provided by user.
+                        assetName: "SampleCsvAsset",
                     })
                 .setStartJob(
                     {
+                        // This will be the Glue DataBrew Profiling Run Id
                         executionId: "8948df56-2116-401f-9349-95c42b646047",
                         startTime: "2024-03-08T04:46:23.275Z",
                         parent: {
+
+                            // TODO: WS - Need to create lineage between StepFunction in Hub and Spoke account
+                            // This will be the StateMachine execution id in the spoke account.
                             runId: '284ae082-8385-4de5-9ec6-87d6ed65b113',
                             name: "df_create_dataset - SampleCsvAsset"
                         }
                     })
                 .setDatasetInput({
-                    assetId: "88888888",
+                    assetName: "sampleAssetName",
+                    assetNamespace: "asset.namespace.other",
                     type: 'DataFabric',
                 }).build();
 
@@ -372,7 +395,9 @@ describe('OpenLineageBuilder', () => {
                     eventType: 'COMPLETE'
                 })
                 .setProfilingResult({
-                    inputDatasetName: "88888888",
+                    assetName: "sampleAssetName",
+                    assetNamespace: "asset.namespace.other",
+                    // TODO: JR & PB - For demo, we will pass in the first result if multiple profiling result exists for multiple files.
                     result: profilingResult,
                     runId: "8948df56-2116-401f-9349-95c42b646047"
                 });
@@ -410,8 +435,8 @@ describe('OpenLineageBuilder', () => {
             },
             "inputs": [
                 {
-                    "namespace": "sample_domain - df.12345",
-                    "name": "88888888",
+                    name: "sampleAssetName",
+                    namespace: "asset.namespace.other",
                     inputFacets: {},
                     facets: {}
                 }
@@ -497,8 +522,8 @@ describe('OpenLineageBuilder', () => {
                     }
                 },
                 "inputs": [{
-                    "namespace": "sample_domain - df.12345",
-                    "name": "88888888",
+                    name: "sampleAssetName",
+                    namespace: "asset.namespace.other",
                     "inputFacets": {},
                     "facets": {
                         "dataQualityAssertions": {
@@ -543,19 +568,23 @@ describe('OpenLineageBuilder', () => {
                 .setJob(
                     {
                         jobName: "df_data_quality_assertions",
-                        productName: "SampleCsvAsset",
+                        assetName: "SampleCsvAsset",
                     })
                 .setStartJob(
                     {
+                        // This will be the GlueData Quality Profile execution id
                         executionId: "8948df56-2116-401f-9349-95c42b646047",
                         startTime: "2024-03-08T04:46:23.275Z",
                         parent: {
+                            // TODO: WS - Need to create lineage between StepFunction in Hub and Spoke account
+                            // This will be the execution id of the step function in spoke account
                             runId: '284ae082-8385-4de5-9ec6-87d6ed65b113',
                             name: "df_create_dataset - SampleCsvAsset"
                         }
                     })
                 .setDatasetInput({
-                    assetId: "88888888",
+                    assetName: "sampleAssetName",
+                    assetNamespace: "asset.namespace.other",
                     type: 'DataFabric',
                 }).build();
 
@@ -569,7 +598,8 @@ describe('OpenLineageBuilder', () => {
                     eventType: 'COMPLETE'
                 })
                 .setQualityResult({
-                    inputDatasetName: "88888888",
+                    assetName: "sampleAssetName",
+                    assetNamespace: "asset.namespace.other",
                     result: qualityResult,
                     runId: "8948df56-2116-401f-9349-95c42b646047"
                 });

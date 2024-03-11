@@ -16,13 +16,15 @@ import type {
 export interface QualityResultInput {
     runId: string,
     result: QualityResult,
-    inputDatasetName: string,
+    assetName: string,
+    assetNamespace: string
 }
 
 export interface ProfilingResultInput {
     runId: string,
     result: ProfilingResult,
-    inputDatasetName: string,
+    assetName: string;
+    assetNamespace: string;
 }
 
 export interface RuleResult {
@@ -80,9 +82,9 @@ export interface JobInput {
      */
     jobName: string;
     /**
-     *
+     * The name will be used when registering the asset in Amazon DataZone
      */
-    productName: string;
+    assetName: string;
     /**
      * For asset that requires transformation in DF, user can specify the location of transformation code
      */
@@ -99,17 +101,33 @@ export interface StartJobInput {
      */
     executionId: string;
     /**
-     * StepFunction state machine execution start time
+     * Execution start time for
+     * 1. StepFunction State Machine Execution
+     * 2. Glue Data Quality Execution
+     * 3. Glue DataBrew Profile Execution
      */
     startTime: string;
     /**
-     * The parent namespace, name and execution id
+     * The parent name and execution id.
+     * Namespace is not required because it will be the same namespace (The StepFunction Execution) as the Glue DataBrew or Glue DataQuality job
      */
-    parent?: { name: string, runId: string };
+    parent?: {
+        name: string,
+        runId: string
+    };
 }
 
 export interface EndJobInput {
+    /**
+     * Execution end time for
+     * 1. StepFunction State Machine Execution
+     * 2. Glue Data Quality Execution
+     * 3. Glue DataBrew Profile Execution
+     */
     endTime: string;
+    /**
+     * OpenLineage Run States
+     */
     eventType: EventType;
 }
 
@@ -118,24 +136,65 @@ export interface DatasetInput {
 }
 
 export type DatasetOutput = {
+    /**
+     * Storage layer provider with allowed values: iceberg, delta."
+     */
     name: string;
     version: string;
+    /**
+     * Storage layer provider with allowed values: s3, glue, etc.
+     */
     storageLayer: string;
+    /**
+     * File format with allowed values: parquet, orc, avro, json, csv, text, xml.
+     */
     fileFormat: string;
+    /**
+     * File format with allowed values: parquet, orc, avro, json, csv, text, xml.
+     */
     customTransformerMetadata?: Pick<ColumnLineageDatasetFacet, 'fields' | '_producer'>
 }
 
+/**
+ * Payload for registering custom data input that exists outside the Data Fabric.
+ */
 export type CustomDatasetInput = {
+    /**
+     * Name and Url description can be found in here https://openlineage.io/docs/spec/facets/dataset-facets/data_source
+     */
     dataSource: Pick<DatasourceDatasetFacet, 'name' | 'url'>
+    /**
+     * Storage and FileFormat description can be found in here, https://openlineage.io/docs/spec/facets/dataset-facets/storage.
+     */
     storage: Pick<StorageDatasetFacet, 'storageLayer' | 'fileFormat'>
+    /**
+     * Version of the input dataset
+     */
     version: string;
+    /**
+     * Name of the input dataset
+     */
     name: string;
+    /**
+     * The _producer value is included in an OpenLineage request as a way to know how the metadata was generated. It is a URI that links to a source code SHA or the location where a package can be found.
+     * https://openlineage.io/docs/spec/producers/
+     */
     producer: string;
 } & DatasetInput;
 
-export type DataFabricInput = {
-    assetId: string;
 
+/**
+ * Payload for registering input that exists inside the Data Fabric.
+ */
+export type DataFabricInput = {
+    /**
+     * Asset namespace in Data Fabric.
+     */
+    assetNamespace: string;
+    /**
+     * Asset name in Data Fabric.
+     */
+    assetName: string;
 } & DatasetInput;
 
 export class OpenLineageBuilder {
@@ -159,7 +218,7 @@ export class OpenLineageBuilder {
 
 
     public setProfilingResult(payload: ProfilingResultInput): OpenLineageBuilder {
-        const {result, inputDatasetName} = payload
+        const {result, assetNamespace, assetName} = payload
 
         const dataQualityMetrics: DataQualityMetricsInputDatasetFacet = {
             _producer: payload.runId,
@@ -193,14 +252,14 @@ export class OpenLineageBuilder {
                 dataQualityMetrics.columnMetrics[result.name] = columnMetric;
             }
         }
-        const datasetInput = this.openLineageEvent.inputs.find(o => o.name === inputDatasetName)
+        const datasetInput = this.openLineageEvent.inputs.find(o => o.name === assetName && o.namespace === assetNamespace)
         datasetInput.inputFacets.dataQualityMetrics = dataQualityMetrics;
         return this;
     }
 
     public setQualityResult(payload: QualityResultInput): OpenLineageBuilder {
-        const {result, inputDatasetName, runId} = payload
-        const datasetInput = this.openLineageEvent.inputs.find(o => o.name === inputDatasetName)
+        const {result, assetNamespace, assetName, runId} = payload
+        const datasetInput = this.openLineageEvent.inputs.find(o => o.name === assetName && o.namespace === assetNamespace)
         datasetInput.facets.dataQualityAssertions = {
             _producer: runId,
             "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DataQualityAssertionsDatasetFacet.json",
@@ -219,12 +278,12 @@ export class OpenLineageBuilder {
     public setJob(input: JobInput): OpenLineageBuilder {
         this.openLineageEvent.job = {
             namespace: this.domainNamespace,
-            name: `${input.jobName} - ${input.productName}`,
+            name: `${input.jobName} - ${input.assetName}`,
             facets: {
                 "documentation": {
                     "_producer": this.stateMachineArn,
                     "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/DocumentationJobFacet.json",
-                    "description": `Catalogs the ${input.productName} within the DataZone catalog for domain ${this.domainName} ${this.domainId}.`
+                    "description": `Catalogs the ${input.assetName} within the DataZone catalog for domain ${this.domainName} ${this.domainId}.`
                 },
                 "ownership": {
                     "_producer": this.stateMachineArn,
@@ -336,8 +395,8 @@ export class OpenLineageBuilder {
                 break;
             case "DataFabric":
                 dataset = {
-                    namespace: this.domainNamespace,
-                    name: (payload as DataFabricInput).assetId,
+                    namespace: (payload as DataFabricInput).assetNamespace,
+                    name: (payload as DataFabricInput).assetName,
                     inputFacets: {},
                     facets: {}
                 }
