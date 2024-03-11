@@ -89,6 +89,7 @@ export class DataAssetSpoke extends Construct {
                 'databrew:CreateSchedule',
                 'databrew:DescribeJob',
                 'databrew:UpdateJob',
+                'databrew:DeleteJob',
                 'databrew:UpdateProfileJob',
                 'databrew:StartJobRun'
             ],

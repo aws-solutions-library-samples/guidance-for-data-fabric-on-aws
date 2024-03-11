@@ -1,6 +1,6 @@
 import type { BaseLogger } from "pino";
 import { SFNClient, SendTaskSuccessCommand } from "@aws-sdk/client-sfn";
-import { StartJobRunCommand, type DataBrewClient, CreateRecipeJobCommand, CreateRecipeCommand, DescribeJobCommand, DescribeRecipeCommand, PublishRecipeCommand, TagResourceCommand, UpdateRecipeCommand, UpdateRecipeJobCommand } from '@aws-sdk/client-databrew';
+import { StartJobRunCommand, type DataBrewClient, CreateRecipeJobCommand, CreateRecipeCommand, DeleteJobCommand, DescribeRecipeCommand, PublishRecipeCommand, TagResourceCommand, UpdateRecipeCommand } from '@aws-sdk/client-databrew';
 import type { DataAssetTask } from "../../models.js";
 import { ulid } from 'ulid';
 
@@ -22,7 +22,7 @@ export class RecipeJobTask {
     const lineageRunId = ulid().toLowerCase();
 
     let recipeName = `df-${id}`;
-    let recipeVersion = "1.0"; // default published version is 1.0
+    let recipeVersion = '1.0'; // default published version is 1.0 (string)
 
     // if the request specifies an existing recipe, use that, otherwise, create a new recipe
     if (event.dataAsset.workflow.transforms?.recipeReference) {
@@ -66,7 +66,7 @@ export class RecipeJobTask {
 			);
 			recipeVersion = this.incrementRecipeVersion(recipe.RecipeVersion);
 		} catch (error) {
-      		if ((error as Error).name === "ResourceNotFoundException") {
+      		if ((error as Error).name === 'ResourceNotFoundException') {
         		this.log.debug(`recipe: ${recipeName} does not exist, creating new recipe`);
 				recipe = await this.dataBrewClient.send(
 					new CreateRecipeCommand({
@@ -100,87 +100,52 @@ export class RecipeJobTask {
     const jobName = `${event.dataAsset.workflow.name}-${id}-transform`;
     const outputKey = `${this.jobsBucketPrefix}/${event.dataAsset.catalog.domainId}/${event.dataAsset.catalog.projectId}/${id}/`;
 
-	// TODO: Recipe Jobs cannot be updated with new recipes or versions of recipes. If the job exists it will have to be deleted and recreated.
-	//       Possibly the first thing to do would be attempt to delete it and then always create.
-
-    // Attempt to fetch the recipe job. If it is not found, create it. If it is found, update it.
-    // Note: In order to update tags we need the ARN of the job. So we would need to fetch it anyway.
-    let recipeJob;
+	// Recipe Jobs cannot be updated with new recipes or versions of recipes. If the job exists it will have to be deleted and then recreated.
+    // Attempt to delete the recipe job instead of fetching. If found or not found we create the job after.
     try {
-      recipeJob = await this.dataBrewClient.send(new DescribeJobCommand({ Name: jobName }));
-      this.log.debug(`found job ${jobName}, updating`);
-      // update job
-      await this.dataBrewClient.send(
-        new UpdateRecipeJobCommand({
-          Name: jobName,
-          RoleArn: event.dataAsset.workflow.roleArn,
-          Outputs: [
-            {
-              Location: {
-                Bucket: this.jobsBucket,
-                Key: outputKey,
-              },
-            },
-          ],
-        })
-      );
-      // update tags
-      await this.dataBrewClient.send(
-        new TagResourceCommand({
-          ResourceArn: recipeJob.ResourceArn,
-          Tags: {
-            ...event.dataAsset.workflow?.tags,
-            // Default tags that are added for lineage and enrichment purposes
-            domainId: event.dataAsset.catalog.domainId,
-            projectId: event.dataAsset.catalog.projectId,
-            assetName: event.dataAsset.catalog.assetName,
-            assetId: event.dataAsset.catalog.assetId,
-            requestId: event.dataAsset.requestId,
-            LineageRunId: lineageRunId,
-            executionArn: event.execution.executionArn,
-            executionToken: event.execution.taskToken,
-          },
-        })
-      );
+      await this.dataBrewClient.send(new DeleteJobCommand({ Name: jobName }));
+      this.log.debug(`deleted job ${jobName}, recreating`);
     } catch (error) {
-      if ((error as Error).name === "ResourceNotFoundException") {
-        this.log.debug(`job: ${jobName} does not exist, creating new job`);
-        recipeJob = await this.dataBrewClient.send(
-          new CreateRecipeJobCommand({
-            Name: jobName,
-            DatasetName: id,
-            RoleArn: event.dataAsset.workflow.roleArn,
-            RecipeReference: {
-              Name: recipeName,
-              RecipeVersion: recipeVersion,
-            },
-            Outputs: [
-              {
-                Location: {
-                  Bucket: this.jobsBucket,
-                  Key: outputKey,
-                },
-              },
-            ],
-            Tags: {
-              ...event.dataAsset.workflow?.tags,
-              // Default tags that are added for lineage and enrichment purposes
-              domainId: event.dataAsset.catalog.domainId,
-              projectId: event.dataAsset.catalog.projectId,
-              assetName: event.dataAsset.catalog.assetName,
-              assetId: event.dataAsset.catalog.assetId,
-              requestId: event.dataAsset.requestId,
-              LineageRunId: lineageRunId,
-              executionArn: event.execution.executionArn,
-              executionToken: event.execution.taskToken,
-            },
-          })
-        );
+      if ((error as Error).name === 'ResourceNotFoundException') {
+        this.log.debug(`job: ${jobName} did not exist, creating`);
       } else {
-        this.log.error(`error creating job: ${JSON.stringify(error)}`);
+        this.log.error(`error deleting job: ${JSON.stringify(error)}`);
         throw error;
       }
     }
+
+	// now create/recreate job
+	const recipeJob = await this.dataBrewClient.send(
+		new CreateRecipeJobCommand({
+			Name: jobName,
+			DatasetName: id,
+			RoleArn: event.dataAsset.workflow.roleArn,
+			RecipeReference: {
+			Name: recipeName,
+			RecipeVersion: recipeVersion,
+			},
+			Outputs: [
+			{
+				Location: {
+				Bucket: this.jobsBucket,
+				Key: outputKey,
+				},
+			},
+			],
+			Tags: {
+			...event.dataAsset.workflow?.tags,
+			// Default tags that are added for lineage and enrichment purposes
+			domainId: event.dataAsset.catalog.domainId,
+			projectId: event.dataAsset.catalog.projectId,
+			assetName: event.dataAsset.catalog.assetName,
+			assetId: event.dataAsset.catalog.assetId,
+			requestId: event.dataAsset.requestId,
+			LineageRunId: lineageRunId,
+			executionArn: event.execution.executionArn,
+			executionToken: event.execution.taskToken,
+			},
+		})
+	);
 
     this.log.debug(`recipeJob: ${JSON.stringify(recipeJob)}`);
 
@@ -200,6 +165,7 @@ export class RecipeJobTask {
   }
 
   private incrementRecipeVersion(currentRecipeVersion: string): string {
+	this.log.debug(`RecipeJobTask > incrementRecipeVersion > currentRecipeVersion: ${currentRecipeVersion}`);
 		// Convert the input string to a number
 		const currentVersionNum = parseFloat(currentRecipeVersion);
 
@@ -211,6 +177,7 @@ export class RecipeJobTask {
 		// Increment the number by 1.0
 		const newVersionNum = currentVersionNum + 1.0;
 
+		this.log.debug(`RecipeJobTask > incrementRecipeVersion > exit: ${newVersionNum.toFixed(1)}`);
 		return newVersionNum.toFixed(1);
-	}
+  }
 }
