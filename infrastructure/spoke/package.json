@@ -13,6 +13,7 @@
 	},
 	"dependencies": {
 		"aws-cdk-lib": "2.94.0",
+		"@aws-cdk/aws-glue-alpha": "2.131.0-alpha.0",
 		"constructs": "10.2.69",
 		"source-map-support": "0.5.21",
 		"pino": "8.14.1",

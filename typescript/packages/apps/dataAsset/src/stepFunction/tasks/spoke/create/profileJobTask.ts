@@ -23,7 +23,7 @@ export class ProfileJobTask {
 
 		// Use assetId if it exists else no asset exists so use the requestId
 		const id = (event.dataAsset.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId
-		const jobName = `${event.dataAsset.workflow.name}-${id}-profile`;
+		const jobName = `${event.dataAsset.workflow.name}-${id}-dataProfile`;
 		let res= undefined;
 
 		try{
@@ -31,7 +31,7 @@ export class ProfileJobTask {
 			res = await this.dataBrewClient.send(new UpdateProfileJobCommand(profileCommand));
 		} catch (error){
 			this.log.debug(`ProfileJobTask > process > in > event: ${JSON.stringify(error)}`);
-			
+
 			// Create the Job profile if no job exists
 			if((error as Error).name ==='ResourceNotFoundException'){
 				res = await this.dataBrewClient.send(new CreateProfileJobCommand(profileCommand));
@@ -51,8 +51,8 @@ export class ProfileJobTask {
 		// Use assetId if it exists else no asset exists so use the requestId
 		const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.requestId
 
-		const jobName = `${asset.workflow.name}-${id}-profile`;
-		const outputKey = `${this.jobsBucketPrefix}/${asset.catalog.domainId}/${asset.catalog.projectId}/${id}`
+		const jobName = `${asset.workflow.name}-${id}-dataProfile`;
+		const outputKey = `${this.jobsBucketPrefix}/${asset.catalog.domainId}/${asset.catalog.projectId}/${id}/dataProfile`
 
 		// Create Lineage event
 		const lineageRunId = ulid().toLowerCase();

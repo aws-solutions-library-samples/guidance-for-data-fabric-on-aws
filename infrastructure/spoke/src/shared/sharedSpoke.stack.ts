@@ -6,6 +6,7 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import type { OrganizationUnitPath } from '@df/cdk-common';
 import { NagSuppressions } from 'cdk-nag';
+import { GlueSpoke } from './glue.construct.js';
 
 
 export type SharedSpokeStackProperties = StackProps & {
@@ -14,13 +15,15 @@ export type SharedSpokeStackProperties = StackProps & {
     orgPath: OrganizationUnitPath;
 };
 
-export const JobBucketAccessPolicyNameParameter = `/df/spoke/shared/databrew/jobBucket-policy-name`;
+export const JobBucketAccessPolicyNameParameter = `/df/spoke/shared/databrew/jobBucketPolicyName`;
+export const GlueDatabaseNameParameter = `/df/spoke/shared/glue/databaseName`;
 
 export class SharedSpokeInfrastructureStack extends Stack {
     constructor(scope: Construct, id: string, props: SharedSpokeStackProperties) {
         super(scope, id, props);
 
         const region = Stack.of(this).region;
+        const accountId = Stack.of(this).account;
 
         const s3 = new S3Spoke(this, 'S3', {
             deleteBucket: false
@@ -60,6 +63,15 @@ export class SharedSpokeInfrastructureStack extends Stack {
                             's3:x-amz-acl': 'bucket-owner-full-control'
                         }
                     }
+                }),
+                new PolicyStatement({
+                    sid: `glueAccess`,
+                    actions: [
+                        'logs:PutLogEvents'
+                    ],
+                    resources: [
+                        `arn:aws:logs:${region}:${accountId}:log-group:/aws-glue/*`
+                    ]
                 })
             ]
         });
@@ -76,12 +88,27 @@ export class SharedSpokeInfrastructureStack extends Stack {
         }
         );
 
+
+        const glueDatabase = new GlueSpoke(this, 'GlueDatabase',{
+            accountId,
+            region
+        });
+
+        new ssm.StringParameter(this, 'GlueDatabaseNameParameter', {
+            parameterName: GlueDatabaseNameParameter,
+            description: 'shared glue database name used for creation of all the glue tables by SF',
+            stringValue: glueDatabase.glueDatabaseName
+        });
+
         NagSuppressions.addResourceSuppressions([jobBucketAccessPolicy],
             [
 
                 {
                     id: 'AwsSolutions-IAM5',
-                    appliesTo: ['Resource::<S3dfBucket5A13E120.Arn>/*'],
+                    appliesTo: [
+                        'Resource::<S3dfBucket5A13E120.Arn>/*',
+                        `Resource::arn:aws:logs:${region}:${accountId}:log-group:/aws-glue/*`
+                    ],
                     reason: 'This policy is required for the policy that will grant glue access to publish job results.'
 
                 }

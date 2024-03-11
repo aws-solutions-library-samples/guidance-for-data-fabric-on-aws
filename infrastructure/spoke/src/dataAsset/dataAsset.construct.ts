@@ -11,10 +11,9 @@ import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput, Parallel, Succeed } from 'aws-cdk-lib/aws-stepfunctions';
-import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE } from '@df/events';
+import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_BREW_JOB_STATE_CHANGE, GLUE_CRAWLER_STATE_CHANGE } from '@df/events';
 import { LambdaFunction, SfnStateMachine, EventBus as EventBusTarget } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import type { IVpc } from 'aws-cdk-lib/aws-ec2';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,7 +25,7 @@ export type DataAssetSpokeConstructProperties = {
     spokeEventBusName: string;
     bucketName: string;
     orgPath: OrganizationUnitPath;
-    vpc?: IVpc;
+    glueDatabaseName: string;
 };
 
 
@@ -81,8 +80,11 @@ export class DataAssetSpoke extends Construct {
                 'databrew:TagResource',
                 'databrew:CreateProfileJob',
                 'databrew:CreateRecipe',
+                'databrew:DescribeRecipe',
+                'databrew:UpdateRecipe',
                 'databrew:PublishRecipe',
                 'databrew:CreateRecipeJob',
+                'databrew:UpdateRecipeJob',
                 'databrew:CreateRuleset',
                 'databrew:CreateSchedule',
                 'databrew:DescribeJob',
@@ -104,6 +106,19 @@ export class DataAssetSpoke extends Construct {
             ],
             resources: [
                 `arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*` // we Only allow assume roles for roles that have a df- prefix 
+            ]
+        });
+
+
+        const GluePolicy = new PolicyStatement({
+            actions: [
+                'glue:GetCrawler',
+                'glue:CreateCrawler',
+                'glue:UpdateCrawler',
+                'glue:StartCrawler'
+            ],
+            resources: [
+                `arn:aws:glue:${region}:${accountId}:crawler/*`
             ]
         });
 
@@ -300,7 +315,8 @@ export class DataAssetSpoke extends Construct {
             environment: {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
                 JOBS_BUCKET_NAME: props.bucketName,
-                JOBS_BUCKET_PREFIX: 'jobs'
+                JOBS_BUCKET_PREFIX: 'jobs',
+                SPOKE_GLUE_DATABASE_NAME: props.glueDatabaseName
             },
             bundling: {
                 minify: true,
@@ -318,6 +334,7 @@ export class DataAssetSpoke extends Construct {
         glueCrawlerLambda.addToRolePolicy(StateMachinePolicy);
         glueCrawlerLambda.addToRolePolicy(SSMPolicy);
         glueCrawlerLambda.addToRolePolicy(IAMPassRolePolicy);
+        glueCrawlerLambda.addToRolePolicy(GluePolicy);
 
 
         const createStartTask = new LambdaInvoke(this, 'CreateStartTask', {
@@ -419,10 +436,10 @@ export class DataAssetSpoke extends Construct {
         });
 
         const glueCrawlerTask = new LambdaInvoke(this, 'GlueCrawlerTask', {
-            lambdaFunction: dqProfileJobLambda,
+            lambdaFunction: glueCrawlerLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
-                'dataAsset.$': '$',
+                'dataAsset.$': '$.[0]',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
                     'executionArn.$': '$$.Execution.Id',
@@ -563,8 +580,8 @@ export class DataAssetSpoke extends Construct {
         const jobEnrichmentRule = new Rule(this, 'JobEnrichmentRule', {
             eventBus: defaultEventBus,
             eventPattern: {
-                source: ['aws.databrew'],
-                detailType: [DATA_BREW_JOB_STATE_CHANGE]
+                source: ['aws.databrew', 'aws.glue'],
+                detailType: [DATA_BREW_JOB_STATE_CHANGE, GLUE_CRAWLER_STATE_CHANGE]
             }
         });
 
@@ -716,7 +733,8 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
                         `Resource::arn:aws:iam::${accountId}:role/df-*`,
                         `Resource::arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
-                        `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`
+                        `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`,
+                        `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`
                         
                     ],
                     reason: 'This policy is required for the lambda to perform profiling.'
@@ -735,7 +753,8 @@ export class DataAssetSpoke extends Construct {
                         'Resource::<DataAssetSpokeCreateConnectionLambda931C6392.Arn>:*',
                         'Resource::<DataAssetSpokeCreateDataSetLambda6B3E2D95.Arn>:*',
                         'Resource::<DataAssetSpokeRecipeJobLambda27C4CF5E.Arn>:*',
-                        'Resource::<DataAssetSpokeDQProfileJobLambda46CE9CB6.Arn>:*'
+                        'Resource::<DataAssetSpokeDQProfileJobLambda46CE9CB6.Arn>:*',
+                        'Resource::<DataAssetSpokeGlueCrawlerLambda66DF909B.Arn>:*'
                     ],
                     reason: 'this policy is required to invoke lambda specified in the state machine definition'
                 },

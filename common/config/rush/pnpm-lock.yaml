@@ -113,6 +113,9 @@ importers:
 
   ../../infrastructure/spoke:
     dependencies:
+      '@aws-cdk/aws-glue-alpha':
+        specifier: 2.131.0-alpha.0
+        version: 2.131.0-alpha.0(aws-cdk-lib@2.94.0)(constructs@10.2.69)
       '@df/cdk-common':
         specifier: workspace:*
         version: link:../../typescript/packages/libraries/cdk-common
@@ -1163,6 +1166,17 @@ packages:
 
   /@aws-cdk/asset-node-proxy-agent-v6@2.0.1:
     resolution: {integrity: sha512-DDt4SLdLOwWCjGtltH4VCST7hpOI5DzieuhGZsBpZ+AgJdSI2GCjklCXm0GCTwJG/SolkL5dtQXyUKgg9luBDg==}
+
+  /@aws-cdk/aws-glue-alpha@2.131.0-alpha.0(aws-cdk-lib@2.94.0)(constructs@10.2.69):
+    resolution: {integrity: sha512-rT2sGuDuRndAZs4QSxM/8wmn+5V1WP8Drxp1nec2yzZXANR6t9sBZBMyZsx1C69rcezxdIQOhwPCDCp8tgI7JA==}
+    engines: {node: '>= 14.15.0'}
+    peerDependencies:
+      aws-cdk-lib: ^2.131.0
+      constructs: ^10.0.0
+    dependencies:
+      aws-cdk-lib: 2.94.0(constructs@10.2.69)
+      constructs: 10.2.69
+    dev: false
 
   /@aws-crypto/crc32@3.0.0:
     resolution: {integrity: sha512-IzSgsrxUcsrejQbPVilIKy16kAT52EwB6zSaI+M3xxIhKh5+aldEyvI+z6erM7TCLB2BJsFrtHjp6/4/sr+3dA==}

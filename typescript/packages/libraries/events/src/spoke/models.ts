@@ -8,6 +8,8 @@ export const DATA_ASSET_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.dataAsset
 
 export const DATA_ASSET_SPOKE_JOB_START_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>job>start`
 export const DATA_BREW_JOB_STATE_CHANGE: string = 'DataBrew Job State Change';
+export const GLUE_CRAWLER_STATE_CHANGE: string = 'Glue Crawler State Change';
+
 export const DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>job>complete`
 export const DATA_ASSET_SPOKE_CRAWLER_COMPLETE_EVENT =  `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>crawler>complete`
 
