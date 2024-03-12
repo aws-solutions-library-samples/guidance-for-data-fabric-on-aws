@@ -15,20 +15,23 @@ import { EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_EVENT_SOU
 import { ConnectionTask } from '../stepFunction/tasks/spoke/create/connectionTask.js';
 import { ProfileJobTask } from '../stepFunction/tasks/spoke/create/profileJobTask.js';
 import { DataSetTask } from '../stepFunction/tasks/spoke/create/dataSetTask.js';
+import { ProfileDataSetTask } from '../stepFunction/tasks/spoke/create/profileDataSetTask.js';
 import { DataQualityProfileJobTask } from '../stepFunction/tasks/spoke/create/dataQualityProfileJobTask.js';
 import { GlueClient } from '@aws-sdk/client-glue';
 import { DataBrewClient } from '@aws-sdk/client-databrew';
 import { S3Client } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { StartTask as HubCreateStartTask} from '../stepFunction/tasks/hub/create/startTask.js';
 import { StartTask as SpokeCreateStartTask} from '../stepFunction/tasks/spoke/create/startTask.js';
 import { SpokeResponseTask } from '../stepFunction/tasks/hub/create/spokeResponseTask.js';
-import { LineageTask } from '../stepFunction/tasks/hub/create/lineageTask.js';
+import { LineageTask as HubLineageTask } from '../stepFunction/tasks/hub/create/lineageTask.js';
+import { LineageTask as SpokeLineageTask } from '../stepFunction/tasks/spoke/create/lineageTask.js';
 import { CreateDataSourceTask } from '../stepFunction/tasks/hub/create/createDataSourceTask.js';
 import { SSMClient } from '@aws-sdk/client-ssm';
 import { RecipeJobTask } from '../stepFunction/tasks/spoke/create/recipeJobTask.js';
 import { GlueCrawlerTask } from '../stepFunction/tasks/spoke/create/glueCrawlerTask.js';
 import { GlueCrawlerEventProcessor } from '../events/glueCrawler.eventProcessor.js';
+import { CleanUpTask } from '../stepFunction/tasks/spoke/create/cleanupTask.js';
 
 
 
@@ -56,16 +59,19 @@ declare module '@fastify/awilix' {
 		hubCreateStartTask: HubCreateStartTask;
 		spokeResponseTask: SpokeResponseTask;
 		createDataSourceTask: CreateDataSourceTask,
-		lineageTask: LineageTask
+		hubLineageTask: HubLineageTask
 
 		//Spoke Tasks
 		spokeCreateStartTask: SpokeCreateStartTask
 		connectionTask: ConnectionTask;
 		profileJobTask: ProfileJobTask;
 		dataSetTask: DataSetTask;
+		profileDataSetTask: ProfileDataSetTask;
 		dataQualityProfileJobTask: DataQualityProfileJobTask;
 		recipeJobTask: RecipeJobTask;
 		glueCrawlerTask: GlueCrawlerTask;
+		spokeLineageTask: SpokeLineageTask;
+		cleanupTask: CleanUpTask;
 	}
 }
 
@@ -180,12 +186,10 @@ const registerContainer = (app?: FastifyInstance) => {
 			(container) =>
 				new JobEventProcessor(
 					app.log,
-					container.dataAssetService,
 					container.dataBrewClient,
-					container.s3Client,
 					container.stepFunctionClient,
-					container.ssmClient,
-					getSignedUrl),
+					container.ssmClient
+					),
 			{
 				...commonInjectionOptions
 			}
@@ -196,8 +200,8 @@ const registerContainer = (app?: FastifyInstance) => {
 				new GlueCrawlerEventProcessor(
 					app.log,
 					container.glueClient,
-					spokeEventBusName,
-					container.spokeEventPublisher,
+					// spokeEventBusName,
+					// container.spokeEventPublisher,
 					// container.s3Client,
 					// JobsBucketName,
 					container.stepFunctionClient,
@@ -255,7 +259,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		lineageTask: asFunction((container: Cradle) => new LineageTask(app.log, container.stepFunctionClient, hubEventBusName, container.hubEventPublisher), {
+		hubLineageTask: asFunction((container: Cradle) => new HubLineageTask(app.log, container.stepFunctionClient, hubEventBusName, container.hubEventPublisher), {
 			...commonInjectionOptions
 		}),
 
@@ -278,6 +282,10 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
+		profileDataSetTask: asFunction((container: Cradle) => new ProfileDataSetTask(app.log, container.stepFunctionClient, container.dataBrewClient, GlueDatabaseName), {
+			...commonInjectionOptions
+		}),
+
 		dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.stepFunctionClient), {
 			...commonInjectionOptions
 		}),
@@ -287,6 +295,14 @@ const registerContainer = (app?: FastifyInstance) => {
 		}),
 		
 		glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log, container.glueClient, container.ssmClient, GlueDatabaseName), {
+			...commonInjectionOptions
+		}),
+
+		cleanupTask: asFunction((container: Cradle) => new CleanUpTask(app.log, container.stepFunctionClient), {
+			...commonInjectionOptions
+		}),
+
+		spokeLineageTask: asFunction((container: Cradle) => new SpokeLineageTask(app.log, container.stepFunctionClient, spokeEventBusName, container.spokeEventPublisher), {
 			...commonInjectionOptions
 		}),
 

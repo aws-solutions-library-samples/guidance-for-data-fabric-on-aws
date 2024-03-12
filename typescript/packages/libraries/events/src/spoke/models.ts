@@ -38,7 +38,13 @@ export interface crawlerStateChangeDetail {
     state: string,
     'runningTime (sec)': number,
     completionDate: string,
-    message: string
+    message: string,
+    tablesCreated: number,
+    partitionsCreated: number,
+    partitionsUpdated: number,
+    tablesUpdated: number,
+    partitionsDeleted: number,
+    tablesDeleted: number
 };
 
 export interface crawlerStateChangeEvent {

@@ -2,7 +2,7 @@ import type { EventBridgeHandler, Context, Callback } from 'aws-lambda';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from './app.light';
-import  {DataAssetJobStartEvent, DATA_BREW_JOB_STATE_CHANGE, JobStateChangeEvent, DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT, DataAssetSpokeJobCompletionEvent, GLUE_CRAWLER_STATE_CHANGE, CrawlerStateChangeEvent } from '@df/events';
+import  { DATA_BREW_JOB_STATE_CHANGE, JobStateChangeEvent, GLUE_CRAWLER_STATE_CHANGE, CrawlerStateChangeEvent } from '@df/events';
 import type { JobEventProcessor } from './events/job.eventProcessor.js';
 import type { GlueCrawlerEventProcessor } from './events/glueCrawler.eventProcessor';
 
@@ -24,12 +24,13 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 	// 	await jobEventProcessor.jobStartEvent(detail);
 		
 	// } else
-	 if ((event['detail-type'] as string).startsWith(DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT)) {
+	//  if ((event['detail-type'] as string).startsWith(DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT)) {
 		
-		await jobEventProcessor.jobCompletionEvent(event as DataAssetSpokeJobCompletionEvent);
+	// 	await jobEventProcessor.jobCompletionEvent(event as DataAssetSpokeJobCompletionEvent);
 				
-	// Filter Data brew Job status change events 
-	} else if ( (event['detail-type'] as string) === DATA_BREW_JOB_STATE_CHANGE && event['source'] === 'aws.databrew' ) {
+	// // Filter Data brew Job status change events 
+	// } else 
+	if ( (event['detail-type'] as string) === DATA_BREW_JOB_STATE_CHANGE && event['source'] === 'aws.databrew' ) {
 		
 		await jobEventProcessor.profileJobCompletionEvent(event as unknown as JobStateChangeEvent);
 
@@ -40,10 +41,10 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 
 	// any other events are not handled
 	} else {
-		app.log.error('EventBridgeLambda > handler > Unimplemented event: ${JSON.Stringify(event)}');
+		app.log.error(`EventBridgeLambda > handler > Unimplemented event: ${JSON.stringify(event)}`);
 	}
 	app.log.info(`EventBridgeLambda > handler >exit`);
 
 };
 
-type EventDetails = DataAssetJobStartEvent| JobStateChangeEvent | DataAssetSpokeJobCompletionEvent | CrawlerStateChangeEvent
+type EventDetails = JobStateChangeEvent  | CrawlerStateChangeEvent

@@ -1,8 +1,38 @@
 import type { Handler } from 'aws-lambda/handler';
-import type {DataAsset } from '../../api/dataAsset/schemas';
+import type { Catalog, Workflow } from '../../api/dataAsset/schemas';
+import type { OpenLineageBuilder } from '@df/events';
 
 
-export type DataAssetExecutionDetails = {
+export type DataAssetJob = {
+    id: string,
+    startTime?: string,
+    stopTime?: string,
+    status?: string,
+    message?: string,
+};
+
+export type DataAssetExecution = {
+    hubExecutionArn?: string ,
+    hubTaskToken?: string,
+    spokeExecutionArn?: string,
+    dataProfileJob?: DataAssetJob,
+    dataQualityProfileJob?: DataAssetJob,
+    recipeJob?: DataAssetJob,
+    dataSourceRun?: DataAssetJob,
+    crawlerRun?: DataAssetJob,
+    glueDeltaDetected?: boolean,
+    glueTableName?:string
+};
+
+export type DataAssetDetails = {
+    requestId:string,
+    catalog: Catalog,
+    workflow: Workflow,
+    execution?: DataAssetExecution,
+    lineage?: OpenLineageBuilder[]
+}  
+
+export type DataAssetTaskExecutionDetails = {
     executionArn: string,
     executionStartTime: string,
     taskToken?: string
@@ -13,17 +43,17 @@ export type DataAssetEventBridgeEvent ={
     source:string,
     account:string,
     region: string,
-    detail: DataAsset
+    detail: DataAssetDetails
 }
 
 export type DataAssetEvent = {
     dataAssetEvent: DataAssetEventBridgeEvent,
-    execution: DataAssetExecutionDetails
+    execution: DataAssetTaskExecutionDetails
 }
 
 export type DataAssetTask ={
-    dataAsset:DataAsset
-    execution: DataAssetExecutionDetails
+    dataAsset: DataAssetDetails
+    execution: DataAssetTaskExecutionDetails
 }
 
 export type DataAssetEventHandler = Handler<DataAssetEvent>;

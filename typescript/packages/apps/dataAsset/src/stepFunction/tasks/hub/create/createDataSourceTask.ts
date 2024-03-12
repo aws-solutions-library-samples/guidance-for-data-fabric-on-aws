@@ -51,9 +51,9 @@ export class CreateDataSourceTask {
 			
 		}))
 		event.dataAsset['execution']['dataSourceRun'] = {
-			jobRunId: run.id,
-			jobStartTime: run.startedAt.toDateString(),
-			jobRunStatus: run.status
+			id: run.id,
+			startTime: run.startedAt.toDateString(),
+			status: run.status
 		}
 		this.log.info(`CreateStartTask > process > exit`);
 		await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken: event.execution.taskToken }));

@@ -24,35 +24,35 @@ export class GlueCrawlerTask {
 
 		const command = await this.createCrawlerCommandInput(event);
 
-		let res;
 		try {
-			res = await this.glueClient.send(new GetCrawlerCommand({ Name: crawlerName }));
+			// Update the crawler if it exists 
+			await this.glueClient.send(new GetCrawlerCommand({ Name: crawlerName }));
 			await this.glueClient.send(new UpdateCrawlerCommand(command));
 		} catch (error) {
-			this.log.debug(`GlueCrawlerTask > process > in > error: ${JSON.stringify(error)}`);
+			this.log.debug(`GlueCrawlerTask > process  > error: ${JSON.stringify(error)}`);
 			// Create the Crawler if no crawler exists
 			if ((error as Error).name === 'EntityNotFoundException') {
-				res = await this.glueClient.send(new CreateCrawlerCommand(command));
+				await this.glueClient.send(new CreateCrawlerCommand(command));
 			}
 		}
-		this.log.debug(`res: ${JSON.stringify(res)}`);
 
 		await this.glueClient.send(new StartCrawlerCommand({
 			Name: crawlerName
 		}))
 
 		// We store the task token in SSM parameter using the requestId for future retrieval
-		this.ssmClient.send(new PutParameterCommand({
+		await this.ssmClient.send(new PutParameterCommand({
 			Name: `/df/spoke/dataAsset/stateMachineExecution/create/${event.dataAsset.requestId}`,
 			Value: JSON.stringify(event),
 			Type: ParameterType.String,
 			Overwrite: true
 		}));
 
-		this.log.debug(`GlueCrawlerTask > process > exit:`);
+		this.log.debug(`GlueCrawlerTask > process > exit`);
 	}
 
 	private async createCrawlerCommandInput(event: DataAssetTask): Promise<CreateCrawlerCommandInput> {
+		this.log.debug(`GlueCrawlerTask > createCrawlerCommandInput > in`);
 
 		const asset = event.dataAsset;
 		// Use assetId if it exists else no asset exists so use the requestId
@@ -62,14 +62,14 @@ export class GlueCrawlerTask {
 
 		// Create Lineage event
 		const lineageRunId = ulid().toLowerCase();
-		console.log(lineageRunId);
+
 		// Create default profile job
 		const command: CreateCrawlerCommandInput = {
 			Name: crawlerName,
 			Role: asset.workflow.roleArn,
 			DatabaseName: this.glueDatabaseName,
 			Targets: this.getCrawlerTargets(event),
-			TablePrefix: `df-${event.dataAsset.catalog.assetName}-${id}`,
+			TablePrefix: `df-${event.dataAsset.catalog.assetName}-${id}-`,
 			LakeFormationConfiguration: {
 				UseLakeFormationCredentials: false
 			},
@@ -86,7 +86,7 @@ export class GlueCrawlerTask {
 			}
 		}
 
-		this.log.info(`GlueCrawlerTask > createCrawler > command:${JSON.stringify(command)}`);
+		this.log.debug(`GlueCrawlerTask > createCrawlerCommandInput >exit  command:${JSON.stringify(command)}`);
 
 		return command;
 
@@ -109,6 +109,10 @@ export class GlueCrawlerTask {
 				}
 				break;
 			case 'glue':
+				// TODO, NOT needed for demo
+				break;
+			case 'redshift':
+				// TODO Edmund
 
 				break;
 			default:

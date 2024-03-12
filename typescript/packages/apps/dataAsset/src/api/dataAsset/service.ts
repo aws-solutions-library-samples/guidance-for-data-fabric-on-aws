@@ -1,5 +1,5 @@
 import type { FastifyBaseLogger } from 'fastify';
-import type { EditDataAsset, NewDataAsset, DataAssetListOptions, DataAsset, Catalog, Workflow, DataProfile } from './schemas.js';
+import type { EditDataAsset, NewDataAsset, DataAssetListOptions, DataAsset, Catalog, Workflow } from './schemas.js';
 import { validateNotEmpty, validateRegularExpression } from '@df/validators';
 import type { DataAssetRepository } from './repository.js';
 import { GetAssetCommand, type DataZoneClient, CreateAssetCommand, CreateAssetOutput, CreateAssetRevisionCommand, CreateListingChangeSetCommand } from '@aws-sdk/client-datazone';
@@ -177,7 +177,7 @@ export class DataAssetService {
     }
 
 
-    public async updateDataZoneProfile(asset: DataAsset, profile: DataProfile): Promise<CreateAssetOutput> {
+    public async updateDataZoneProfile(asset: DataAsset, profile: any): Promise<CreateAssetOutput> {
         this.log.debug(`DataAssetService > updateDataZoneProfile > profile:${JSON.stringify(profile)}`);
 
         // Get the current forms from the existing data zone asset

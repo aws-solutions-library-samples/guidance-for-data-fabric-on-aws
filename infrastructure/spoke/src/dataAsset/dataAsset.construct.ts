@@ -117,10 +117,13 @@ export class DataAssetSpoke extends Construct {
                 'glue:CreateCrawler',
                 'glue:UpdateCrawler',
                 'glue:StartCrawler',
-                'glue:GetTags'
+                'glue:GetTags',
+                'glue:ListCrawls',
+                'glue:GetTable'
             ],
             resources: [
-                `arn:aws:glue:${region}:${accountId}:crawler/*`
+                `arn:aws:glue:${region}:${accountId}:crawler/*`,
+                `arn:aws:glue:${region}:${accountId}:catalog`
             ]
         });
 
@@ -208,6 +211,38 @@ export class DataAssetSpoke extends Construct {
         createDataSetLambda.addToRolePolicy(StateMachinePolicy);
         createDataSetLambda.addToRolePolicy(DataBrewPolicy);
         createDataSetLambda.addToRolePolicy(IAMPassRolePolicy);
+
+
+        const createProfileDataSetLambda = new NodejsFunction(this, 'CreateProfileDataSetLambda', {
+            description: 'Asset Manager profile dataset creator Task Handler',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/profileDataset.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-createProfileDataSetTask`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
+                SPOKE_GLUE_DATABASE_NAME: props.glueDatabaseName
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+
+        createProfileDataSetLambda.addToRolePolicy(StateMachinePolicy);
+        createProfileDataSetLambda.addToRolePolicy(DataBrewPolicy);
+        createProfileDataSetLambda.addToRolePolicy(IAMPassRolePolicy);
+        createProfileDataSetLambda.addToRolePolicy(GluePolicy);
 
         const recipeJobLambda = new NodejsFunction(this, 'RecipeJobLambda', {
             description: 'Asset Manager Recipe job Task Handler',
@@ -338,6 +373,64 @@ export class DataAssetSpoke extends Construct {
         glueCrawlerLambda.addToRolePolicy(IAMPassRolePolicy);
         glueCrawlerLambda.addToRolePolicy(GluePolicy);
 
+        const spokeCleanupLambda = new NodejsFunction(this, 'SpokeCleanupLambda', {
+            description: 'Asset Manager Spoke Cleanup Task Handler',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/cleanup.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-create-cleanupTask`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                JOBS_BUCKET_NAME: props.bucketName,
+                JOBS_BUCKET_PREFIX: 'jobs'
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+
+        spokeCleanupLambda.addToRolePolicy(StateMachinePolicy);
+
+        const spokeLineageLambda = new NodejsFunction(this, 'SpokeLineageLambda', {
+            description: 'Asset Manager Spoke Lineage Task Handler',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/lineage.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-ineageTask`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
+                JOBS_BUCKET_NAME: props.bucketName,
+                JOBS_BUCKET_PREFIX: 'jobs',
+                SPOKE_GLUE_DATABASE_NAME: props.glueDatabaseName
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+
+        spokeLineageLambda.addToRolePolicy(StateMachinePolicy);
+        spokeEventBus.grantPutEventsTo(spokeLineageLambda);
 
         const createStartTask = new LambdaInvoke(this, 'CreateStartTask', {
             lambdaFunction: createStartLambda,
@@ -382,7 +475,7 @@ export class DataAssetSpoke extends Construct {
         });
 
         const profileCreateDataSetTask = new LambdaInvoke(this, 'ProfileCreateDataSetTask', {
-            lambdaFunction: createDataSetLambda,
+            lambdaFunction: createProfileDataSetLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
@@ -441,6 +534,20 @@ export class DataAssetSpoke extends Construct {
             lambdaFunction: glueCrawlerLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        const cleanupTask = new LambdaInvoke(this, 'CleanupTask', {
+            lambdaFunction: spokeCleanupLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
                 'dataAsset.$': '$.[0]',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
@@ -451,8 +558,19 @@ export class DataAssetSpoke extends Construct {
             outputPath: '$.dataAsset'
         });
 
-
-
+        const lineageTask = new LambdaInvoke(this, 'LineageTask', {
+            lambdaFunction: spokeLineageLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
 
         const deadLetterQueue = new Queue(this, 'DeadLetterQueue');
         deadLetterQueue.addToResourcePolicy(new PolicyStatement({
@@ -487,9 +605,13 @@ export class DataAssetSpoke extends Construct {
                     .otherwise(new Succeed(this, 'No Data Quality Profile')))
             .branch(profileJobTask);
 
+        // const deltaDetectedChoice = new Choice(this, 'change detected in source data ?')
+        //     .otherwise(cleanupTask.next(lineageTask))
+        //     .when(Condition.booleanEquals('$.glueDeltaDetected', true));
+
         const transformChoice = new Choice(this, 'Is transform present Found ?')
-            .otherwise(profileCreateDataSetTask.next(profilingTasks).next(glueCrawlerTask))
-            .when(Condition.isPresent('$.workflow.transforms'), recipeCreateDataSetTask.next(recipeJobTask).next(profileCreateDataSetTask));
+            .otherwise(glueCrawlerTask.next(profileCreateDataSetTask.next(profilingTasks).next(cleanupTask.next(lineageTask))))
+            .when(Condition.isPresent('$.workflow.transforms'), recipeCreateDataSetTask.next(recipeJobTask).next(glueCrawlerTask));
 
         const dataAssetStateMachine = new StateMachine(this, 'DataAssetStateMachine', {
             definitionBody: DefinitionBody.fromChainable(
@@ -750,7 +872,18 @@ export class DataAssetSpoke extends Construct {
             ],
             true);
 
-        NagSuppressions.addResourceSuppressions([createStartLambda, createConnectionLambda, createDataSetLambda, profileJobLambda, dqProfileJobLambda, recipeJobLambda, glueCrawlerLambda],
+        NagSuppressions.addResourceSuppressions([
+            createStartLambda,
+            createConnectionLambda,
+            createDataSetLambda,
+            createProfileDataSetLambda,
+            profileJobLambda,
+            dqProfileJobLambda,
+            recipeJobLambda,
+            glueCrawlerLambda,
+            spokeCleanupLambda,
+            spokeLineageLambda
+        ],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -786,9 +919,12 @@ export class DataAssetSpoke extends Construct {
                         'Resource::<DataAssetSpokeProfileJobLambdaED6BD275.Arn>:*',
                         'Resource::<DataAssetSpokeCreateConnectionLambda931C6392.Arn>:*',
                         'Resource::<DataAssetSpokeCreateDataSetLambda6B3E2D95.Arn>:*',
+                        'Resource::<DataAssetSpokeCreateProfileDataSetLambdaBC2367B9.Arn>:*',
                         'Resource::<DataAssetSpokeRecipeJobLambda27C4CF5E.Arn>:*',
                         'Resource::<DataAssetSpokeDQProfileJobLambda46CE9CB6.Arn>:*',
-                        'Resource::<DataAssetSpokeGlueCrawlerLambda66DF909B.Arn>:*'
+                        'Resource::<DataAssetSpokeGlueCrawlerLambda66DF909B.Arn>:*',
+                        'Resource::<DataAssetSpokeSpokeLineageLambda88C4B5EF.Arn>:*',
+                        'Resource::<DataAssetSpokeSpokeCleanupLambda2DF1D423.Arn>:*'
                     ],
                     reason: 'this policy is required to invoke lambda specified in the state machine definition'
                 },

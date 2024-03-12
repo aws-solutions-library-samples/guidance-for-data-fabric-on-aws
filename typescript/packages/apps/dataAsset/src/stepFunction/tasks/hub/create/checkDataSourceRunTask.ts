@@ -18,14 +18,14 @@ export class CheckRunTask {
 
 		 const run = await this.dzClient.send( new GetDataSourceRunCommand({
 			domainIdentifier: event.dataAsset.catalog.domainId,
-			identifier: event.dataAsset.execution.dataSourceRun.jobRunId
+			identifier: event.dataAsset.execution.dataSourceRun.id
 		}));
 
 		event.dataAsset['execution']['dataSourceRun'] = {
-			jobRunId: run.id,
-			jobStartTime: run.startedAt.toDateString(),
-			jobRunStatus: run.status,
-			
+			id: run.id,
+			startTime: run.startedAt.toDateString(),
+			stopTime: run.stoppedAt.toDateString(),
+			status: run.status
 		}
 		await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken: event.execution.taskToken }));
 

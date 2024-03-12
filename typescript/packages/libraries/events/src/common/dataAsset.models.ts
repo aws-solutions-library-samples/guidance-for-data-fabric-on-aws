@@ -1,3 +1,5 @@
+import type { OpenLineageBuilder } from "../open-lineage/builder"
+
 export type DataAssetCatalog = {
     domainId: string,
     projectId?: string,
@@ -68,17 +70,19 @@ export type DataAssetWorkflow = {
 export type DataAssetExecution = {
     hubExecutionArn?: string ,
     spokeExecutionArn?: string,
-    jobRunId?: string,
-    jobRunStatus?: string,
-    jobStartTime?: string 
-    jobStopTime?: string 
+    id?: string,
+    status?: string,
+    startTime?: string 
+    stopTime?: string 
+    message?:string;
 };
 
 export type DataAsset = {
     requestId: string,
     execution?: DataAssetExecution,
     catalog: DataAssetCatalog,
-    workflow: DataAssetWorkflow
+    workflow: DataAssetWorkflow,
+    lineage?: OpenLineageBuilder[]
 };
 
 export type JobExecution = {
@@ -111,4 +115,8 @@ export type DataAssetCrawlerCompletionEvent = {
         catalog:DataAssetCatalog
     }
     crawler: JobExecution
+};
+
+export type DataAssetCreateCompletionEvent = {
+    dataAsset: DataAsset,
 };
