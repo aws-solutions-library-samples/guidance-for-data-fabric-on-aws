@@ -26,6 +26,11 @@ export const format = stringEnum(
     'The format of the data set.'
 );
 
+export const compression = stringEnum(
+    ['brotli', 'bzip2', 'deflate', 'gzip', 'lz4', 'lzo', 'snappy', 'zlib', 'zstd'],
+    'The compression of the data set.'
+);
+
 export const count = Type.Optional(
     Type.Integer({
         description: 'No. of results returned when pagination requested.'
@@ -104,7 +109,9 @@ export const newRecipe = Type.Object({
 
 export const transforms = Type.Optional(Type.Object({
     recipeReference: Type.Optional(existingRecipe),
-    recipe: Type.Optional(newRecipe)
+    recipe: Type.Optional(newRecipe),
+    targetFormat: Type.Optional(format),
+    targetCompression: Type.Optional(compression)
 }));
 
 export const schedule = Type.Optional(Type.Object({
