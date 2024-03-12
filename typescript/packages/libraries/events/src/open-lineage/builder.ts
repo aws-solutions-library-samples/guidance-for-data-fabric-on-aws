@@ -10,8 +10,7 @@ import type {
     SourceCodeJobFacet,
     SourceCodeLocationJobFacet,
     StorageDatasetFacet
-} from "@df/events";
-
+} from "./model.js";
 
 export interface QualityResultInput {
     runId: string,

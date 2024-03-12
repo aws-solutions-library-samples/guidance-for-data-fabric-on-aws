@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { OpenLineageBuilder, QualityResult } from "./openLineage.builder";
-import type { RunEvent } from "@df/events";
+import { OpenLineageBuilder, QualityResult } from "./builder.js";
+import type { RunEvent } from './model.js';
 
 describe('OpenLineageBuilder', () => {
     let builder: OpenLineageBuilder;

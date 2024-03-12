@@ -1,5 +1,5 @@
-import type { ACCESS_CONTROL_HUB_EVENT_SOURCE } from "./hub/models.js";
-import { DATA_LINEAGE_SPOKE_EVENT_SOURCE } from "./spoke/models.js";
+import type { ACCESS_CONTROL_HUB_EVENT_SOURCE } from "../hub/models.js";
+import { DATA_LINEAGE_SPOKE_EVENT_SOURCE } from "../spoke/models.js";
 
 export type EventSource = typeof ACCESS_CONTROL_HUB_EVENT_SOURCE;
 

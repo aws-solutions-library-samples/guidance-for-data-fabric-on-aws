@@ -1,111 +1,111 @@
-import { EventBridgeClient, PutEventsCommandInput, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { EventBridgeClient, PutEventsCommand, PutEventsCommandInput } from '@aws-sdk/client-eventbridge';
 import type { BaseLogger } from 'pino';
-import type { EventSource } from './openLineage.models.js';
+import type { EventSource } from './open-lineage/model.js';
 import type { DomainEvent } from './hub/models.js';
 
 export class EventPublisher {
-	private readonly log: BaseLogger;
-	private readonly eventBusName: string;
-	private readonly client: EventBridgeClient;
-	private readonly eventSource: EventSource;
+    private readonly log: BaseLogger;
+    private readonly eventBusName: string;
+    private readonly client: EventBridgeClient;
+    private readonly eventSource: EventSource;
 
-	public constructor(log: BaseLogger, client: EventBridgeClient, eventBusName: string, eventSource: EventSource) {
-		this.log = log;
-		this.client = client;
-		this.eventBusName = eventBusName;
-		this.eventSource = eventSource;
-	}
+    public constructor(log: BaseLogger, client: EventBridgeClient, eventBusName: string, eventSource: EventSource) {
+        this.log = log;
+        this.client = client;
+        this.eventBusName = eventBusName;
+        this.eventSource = eventSource;
+    }
 
-	public async publishTenantEvent<T>(event: DomainEvent<T>): Promise<void> {
-		this.log.debug(`EventPublisher> publishEvent> in: event:${JSON.stringify(event)}`);
+    public async publishTenantEvent<T>(event: DomainEvent<T>): Promise<void> {
+        this.log.debug(`EventPublisher> publishEvent> in: event:${JSON.stringify(event)}`);
 
-		let error;
+        let error;
 
-		if (event.error) {
-			error = {
-				name: event.error.name,
-				message: event.error.message,
-				stack: event.error.stack,
-			};
-		}
+        if (event.error) {
+            error = {
+                name: event.error.name,
+                message: event.error.message,
+                stack: event.error.stack,
+            };
+        }
 
-		const params: PutEventsCommandInput = {
-			Entries: [
-				{
-					EventBusName: this.eventBusName,
-					Source: this.eventSource as unknown as string,
-					DetailType: `DF>${this.eventSource}>${event.resourceType}>${event.eventType}`,
-					Detail: JSON.stringify({
-						...event,
-						error: error,
-					}),
-				},
-			],
-		};
+        const params: PutEventsCommandInput = {
+            Entries: [
+                {
+                    EventBusName: this.eventBusName,
+                    Source: this.eventSource as unknown as string,
+                    DetailType: `DF>${this.eventSource}>${event.resourceType}>${event.eventType}`,
+                    Detail: JSON.stringify({
+                        ...event,
+                        error: error,
+                    }),
+                },
+            ],
+        };
 
-		await this.client.send(new PutEventsCommand(params));
-		this.log.debug(`EventPublisher> publishEvent> exit`);
-	}
+        await this.client.send(new PutEventsCommand(params));
+        this.log.debug(`EventPublisher> publishEvent> exit`);
+    }
 
 
-	public async publish(event: EventBridgeEventBuilder): Promise<void> {
-		this.log.debug(`Publisher>publish>in: event:${JSON.stringify(event)}`);
+    public async publish(event: EventBridgeEventBuilder): Promise<void> {
+        this.log.debug(`Publisher>publish>in: event:${JSON.stringify(event)}`);
 
-		event.setEventBusName(this.eventBusName);
+        event.setEventBusName(this.eventBusName);
 
-		const params: PutEventsCommandInput = {
-			Entries: [{
-				Source: event.Source,
-				EventBusName: event.EventBusName,
-				DetailType: event.DetailType,
-				Time: event.Time,
-				Detail: event.Detail
-			}]
-		};
+        const params: PutEventsCommandInput = {
+            Entries: [{
+                Source: event.Source,
+                EventBusName: event.EventBusName,
+                DetailType: event.DetailType,
+                Time: event.Time,
+                Detail: event.Detail
+            }]
+        };
 
-		await this.client.send(new PutEventsCommand(params));
-	}
+        await this.client.send(new PutEventsCommand(params));
+    }
 }
 
 export class EventBridgeEventBuilder {
-	public Source:string;
-	public EventBusName: string;
-	public DetailType: string;
-	public Time: Date;
-	public Detail: string;
-	private regions: string[];
+    public Source: string;
+    public EventBusName: string;
+    public DetailType: string;
+    public Time: Date;
+    public Detail: string;
+    private regions: string[];
 
-	constructor() {
-		this.Time = new Date();
-	}
+    constructor() {
+        this.Time = new Date();
+    }
 
-	public setSource(source:string): EventBridgeEventBuilder {
-		this.Source = source;
-		return this
-	}
+    public setSource(source: string): EventBridgeEventBuilder {
+        this.Source = source;
+        return this
+    }
 
-	public setRegions(regions: string[]): EventBridgeEventBuilder {
-		this.regions = regions;
-		return this
-	}
+    public setRegions(regions: string[]): EventBridgeEventBuilder {
+        this.regions = regions;
+        return this
+    }
 
-	public getRegions(): string[] {
-		return this.regions
-	}
+    public getRegions(): string[] {
+        return this.regions
+    }
 
-	public setEventBusName(name:string): EventBridgeEventBuilder {
-		this.EventBusName = name;
-		return this
-	}
+    public setEventBusName(name: string): EventBridgeEventBuilder {
+        this.EventBusName = name;
+        return this
+    }
 
-	public setDetailType(detailType:string): EventBridgeEventBuilder {
-		this.DetailType = detailType
-		return this
-	}
+    public setDetailType(detailType: string): EventBridgeEventBuilder {
+        this.DetailType = detailType
+        return this
+    }
 
-	public setDetail(detail: unknown): EventBridgeEventBuilder {
-		this.Detail = JSON.stringify(detail);
-		return this
-	}
+    public setDetail(detail: unknown): EventBridgeEventBuilder {
+        this.Detail = JSON.stringify(detail);
+        return this
+    }
 }
 
