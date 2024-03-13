@@ -1,7 +1,14 @@
 import type { Handler } from 'aws-lambda/handler';
-import type { Catalog, Workflow } from '../../api/dataAsset/schemas';
-import type { OpenLineageBuilder } from '@df/events';
+import type { Workflow } from '../../api/dataAsset/schemas';
+import type { RunEvent, DataAssetCatalog } from '@df/events';
 
+export enum TaskType  {
+    DataProfileTask = 'DataProfileTask',
+    DataQualityProfileTask ='DataQualityProfileTask',
+    RecipeTask = 'RecipeTask',
+    GlueCrawlerTask = 'GlueCrawlerTask'
+
+}
 
 export type DataAssetJob = {
     id: string,
@@ -26,10 +33,10 @@ export type DataAssetExecution = {
 
 export type DataAssetDetails = {
     requestId:string,
-    catalog: Catalog,
+    catalog: DataAssetCatalog,
     workflow: Workflow,
     execution?: DataAssetExecution,
-    lineage?: OpenLineageBuilder[]
+    lineage?: Partial<RunEvent>[]
 }  
 
 export type DataAssetTaskExecutionDetails = {

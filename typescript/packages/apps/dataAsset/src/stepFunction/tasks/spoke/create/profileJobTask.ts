@@ -1,15 +1,16 @@
 import type { BaseLogger } from 'pino';
-import type { DataAssetTask } from '../../models.js';
+import { TaskType, type DataAssetTask } from '../../models.js';
 import { CreateProfileJobCommand, CreateProfileJobCommandInput, StartJobRunCommand, type DataBrewClient, DescribeJobCommand, UpdateProfileJobCommand } from '@aws-sdk/client-databrew';
 import { ulid } from 'ulid';
-import { SSMClient, PutParameterCommand, ParameterType } from '@aws-sdk/client-ssm';
+import type { S3Client } from '@aws-sdk/client-s3';
+import { putTaskData } from '../../../../common/s3Utils.js';
 
 export class ProfileJobTask {
 
 	constructor(
 		private log: BaseLogger,
 		private dataBrewClient: DataBrewClient,
-		private ssmClient: SSMClient,
+		private s3Client: S3Client,
 		private jobsBucket: string,
 		private jobsBucketPrefix: string
 	) {
@@ -73,19 +74,21 @@ export class ProfileJobTask {
 				domainId: event.dataAsset.catalog.domainId,
 				projectId: event.dataAsset.catalog.projectId,
 				assetName: event.dataAsset.catalog.assetName,
-				assetId: event.dataAsset.catalog.assetId,
+				assetId: event.dataAsset.catalog?.assetId,
 				requestId: event.dataAsset.requestId,
 				LineageRunId: lineageRunId,
 				executionArn: event.execution.executionArn			}
 		}
 
 		// We store the task token in SSM parameter using the requestId for future retrieval
-		this.ssmClient.send(new PutParameterCommand({
-			Name: `/df/spoke/dataAsset/stateMachineExecution/create/${event.dataAsset.requestId}`,
-			Value: JSON.stringify(event),
-			Type: ParameterType.STRING,
-			Overwrite: true
-		}));
+		// this.ssmClient.send(new PutParameterCommand({
+		// 	Name: `/df/spoke/dataAsset/stateMachineExecution/create/${event.dataAsset.requestId}`,
+		// 	Value: JSON.stringify(event),
+		// 	Type: ParameterType.STRING,
+		// 	Overwrite: true
+		// }));
+
+		await putTaskData(this.s3Client,this.jobsBucket,this.jobsBucketPrefix,TaskType.DataProfileTask, id, JSON.stringify(event));
 
 		// TODO Construct the Lineage COMPLETE event using the lineageRunId
 

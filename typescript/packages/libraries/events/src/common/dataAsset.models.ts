@@ -2,6 +2,7 @@ import type { OpenLineageBuilder } from "../open-lineage/builder"
 
 export type DataAssetCatalog = {
     domainId: string,
+    domainName: string,
     projectId?: string,
     environmentId: string,
     region?: string,

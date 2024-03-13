@@ -20,6 +20,7 @@ export class ProfileDataSetTask {
 
 		// Check if DataSet has been created for this asset before
 		try{
+			this.log.debug(`ProfileDataSetTask > process > before DescribeDatasetCommand`);
 			await this.dataBrewClient.send(new DescribeDatasetCommand({
 				Name: id
 			}));
@@ -28,6 +29,7 @@ export class ProfileDataSetTask {
 			// Create the data set if none is found
 			if((error as Error).name ==='ResourceNotFoundException'){
 				const input = this.constructInputCommand(event);
+				this.log.debug(`ProfileDataSetTask > process > before CreateDatasetCommand`);
 				await this.dataBrewClient.send(new CreateDatasetCommand(input));
 			}
 		}
@@ -55,7 +57,7 @@ export class ProfileDataSetTask {
 			},
 			Input: { 
 				DataCatalogInputDefinition: {
-				CatalogId: event.dataAsset.catalog.accountId,
+				// CatalogId: event.dataAsset.catalog.accountId,
 				DatabaseName: this.GlueDbName,
 				TableName: event.dataAsset.execution.glueTableName
 			}}

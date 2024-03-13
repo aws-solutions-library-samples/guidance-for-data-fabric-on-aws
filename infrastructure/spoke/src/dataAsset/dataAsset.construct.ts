@@ -15,6 +15,7 @@ import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DAT
 import { LambdaFunction, SfnStateMachine, EventBus as EventBusTarget } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { Database } from '@aws-cdk/aws-glue-alpha';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,7 +26,7 @@ export type DataAssetSpokeConstructProperties = {
     spokeEventBusName: string;
     bucketName: string;
     orgPath: OrganizationUnitPath;
-    glueDatabaseName: string;
+    glueDatabaseArn: string;
 };
 
 
@@ -42,6 +43,7 @@ export class DataAssetSpoke extends Construct {
         const spokeEventBus = EventBus.fromEventBusArn(this, 'SpokeEventBus', dfSpokeEventBusArn(accountId, region));
         const defaultEventBus = EventBus.fromEventBusName(this, 'DefaultEventBus', 'default');
         const bucket = Bucket.fromBucketName(this, 'jobsOutputBucket', props.bucketName);
+        const glueDatabase = Database.fromDatabaseArn(this, 'glueDatabase',props.glueDatabaseArn)
 
 
         /* Spoke Data Asset State Machine
@@ -58,7 +60,7 @@ export class DataAssetSpoke extends Construct {
             resources: [
                 `arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
                 `arn:aws:databrew:${region}:${accountId}:dataset/*`,
-                `arn:aws:databrew:${region}:${accountId}:job/*`
+                `${glueDatabase.databaseArn}`
             ]
         });
 
@@ -123,7 +125,9 @@ export class DataAssetSpoke extends Construct {
             ],
             resources: [
                 `arn:aws:glue:${region}:${accountId}:crawler/*`,
-                `arn:aws:glue:${region}:${accountId}:catalog`
+                `arn:aws:glue:${region}:${accountId}:catalog`,
+                `${props.glueDatabaseArn}`,
+                `arn:aws:glue:${region}:${accountId}:table/${glueDatabase.databaseName}/*`
             ]
         });
 
@@ -224,7 +228,7 @@ export class DataAssetSpoke extends Construct {
             timeout: Duration.minutes(5),
             environment: {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
-                SPOKE_GLUE_DATABASE_NAME: props.glueDatabaseName
+                SPOKE_GLUE_DATABASE_NAME: glueDatabase.databaseName
             },
             bundling: {
                 minify: true,
@@ -275,6 +279,7 @@ export class DataAssetSpoke extends Construct {
         recipeJobLambda.addToRolePolicy(DataBrewPolicy);
         recipeJobLambda.addToRolePolicy(SSMPolicy);
         recipeJobLambda.addToRolePolicy(IAMPassRolePolicy);
+        bucket.grantPut(recipeJobLambda);
 
         const profileJobLambda = new NodejsFunction(this, 'ProfileJobLambda', {
             description: 'Asset Manager profile job Task Handler',
@@ -307,6 +312,8 @@ export class DataAssetSpoke extends Construct {
         profileJobLambda.addToRolePolicy(DataBrewPolicy);
         profileJobLambda.addToRolePolicy(SSMPolicy);
         profileJobLambda.addToRolePolicy(IAMPassRolePolicy);
+        profileJobLambda.addToRolePolicy(GluePolicy);
+        bucket.grantPut(profileJobLambda);
 
         const dqProfileJobLambda = new NodejsFunction(this, 'DQProfileJobLambda', {
             description: 'Asset Manager DQ profile job Task Handler',
@@ -339,6 +346,7 @@ export class DataAssetSpoke extends Construct {
         dqProfileJobLambda.addToRolePolicy(DataBrewPolicy);
         dqProfileJobLambda.addToRolePolicy(SSMPolicy);
         dqProfileJobLambda.addToRolePolicy(IAMPassRolePolicy);
+        bucket.grantPut(dqProfileJobLambda);
 
         const glueCrawlerLambda = new NodejsFunction(this, 'GlueCrawlerLambda', {
             description: 'Asset Manager Glue Crawler Task Handler',
@@ -353,7 +361,7 @@ export class DataAssetSpoke extends Construct {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
                 JOBS_BUCKET_NAME: props.bucketName,
                 JOBS_BUCKET_PREFIX: 'jobs',
-                SPOKE_GLUE_DATABASE_NAME: props.glueDatabaseName
+                SPOKE_GLUE_DATABASE_NAME: glueDatabase.databaseName
             },
             bundling: {
                 minify: true,
@@ -372,6 +380,7 @@ export class DataAssetSpoke extends Construct {
         glueCrawlerLambda.addToRolePolicy(SSMPolicy);
         glueCrawlerLambda.addToRolePolicy(IAMPassRolePolicy);
         glueCrawlerLambda.addToRolePolicy(GluePolicy);
+        bucket.grantPut(glueCrawlerLambda);
 
         const spokeCleanupLambda = new NodejsFunction(this, 'SpokeCleanupLambda', {
             description: 'Asset Manager Spoke Cleanup Task Handler',
@@ -414,7 +423,7 @@ export class DataAssetSpoke extends Construct {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
                 JOBS_BUCKET_NAME: props.bucketName,
                 JOBS_BUCKET_PREFIX: 'jobs',
-                SPOKE_GLUE_DATABASE_NAME: props.glueDatabaseName
+                SPOKE_GLUE_DATABASE_NAME: glueDatabase.databaseName
             },
             bundling: {
                 minify: true,
@@ -679,7 +688,8 @@ export class DataAssetSpoke extends Construct {
             logRetention: RetentionDays.ONE_WEEK,
             environment: {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
-                JOBS_BUCKET_NAME: props.bucketName
+                JOBS_BUCKET_NAME: props.bucketName,
+                JOBS_BUCKET_PREFIX: 'jobs'
             },
             bundling: {
                 minify: true,
@@ -734,36 +744,6 @@ export class DataAssetSpoke extends Construct {
                 retryAttempts: 2
             })
         );
-
-
-
-        // // Rule for Job Start events
-        // const jobStartRule = new Rule(this, 'JobStartRule', {
-        //     eventBus: spokeEventBus,
-        //     eventPattern: {
-        //         detailType: [DATA_ASSET_SPOKE_JOB_START_EVENT]
-        //     }
-        // });
-
-        // jobStartRule.addTarget(
-        //     new EventBusTarget(hubEventBus, {
-        //         deadLetterQueue: deadLetterQueue
-        //     })
-        // );
-
-        // // Rule for Job completion events
-        // const jobCompletionRule = new Rule(this, 'JobCompletionRule', {
-        //     eventBus: spokeEventBus,
-        //     eventPattern: {
-        //         detailType: [DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
-        //     }
-        // });
-
-        // jobCompletionRule.addTarget(
-        //     new EventBusTarget(hubEventBus, {
-        //         deadLetterQueue: deadLetterQueue
-        //     })
-        // );
 
 
         // Rule for Create Flow completion events
@@ -864,7 +844,8 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:recipe/*`,
                         `Resource::arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-*`,
-                        `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`
+                        `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`,
+                        `Resource::arn:aws:glue:${region}:${accountId}:table/{"Fn::Select":[1,{"Fn::Split":["/",{"Fn::Select":[5,{"Fn::Split":[":",{"Ref":"SsmParameterValuedfspokesharedgluedatabaseArnC96584B6F00A464EAD1953AFF4B05118Parameter"}]}]}]}]}/*`
                     ],
                     reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'
 
@@ -894,6 +875,7 @@ export class DataAssetSpoke extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
+                        `Action::s3:Abort*`,
                         'Resource::*',
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:recipe/*`,
@@ -901,7 +883,10 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:iam::${accountId}:role/df-*`,
                         `Resource::arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
                         `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`,
-                        `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`
+                        `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`,
+                        `Resource::arn:aws:glue:${region}:${accountId}:table/${glueDatabase.databaseName}/*`,
+                        `Resource::arn:aws:glue:${region}:${accountId}:table/{"Fn::Select":[1,{"Fn::Split":["/",{"Fn::Select":[5,{"Fn::Split":[":",{"Ref":"SsmParameterValuedfspokesharedgluedatabaseArnC96584B6F00A464EAD1953AFF4B05118Parameter"}]}]}]}]}/*`,
+                        `Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfspokesharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*`,
 
                     ],
                     reason: 'This policy is required for the lambda to perform profiling.'

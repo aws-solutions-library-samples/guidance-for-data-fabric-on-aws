@@ -188,7 +188,10 @@ const registerContainer = (app?: FastifyInstance) => {
 					app.log,
 					container.dataBrewClient,
 					container.stepFunctionClient,
-					container.ssmClient
+					// container.ssmClient,
+					container.s3Client, 
+					JobsBucketName, 
+					JobsBucketPrefix
 					),
 			{
 				...commonInjectionOptions
@@ -205,8 +208,11 @@ const registerContainer = (app?: FastifyInstance) => {
 					// container.s3Client,
 					// JobsBucketName,
 					container.stepFunctionClient,
-					container.ssmClient,
+					// container.ssmClient,
 					// getSignedUrl
+					container.s3Client, 
+					JobsBucketName, 
+					JobsBucketPrefix
 					),
 			{
 				...commonInjectionOptions
@@ -274,7 +280,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.ssmClient, JobsBucketName, JobsBucketPrefix), {
+		profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.s3Client, JobsBucketName, JobsBucketPrefix), {
 			...commonInjectionOptions
 		}),
 
@@ -294,7 +300,14 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 		
-		glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log, container.glueClient, container.ssmClient, GlueDatabaseName), {
+		glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log, 
+			container.glueClient,
+			// container.ssmClient,
+			GlueDatabaseName,
+			container.s3Client, 
+			JobsBucketName, 
+			JobsBucketPrefix
+			 ), {
 			...commonInjectionOptions
 		}),
 

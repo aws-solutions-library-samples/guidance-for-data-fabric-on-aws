@@ -17,6 +17,7 @@ export type SharedSpokeStackProperties = StackProps & {
 
 export const JobBucketAccessPolicyNameParameter = `/df/spoke/shared/databrew/jobBucketPolicyName`;
 export const GlueDatabaseNameParameter = `/df/spoke/shared/glue/databaseName`;
+export const GlueDatabaseArnParameter = `/df/spoke/shared/glue/databaseArn`;
 
 export class SharedSpokeInfrastructureStack extends Stack {
     constructor(scope: Construct, id: string, props: SharedSpokeStackProperties) {
@@ -98,6 +99,12 @@ export class SharedSpokeInfrastructureStack extends Stack {
             parameterName: GlueDatabaseNameParameter,
             description: 'shared glue database name used for creation of all the glue tables by SF',
             stringValue: glueDatabase.glueDatabaseName
+        });
+
+        new ssm.StringParameter(this, 'GlueDatabaseArnParameter', {
+            parameterName: GlueDatabaseArnParameter,
+            description: 'shared glue database Arn used for creation of all the glue tables by SF',
+            stringValue: glueDatabase.glueDatabaseArn
         });
 
         NagSuppressions.addResourceSuppressions([jobBucketAccessPolicy],

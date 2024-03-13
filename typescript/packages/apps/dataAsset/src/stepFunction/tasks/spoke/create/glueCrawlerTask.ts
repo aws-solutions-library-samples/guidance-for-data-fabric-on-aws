@@ -1,16 +1,18 @@
 import type { BaseLogger } from 'pino';
-import type { DataAssetTask } from '../../models.js';
+import { TaskType, type DataAssetTask } from '../../models.js';
 import { GlueClient, CreateCrawlerCommand, UpdateCrawlerCommand, GetCrawlerCommand, StartCrawlerCommand ,CreateCrawlerCommandInput, CrawlerTargets } from '@aws-sdk/client-glue';
 import { ulid } from 'ulid';
-import { PutParameterCommand, type SSMClient } from '@aws-sdk/client-ssm';
-import { ParameterType } from '@aws-sdk/client-databrew';
+import { putTaskData } from '../../../../common/s3Utils.js';
+import type { S3Client } from '@aws-sdk/client-s3';
 
 
 export class GlueCrawlerTask {
 	constructor(private log: BaseLogger,
 		private glueClient: GlueClient,
-		private ssmClient: SSMClient,
-		private glueDatabaseName: string
+		private glueDatabaseName: string,
+		private s3Client: S3Client,
+		private jobsBucket: string,
+		private jobsBucketPrefix: string
 	) {
 	}
 
@@ -38,15 +40,11 @@ export class GlueCrawlerTask {
 
 		await this.glueClient.send(new StartCrawlerCommand({
 			Name: crawlerName
-		}))
-
-		// We store the task token in SSM parameter using the requestId for future retrieval
-		await this.ssmClient.send(new PutParameterCommand({
-			Name: `/df/spoke/dataAsset/stateMachineExecution/create/${event.dataAsset.requestId}`,
-			Value: JSON.stringify(event),
-			Type: ParameterType.String,
-			Overwrite: true
 		}));
+
+		// We store the task input in s3 for later use
+
+		await putTaskData(this.s3Client,this.jobsBucket,this.jobsBucketPrefix,TaskType.GlueCrawlerTask, id, JSON.stringify(event));
 
 		this.log.debug(`GlueCrawlerTask > process > exit`);
 	}
