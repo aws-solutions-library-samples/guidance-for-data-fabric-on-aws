@@ -55,7 +55,7 @@ export class GlueCrawlerEventProcessor {
 				taskOutput.dataAsset.lineage = [];
 			}
 			const openLineageBuilder = new OpenLineageBuilder();
-            openLineageBuilder.setContext(taskOutput.dataAsset.catalog.domainId, taskOutput.dataAsset.catalog.domainId, taskOutput.dataAsset.execution.hubExecutionArn, ['TODO User'])
+			openLineageBuilder.setContext(taskOutput.dataAsset.catalog.domainId, taskOutput.dataAsset.catalog.domainId, taskOutput.dataAsset.execution.hubExecutionArn, ['TODO User'])
 			taskOutput.dataAsset.lineage.push(openLineageBuilder.build());
 
 			// Update the tableName
