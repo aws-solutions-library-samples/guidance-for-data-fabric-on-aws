@@ -1,7 +1,14 @@
 import type { Handler } from 'aws-lambda/handler';
-import type { Catalog, Workflow } from '../../api/dataAsset/schemas';
-import type { RunEvent } from '@df/events';
+import type { Workflow } from '../../api/dataAsset/schemas';
+import type { RunEvent, DataAssetCatalog } from '@df/events';
 
+export enum TaskType  {
+    DataProfileTask = 'DataProfileTask',
+    DataQualityProfileTask ='DataQualityProfileTask',
+    RecipeTask = 'RecipeTask',
+    GlueCrawlerTask = 'GlueCrawlerTask'
+
+}
 
 export type DataAssetJob = {
     id: string,
@@ -26,8 +33,8 @@ export type DataAssetExecution = {
 };
 
 export type DataAssetDetails = {
-    requestId: string,
-    catalog: Catalog,
+    requestId:string,
+    catalog: DataAssetCatalog,
     workflow: Workflow,
     execution?: DataAssetExecution,
     lineage?: Partial<RunEvent>[]
@@ -48,7 +55,6 @@ export type DataAssetEventBridgeEvent = {
 }
 
 export type DataAssetEvent = {
-
     dataAssetEvent: DataAssetEventBridgeEvent,
     execution: DataAssetTaskExecutionDetails
 }

@@ -137,7 +137,7 @@ export type DatasetOutput = {
      * Storage layer provider with allowed values: iceberg, delta."
      */
     name: string;
-    version: string;
+    version?: string;
     /**
      * Storage layer provider with allowed values: s3, glue, etc.
      */
@@ -145,7 +145,7 @@ export type DatasetOutput = {
     /**
      * File format with allowed values: parquet, orc, avro, json, csv, text, xml.
      */
-    fileFormat: string;
+    fileFormat?: string;
     /**
      * File format with allowed values: parquet, orc, avro, json, csv, text, xml.
      */

@@ -9,6 +9,7 @@ export interface GlueSpokeConstructProperties {
 
 export class GlueSpoke extends Construct {
   public readonly glueDatabaseName: string;
+  public readonly glueDatabaseArn: string;
 
   constructor(
     scope: Construct,
@@ -27,5 +28,6 @@ export class GlueSpoke extends Construct {
     });
 
     this.glueDatabaseName = glueDatabase.databaseName;
+    this.glueDatabaseArn = glueDatabase.databaseArn;
   }
 }
