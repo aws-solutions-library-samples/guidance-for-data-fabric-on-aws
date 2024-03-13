@@ -15,8 +15,6 @@ import type {
 export interface QualityResultInput {
     runId: string,
     result: QualityResult,
-    assetName: string,
-    assetNamespace: string
 }
 
 export interface ProfilingResultInput {
@@ -27,9 +25,9 @@ export interface ProfilingResultInput {
 }
 
 export interface RuleResult {
-    Name: string
-    Description: string
-    Result: 'FAIL' | 'PASS',
+    Name?: string
+    Description?: string
+    Result?: string,
     EvaluationMessage?: string
 }
 
@@ -198,16 +196,26 @@ export type DataFabricInput = {
 
 export class OpenLineageBuilder {
     private openLineageEvent: Partial<RunEvent>;
-    private readonly domainNamespace: string;
-    private readonly owners: { name: string }[];
+    private domainNamespace: string;
+    private owners: { name: string }[];
+    private domainId: string;
+    private domainName: string;
+    private stateMachineArn: string;
 
-    constructor(private readonly domainId: string, private readonly domainName: string, private readonly stateMachineArn: string, usernames: string[]) {
-        this.domainNamespace = `${this.domainName} - df.${this.domainId}`;
+    constructor() {
+    }
+
+    public setContext(domainId: string, domainName: string, stateMachineArn: string, usernames: string[]): OpenLineageBuilder {
+
+        this.domainNamespace = `${domainName} - df.${domainId}`;
+
         this.openLineageEvent = {
-            producer: this.stateMachineArn,
+            producer: stateMachineArn,
             schemaURL: "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"
         };
+
         this.owners = usernames.map(u => ({"name": `user:${u}`}))
+        return this;
     }
 
     public setOpenLineageEvent(event: Partial<RunEvent>): OpenLineageBuilder {
@@ -257,18 +265,20 @@ export class OpenLineageBuilder {
     }
 
     public setQualityResult(payload: QualityResultInput): OpenLineageBuilder {
-        const {result, assetNamespace, assetName, runId} = payload
-        const datasetInput = this.openLineageEvent.inputs.find(o => o.name === assetName && o.namespace === assetNamespace)
+        const {result, runId} = payload
+
+        const datasetInput = this.openLineageEvent.inputs.pop();
+
         datasetInput.facets.dataQualityAssertions = {
             _producer: runId,
             "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DataQualityAssertionsDatasetFacet.json",
             assertions: []
         }
+
         result.ruleResults.forEach(r => {
             datasetInput.facets.dataQualityAssertions.assertions.push({
                 assertion: r.Description,
                 success: r.Result === 'PASS'
-                // TODO: extract column whenever possible from description
             })
         })
         return this;

@@ -32,6 +32,7 @@ import { RecipeJobTask } from '../stepFunction/tasks/spoke/create/recipeJobTask.
 import { GlueCrawlerTask } from '../stepFunction/tasks/spoke/create/glueCrawlerTask.js';
 import { GlueCrawlerEventProcessor } from '../events/glueCrawler.eventProcessor.js';
 import { CleanUpTask } from '../stepFunction/tasks/spoke/create/cleanupTask.js';
+import { DataQualityProfileEventProcessor } from "../events/dataQualityProfile.eventProcessor";
 
 
 
@@ -42,6 +43,7 @@ declare module '@fastify/awilix' {
 	interface Cradle extends BaseCradle {
 		jobEventProcessor: JobEventProcessor;
 		glueCrawlerEventProcessor: GlueCrawlerEventProcessor;
+		dataQualityProfileEventProcessor: DataQualityProfileEventProcessor;
 		eventBridgeClient: EventBridgeClient;
 		dynamoDbUtils: DynamoDbUtils;
 		stepFunctionClient: SFNClient;
@@ -138,6 +140,7 @@ const registerContainer = (app?: FastifyInstance) => {
 	const JobsBucketPrefix = process.env['JOBS_BUCKET_PREFIX'];
 	const TableName = process.env['TABLE_NAME'];
 	const GlueDatabaseName = process.env['SPOKE_GLUE_DATABASE_NAME'];
+	const awsAccountId = process.env['AWS_ACCOUNT_ID'];
 
 	diContainer.register({
 
@@ -208,6 +211,22 @@ const registerContainer = (app?: FastifyInstance) => {
 					container.ssmClient,
 					// getSignedUrl
 					),
+			{
+				...commonInjectionOptions
+			}
+		),
+
+		// Event Processors
+		dataQualityProfileEventProcessor: asFunction(
+			(container) =>
+				new DataQualityProfileEventProcessor(
+					app.log,
+					container.sfnClient,
+					container.ssmClient,
+					container.glueClient,
+					awsAccountId,
+					awsRegion
+				),
 			{
 				...commonInjectionOptions
 			}
@@ -286,14 +305,14 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.stepFunctionClient), {
+		dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.glueClient, GlueDatabaseName, container.ssmClient), {
 			...commonInjectionOptions
 		}),
 
 		recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.stepFunctionClient, container.dataBrewClient, JobsBucketName, JobsBucketPrefix), {
 			...commonInjectionOptions
 		}),
-		
+
 		glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log, container.glueClient, container.ssmClient, GlueDatabaseName), {
 			...commonInjectionOptions
 		}),

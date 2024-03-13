@@ -6,10 +6,12 @@ describe('OpenLineageBuilder', () => {
     let builder: OpenLineageBuilder;
 
     beforeEach(() => {
-        builder = new OpenLineageBuilder('12345',
+        builder = new OpenLineageBuilder();
+
+        builder.setContext('12345',
             'sample_domain',
             'arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline',
-            ['testuser@admin.com']);
+            ['testuser@admin.com'])
     })
 
     describe('Derived data asset with custom transformation applied outside DF', () => {
@@ -598,8 +600,6 @@ describe('OpenLineageBuilder', () => {
                     eventType: 'COMPLETE'
                 })
                 .setQualityResult({
-                    assetName: "sampleAssetName",
-                    assetNamespace: "asset.namespace.other",
                     result: qualityResult,
                     runId: "8948df56-2116-401f-9349-95c42b646047"
                 });

@@ -45,7 +45,7 @@ export class GlueCrawlerEventProcessor {
 		//Has there been a table update if so update the task output & lineage
 		if (
 			event.detail.tablesCreated > 0 || event.detail.partitionsCreated > 0
-			|| event.detail.tablesUpdated > 0 || event.detail.partitionsUpdated > 0 
+			|| event.detail.tablesUpdated > 0 || event.detail.partitionsUpdated > 0
 			|| event.detail.tablesDeleted > 0 || event.detail.partitionsDeleted > 0
 		) {
 			taskOutput.dataAsset['glueDeltaDetected'] = true;
@@ -54,8 +54,9 @@ export class GlueCrawlerEventProcessor {
 			if (!taskOutput?.dataAsset.lineage) {
 				taskOutput.dataAsset.lineage = [];
 			}
-			const lineage = new OpenLineageBuilder(taskOutput.dataAsset.catalog.domainId, taskOutput.dataAsset.catalog.domainId, taskOutput.dataAsset.execution.hubExecutionArn, ['TODO User']);
-			taskOutput.dataAsset.lineage.push(lineage);
+			const openLineageBuilder = new OpenLineageBuilder();
+            openLineageBuilder.setContext(taskOutput.dataAsset.catalog.domainId, taskOutput.dataAsset.catalog.domainId, taskOutput.dataAsset.execution.hubExecutionArn, ['TODO User'])
+			taskOutput.dataAsset.lineage.push(openLineageBuilder.build());
 
 			// Update the tableName
 			taskOutput.dataAsset.execution.glueTableName = await this.getTableName(event.detail.crawlerName);
