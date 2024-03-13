@@ -127,9 +127,13 @@ export class RecipeJobTask {
 			Outputs: [
 			{
 				Location: {
-				Bucket: this.jobsBucket,
-				Key: outputKey,
+					Bucket: this.jobsBucket,
+					Key: outputKey,
 				},
+				Format: event.dataAsset.workflow.transforms?.targetFormat ? event.dataAsset.workflow.transforms.targetFormat.toUpperCase() : undefined,
+				CompressionFormat: event.dataAsset.workflow.transforms?.targetCompression ? event.dataAsset.workflow.transforms.targetCompression.toUpperCase() : undefined,
+				Overwrite: true,
+				MaxOutputFiles: 1
 			},
 			],
 			Tags: {
