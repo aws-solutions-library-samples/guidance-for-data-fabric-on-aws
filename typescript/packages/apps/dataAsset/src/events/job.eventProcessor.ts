@@ -1,7 +1,7 @@
-import type { JobStateChangeEvent, DataAssetSpokeJobCompletionEvent } from '@df/events';
+import type { JobStateChangeEvent } from '@df/events';
 import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
-import { DataBrewClient, DescribeJobCommand, DescribeJobRunCommand } from '@aws-sdk/client-databrew';
+import { DataBrewClient, DescribeJobCommand, DescribeJobRunCommand, JobType } from '@aws-sdk/client-databrew';
 // import type { RequestPresigningArguments } from '@aws-sdk/types';
 // import type { ProfileColumns } from '../api/dataAsset/schemas';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
@@ -24,15 +24,8 @@ export class JobEventProcessor {
 	) {
 	}
 
-	// TODO John: you need to add the event process for the recipe jobs here. this file will be modified and the name of the functions will be refactored.
-	// Feel free to split it into another event file
-	public async recipeJobCompletionEvent(event: DataAssetSpokeJobCompletionEvent): Promise<void> {
-		this.log.info(`JobEventProcessor > recipeJobCompletionEvent > in ${JSON.stringify(event)}`);
-	}
-
-	// This event needs to move to the spoke app
-	public async profileJobCompletionEvent(event: JobStateChangeEvent): Promise<void> {
-		this.log.info(`JobEventProcessor > profileJobCompletionEvent >in  event: ${JSON.stringify(event)}`);
+	public async processJobCompletionEvent(event: JobStateChangeEvent): Promise<void> {
+		this.log.info(`JobEventProcessor > processJobCompletionEvent >in  event: ${JSON.stringify(event)}`);
 
 		validateNotEmpty(event, 'Job enrichment event');
 
@@ -46,19 +39,31 @@ export class JobEventProcessor {
 		//Get the task payload
 		const taskInput:DataAssetTask = await getTaskData(this.s3Client,this.jobsBucket,this.jobsBucketPrefix,TaskType.DataProfileTask, id);
 
-		taskInput.dataAsset.execution= {
-			dataProfileJob: {
-				id: event.detail.jobRunId,
-				status: event.detail.state,
-				stopTime: run.CompletedOn.toString(),
-				startTime: run.ExecutionTime.toString(),
-				message: event.detail.message,
+		if (job.Type === JobType.RECIPE) {
+			taskInput.dataAsset.execution= {
+				recipeJob: {
+					id: event.detail.jobRunId,
+					status: event.detail.state,
+					stopTime: run.CompletedOn.toString(),
+					startTime: run.ExecutionTime.toString(),
+					message: event.detail.message,
+				}
+			}
+		} else if (job.Type === JobType.PROFILE) {
+			taskInput.dataAsset.execution= {
+				dataProfileJob: {
+					id: event.detail.jobRunId,
+					status: event.detail.state,
+					stopTime: run.CompletedOn.toString(),
+					startTime: run.ExecutionTime.toString(),
+					message: event.detail.message,
+				}
 			}
 		}
 
 		await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken }));
 
-		this.log.info(`JobEventProcessor > profileJobCompletionEvent >exit`);
+		this.log.info(`JobEventProcessor > processJobCompletionEvent >exit`);
 		return;
 	}
 

@@ -296,7 +296,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.stepFunctionClient, container.dataBrewClient, JobsBucketName, JobsBucketPrefix), {
+		recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.s3Client, container.dataBrewClient, JobsBucketName, JobsBucketPrefix), {
 			...commonInjectionOptions
 		}),
 		

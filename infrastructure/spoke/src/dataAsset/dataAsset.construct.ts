@@ -279,6 +279,7 @@ export class DataAssetSpoke extends Construct {
         recipeJobLambda.addToRolePolicy(DataBrewPolicy);
         recipeJobLambda.addToRolePolicy(SSMPolicy);
         recipeJobLambda.addToRolePolicy(IAMPassRolePolicy);
+        recipeJobLambda.addToRolePolicy(GluePolicy);
         bucket.grantPut(recipeJobLambda);
 
         const profileJobLambda = new NodejsFunction(this, 'ProfileJobLambda', {

@@ -32,7 +32,7 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 	// } else 
 	if ( (event['detail-type'] as string) === DATA_BREW_JOB_STATE_CHANGE && event['source'] === 'aws.databrew' ) {
 		
-		await jobEventProcessor.profileJobCompletionEvent(event as unknown as JobStateChangeEvent);
+		await jobEventProcessor.processJobCompletionEvent(event as unknown as JobStateChangeEvent);
 
 	// Filter Glue crawler events
 	} else if ( (event['detail-type'] as string) === GLUE_CRAWLER_STATE_CHANGE && event['source'] === 'aws.glue' && ['Succeeded','Failed'].includes(event['detail']['state']) ) {

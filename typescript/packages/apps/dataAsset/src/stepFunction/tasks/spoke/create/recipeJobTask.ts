@@ -1,13 +1,14 @@
 import type { BaseLogger } from "pino";
-import { SFNClient, SendTaskSuccessCommand } from "@aws-sdk/client-sfn";
+import type { S3Client } from '@aws-sdk/client-s3';
 import { StartJobRunCommand, type DataBrewClient, CreateRecipeJobCommand, CreateRecipeCommand, DeleteJobCommand, DescribeRecipeCommand, PublishRecipeCommand, TagResourceCommand, UpdateRecipeCommand } from '@aws-sdk/client-databrew';
-import type { DataAssetTask } from "../../models.js";
+import { type DataAssetTask, TaskType } from "../../models.js";
 import { ulid } from 'ulid';
+import { putTaskData } from '../../../../common/s3Utils.js';
 
 export class RecipeJobTask {
   constructor(
 		private log: BaseLogger,
-		private sfnClient: SFNClient,
+		private s3Client: S3Client,
 		private dataBrewClient: DataBrewClient,
 		private jobsBucket: string,
 		private jobsBucketPrefix: string
@@ -153,17 +154,13 @@ export class RecipeJobTask {
 
     this.log.debug(`recipeJob: ${JSON.stringify(recipeJob)}`);
 
-    // Run the Job if the job is on Demand
+    // Run the Job
     await this.dataBrewClient.send(
       new StartJobRunCommand({ Name: recipeJob.Name })
     );
 
-    await this.sfnClient.send(
-      new SendTaskSuccessCommand({
-        output: JSON.stringify(event),
-        taskToken: event.execution.taskToken,
-      })
-    );
+	// Update task data in S3 for next task
+    await putTaskData(this.s3Client, this.jobsBucket, this.jobsBucketPrefix, TaskType.DataProfileTask, id, JSON.stringify(event));
 
     this.log.info(`RecipeJobTask > process > exit:`);
   }
