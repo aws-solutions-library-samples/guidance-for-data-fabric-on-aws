@@ -29,17 +29,22 @@ describe('DataQualityProfileJobTask', () => {
                 },
                 requestId: '12345',
                 catalog: {
-                    domainId: '',
+                    domainId: '1111',
+                    domainName: 'TestName',
                     environmentId: '',
                     assetName: '',
                     accountId: '',
                     autoPublish: false,
 
                 },
+                lineage:[],
                 workflow: {
                     name: 'create-data-asset',
                     roleArn: 'arn:aws:iam::033295216537:role/service-role/AWSGlueServiceRole-SIF',
-                    dataset: undefined,
+                    dataset: {
+                        name: 'some dataset name',
+                        format: 'avro'
+                    },
                     dataQuality: {
                         ruleset: `Rules = [ (ColumnValues "groupvalue" >= 26) OR (ColumnLength "groupvalue" >= 4) ]`
                     }

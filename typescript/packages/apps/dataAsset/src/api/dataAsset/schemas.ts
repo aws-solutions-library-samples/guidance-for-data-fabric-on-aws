@@ -51,6 +51,7 @@ export type Tags = Static<typeof tags>;
 
 export const catalog = Type.Object({
     domainId: Type.String({ description: 'Data Zone domain id' }),
+    domainName: Type.String({ description: 'Data Zone domain name' }),
     environmentId: Type.String({ description: 'Data Zone environment id' }),
     projectId: Type.Optional(Type.String({ description: 'Data Zone project id' })),
     region: Type.Optional(Type.String({ description: 'Data Zone environment region' })),

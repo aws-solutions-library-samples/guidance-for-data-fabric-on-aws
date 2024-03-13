@@ -167,7 +167,7 @@ export type CustomDatasetInput = {
     /**
      * Version of the input dataset
      */
-    version: string;
+    version?: string;
     /**
      * Name of the input dataset
      */
@@ -266,8 +266,8 @@ export class OpenLineageBuilder {
 
     public setQualityResult(payload: QualityResultInput): OpenLineageBuilder {
         const {result, runId} = payload
-
-        const datasetInput = this.openLineageEvent.inputs.pop();
+        // TODO: Will there be more than one input and how can we differentiate them
+        const datasetInput = this.openLineageEvent.inputs[0];
 
         datasetInput.facets.dataQualityAssertions = {
             _producer: runId,

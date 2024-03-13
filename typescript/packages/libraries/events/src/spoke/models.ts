@@ -45,6 +45,7 @@ export interface DataQualityResultsAvailableDetail {
 }
 
 export interface DataQualityResultsAvailableEvent {
+    version:string;
     account: string,
     region: string,
     source: string,

@@ -140,7 +140,6 @@ const registerContainer = (app?: FastifyInstance) => {
 	const JobsBucketPrefix = process.env['JOBS_BUCKET_PREFIX'];
 	const TableName = process.env['TABLE_NAME'];
 	const GlueDatabaseName = process.env['SPOKE_GLUE_DATABASE_NAME'];
-	const awsAccountId = process.env['AWS_ACCOUNT_ID'];
 
 	diContainer.register({
 
@@ -223,9 +222,7 @@ const registerContainer = (app?: FastifyInstance) => {
 					app.log,
 					container.sfnClient,
 					container.ssmClient,
-					container.glueClient,
-					awsAccountId,
-					awsRegion
+					container.glueClient
 				),
 			{
 				...commonInjectionOptions
