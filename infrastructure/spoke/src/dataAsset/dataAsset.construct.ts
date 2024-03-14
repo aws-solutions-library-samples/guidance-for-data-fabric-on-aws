@@ -96,7 +96,9 @@ export class DataAssetSpoke extends Construct {
                 'glue:UpdateDataQualityRuleset',
                 'glue:GetDataQualityRulesetEvaluationRun',
                 'glue:GetDataQualityResult',
-                'glue:GetDataQualityRuleset'],
+                'glue:GetDataQualityRuleset',
+                'glue:GetTags'
+            ],
             resources: [
                 `arn:aws:glue:${region}:${accountId}:dataQualityRuleset*`
             ]
@@ -356,7 +358,8 @@ export class DataAssetSpoke extends Construct {
             environment: {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
                 JOBS_BUCKET_NAME: props.bucketName,
-                JOBS_BUCKET_PREFIX: 'jobs'
+                JOBS_BUCKET_PREFIX: 'jobs',
+                SPOKE_GLUE_DATABASE_NAME: glueDatabase.databaseName
             },
             bundling: {
                 minify: true,
@@ -377,6 +380,7 @@ export class DataAssetSpoke extends Construct {
         dqProfileJobLambda.addToRolePolicy(DataQualityPolicy);
         dqProfileJobLambda.addToRolePolicy(SSMPolicy);
         dqProfileJobLambda.addToRolePolicy(IAMPassRolePolicy);
+        dqProfileJobLambda.addToRolePolicy(GluePolicy);
         bucket.grantPut(dqProfileJobLambda);
 
         const glueCrawlerLambda = new NodejsFunction(this, 'GlueCrawlerLambda', {
@@ -412,34 +416,6 @@ export class DataAssetSpoke extends Construct {
         glueCrawlerLambda.addToRolePolicy(IAMPassRolePolicy);
         glueCrawlerLambda.addToRolePolicy(GluePolicy);
         bucket.grantPut(glueCrawlerLambda);
-
-        const spokeCleanupLambda = new NodejsFunction(this, 'SpokeCleanupLambda', {
-            description: 'Asset Manager Spoke Cleanup Task Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/cleanup.handler.ts'),
-            functionName: `${namePrefix}-${props.moduleName}-create-cleanupTask`,
-            runtime: Runtime.NODEJS_18_X,
-            tracing: Tracing.ACTIVE,
-            memorySize: 512,
-            logRetention: RetentionDays.ONE_WEEK,
-            timeout: Duration.minutes(5),
-            environment: {
-                JOBS_BUCKET_NAME: props.bucketName,
-                JOBS_BUCKET_PREFIX: 'jobs'
-            },
-            bundling: {
-                minify: true,
-                format: OutputFormat.ESM,
-                target: 'node18.16',
-                sourceMap: false,
-                sourcesContent: false,
-                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-                externalModules: ['aws-sdk', 'pg-native']
-            },
-            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-            architecture: getLambdaArchitecture(scope)
-        });
-
-        spokeCleanupLambda.addToRolePolicy(StateMachinePolicy);
 
         const spokeLineageLambda = new NodejsFunction(this, 'SpokeLineageLambda', {
             description: 'Asset Manager Spoke Lineage Task Handler',
@@ -586,19 +562,6 @@ export class DataAssetSpoke extends Construct {
             outputPath: '$.dataAsset'
         });
 
-        // const cleanupTask = new LambdaInvoke(this, 'CleanupTask', {
-        //     lambdaFunction: spokeCleanupLambda,
-        //     integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
-        //     payload: TaskInput.fromObject({
-        //         'dataAsset.$': '$.[0]',
-        //         'execution': {
-        //             'executionStartTime.$': '$$.Execution.StartTime',
-        //             'executionArn.$': '$$.Execution.Id',
-        //             'taskToken': JsonPath.taskToken
-        //         }
-        //     }),
-        //     outputPath: '$.dataAsset'
-        // });
 
         const lineageTask = new LambdaInvoke(this, 'LineageTask', {
             lambdaFunction: spokeLineageLambda,
@@ -611,7 +574,7 @@ export class DataAssetSpoke extends Construct {
                     'taskToken': JsonPath.taskToken
                 }
             }),
-            outputPath: '$.dataAsset'
+            outputPath: '$'
         });
 
         const deadLetterQueue = new Queue(this, 'DeadLetterQueue');
@@ -643,13 +606,9 @@ export class DataAssetSpoke extends Construct {
         const profilingTasks = new Parallel(this, 'ProfilingTasks')
             .branch(
                 new Choice(this, 'Data Quality Profile?')
-                    .when(Condition.isPresent('$.workflow.profile'), dqProfileJobTask)
+                    .when(Condition.isPresent('$.workflow.dataQuality'), dqProfileJobTask)
                     .otherwise(new Succeed(this, 'No Data Quality Profile')))
             .branch(profileJobTask);
-
-        // const deltaDetectedChoice = new Choice(this, 'change detected in source data ?')
-        //     .otherwise(cleanupTask.next(lineageTask))
-        //     .when(Condition.booleanEquals('$.glueDeltaDetected', true));
 
         const transformChoice = new Choice(this, 'Is transform present Found ?')
             .otherwise(glueCrawlerTask.next(profileCreateDataSetTask.next(profilingTasks).next(lineageTask)))
@@ -739,6 +698,7 @@ export class DataAssetSpoke extends Construct {
 
         spokeEventBus.grantPutEventsTo(eventProcessorLambda);
         bucket.grantRead(eventProcessorLambda);
+        bucket.grantPut(eventProcessorLambda);
         eventProcessorLambda.addToRolePolicy(JobCompletionPolicy);
         eventProcessorLambda.addToRolePolicy(SSMPolicy);
         eventProcessorLambda.addToRolePolicy(StateMachinePolicy);
@@ -765,10 +725,11 @@ export class DataAssetSpoke extends Construct {
         const glueCrawlerRule = new Rule(this, 'glueCrawlerRule', {
             eventBus: defaultEventBus,
             eventPattern: {
-                source: ['aws.glue'],
+                source: ['aws.glue','aws.glue-dataquality'],
                 detailType: [
                     GLUE_CRAWLER_STATE_CHANGE,
-                    DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE]
+                    DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE
+                ]
             }
         });
 
@@ -779,6 +740,7 @@ export class DataAssetSpoke extends Construct {
                 retryAttempts: 2
             })
         );
+        
 
 
         // Rule for Create Flow completion events
@@ -870,6 +832,7 @@ export class DataAssetSpoke extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
+                        'Action::s3:Abort*',
                         'Action::s3:GetBucket*',
                         'Action::s3:GetObject*',
                         'Action::s3:List*',
@@ -898,7 +861,6 @@ export class DataAssetSpoke extends Construct {
             dqProfileJobLambda,
             recipeJobLambda,
             glueCrawlerLambda,
-            spokeCleanupLambda,
             spokeLineageLambda
         ],
             [
@@ -948,8 +910,7 @@ export class DataAssetSpoke extends Construct {
                         'Resource::<DataAssetSpokeRecipeJobLambda27C4CF5E.Arn>:*',
                         'Resource::<DataAssetSpokeDQProfileJobLambda46CE9CB6.Arn>:*',
                         'Resource::<DataAssetSpokeGlueCrawlerLambda66DF909B.Arn>:*',
-                        'Resource::<DataAssetSpokeSpokeLineageLambda88C4B5EF.Arn>:*',
-                        'Resource::<DataAssetSpokeSpokeCleanupLambda2DF1D423.Arn>:*'
+                        'Resource::<DataAssetSpokeSpokeLineageLambda88C4B5EF.Arn>:*'
                     ],
                     reason: 'this policy is required to invoke lambda specified in the state machine definition'
                 },

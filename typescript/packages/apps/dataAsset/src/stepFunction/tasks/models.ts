@@ -3,10 +3,10 @@ import type { Workflow } from '../../api/dataAsset/schemas';
 import type { DataAssetCatalog, RunEvent } from '@df/events';
 
 export enum TaskType {
-    DataProfileTask = 'DataProfileTask',
+    DataProfileTask = 'df_data_profile',
     DataQualityProfileTask = 'DataQualityProfileTask',
-    RecipeTask = 'RecipeTask',
-    GlueCrawlerTask = 'GlueCrawlerTask',
+    RecipeTask = 'df_recipe',
+    GlueCrawlerTask = 'df_glue_crawler',
     lineageTask = 'lineageTask'
 
 }

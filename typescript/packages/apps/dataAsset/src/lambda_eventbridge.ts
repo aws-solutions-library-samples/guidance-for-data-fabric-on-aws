@@ -18,20 +18,7 @@ const dataQualityEventProcessor = di.resolve<DataQualityProfileEventProcessor>('
 export const handler: EventBridgeHandler<string, EventDetails, void> = async (event, _context: Context, _callback: Callback) => {
 	app.log.info(`EventBridgeLambda > handler > event: ${JSON.stringify(event)}`);
 
-	// TODO Remove Job Start Events we no longer have start events
-	// Filter job start event
-	// if ((event['detail-type'] as string).startsWith(DATA_ASSET_SPOKE_JOB_START_EVENT)) {
-
-	// 	const detail = eventDetail as DataAssetJobStartEvent;
-	// 	await jobEventProcessor.jobStartEvent(detail);
-
-	// } else
-	//  if ((event['detail-type'] as string).startsWith(DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT)) {
-
-	// 	await jobEventProcessor.jobCompletionEvent(event as DataAssetSpokeJobCompletionEvent);
-
-	// // Filter Data brew Job status change events
-	// } else
+	// Filter Data brew Job status change events
 	if ( (event['detail-type'] as string) === DATA_BREW_JOB_STATE_CHANGE && event['source'] === 'aws.databrew' ) {
 		await jobEventProcessor.processJobCompletionEvent(event as unknown as JobStateChangeEvent);
 
@@ -40,8 +27,8 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 
 		await glueCrawlerEventProcessor.completionEvent(event as unknown as CrawlerStateChangeEvent);
 
-	// any other events are not handled
-	} else if ((event['detail-type'] as string) === DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE && event['source'] === 'aws.glue' && ['SUCCEEDED', 'FAILED'].includes(event['detail']['state'])) {
+	// Filter Glue Data quality events
+	} else if ((event['detail-type'] as string) === DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE && event['source'] === 'aws.glue-dataquality' && ['SUCCEEDED', 'FAILED'].includes(event['detail']['state'])) {
         await dataQualityEventProcessor.dataQualityProfileCompletionEvent(event as unknown as DataQualityResultsAvailableEvent);
         // any other events are not handled
     } else {

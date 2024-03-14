@@ -1,10 +1,10 @@
-import type { JobStateChangeEvent } from '@df/events';
+import { OpenLineageBuilder, type CustomDatasetInput, type JobStateChangeEvent, type RunEvent } from '@df/events';
 import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
-import { DataBrewClient, DescribeJobCommand, DescribeJobRunCommand, JobType } from '@aws-sdk/client-databrew';
+import { DataBrewClient, DescribeJobCommand, DescribeJobRunCommand, DescribeJobRunCommandOutput, JobType } from '@aws-sdk/client-databrew';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
-import type { S3Utils } from '../common/s3Utils';
-import { type DataAssetTask, TaskType } from '../stepFunction/tasks/models';
+import type { S3Utils } from '../common/s3Utils.js';
+import { type DataAssetTask, TaskType } from '../stepFunction/tasks/models.js';
 
 export class JobEventProcessor {
     constructor(
@@ -28,9 +28,10 @@ export class JobEventProcessor {
         const run = await this.dataBrewClient.send(new DescribeJobRunCommand({RunId: event.detail.jobRunId, Name: event.detail.jobName}));
 
         //Get the task payload
-        const taskInput: DataAssetTask = await this.s3Utils.getTaskData(TaskType.DataProfileTask, id);
+        let  taskInput: DataAssetTask ;
 
         if (job.Type === JobType.RECIPE) {
+            taskInput = await this.s3Utils.getTaskData(TaskType.RecipeTask, id);
             taskInput.dataAsset.execution = {
                 recipeJob: {
                     id: event.detail.jobRunId,
@@ -40,7 +41,9 @@ export class JobEventProcessor {
                     message: event.detail.message,
                 }
             }
+            taskInput.dataAsset.lineage[`${TaskType.RecipeTask}-${id}`] = this.constructLineage(id, taskInput, event, job.Type, run );
         } else if (job.Type === JobType.PROFILE) {
+            taskInput = await this.s3Utils.getTaskData(TaskType.DataProfileTask, id);
             taskInput.dataAsset.execution = {
                 dataProfileJob: {
                     id: event.detail.jobRunId,
@@ -50,7 +53,10 @@ export class JobEventProcessor {
                     message: event.detail.message,
                 }
             }
+            taskInput.dataAsset.lineage[`${TaskType.DataProfileTask}-${id}`] = this.constructLineage(id, taskInput, event, job.Type, run);
         }
+
+        
 
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken}));
 
@@ -58,59 +64,54 @@ export class JobEventProcessor {
         return;
     }
 
-    // private async constructProfile(event: DataAssetSpokeJobCompletionEvent): Promise<DataProfile> {
-    // 	this.log.info(`JobEventProcessor > constructProfile > in`);
+    private constructLineage(id: string, dataAssetTask: DataAssetTask, event: JobStateChangeEvent, jobType:string, run: DescribeJobRunCommandOutput ): Partial<RunEvent> {
+        const asset = dataAssetTask.dataAsset;
 
-    // 	const signedUrl = event.detail.job.profileSignedUrl;
-    // 	const response = await axios.get(signedUrl);
-    // 	const profileData = response.data;
-    // 	const extractedColumnData = await this.extractColumnProfiles(profileData);
-    // 	const dataProfile: DataProfile = {
-    // 		summary: {
-    // 			sampleSize: profileData?.['sampleSize'],
-    // 			columnCount: profileData?.['columns'].length,
-    // 			duplicateRowsCount: profileData?.['duplicateRowsCount'],
-    // 			location: event.detail.job.profileLocation,
-    // 			totalMissingValues: extractedColumnData.totalMissingValues
-    // 		},
-    // 		columns: extractedColumnData.columns
-    // 	}
-    // 	this.log.info(`JobEventProcessor > constructProfile > exit`);
-    // 	return dataProfile;
-    // }
+        const builder = new OpenLineageBuilder();
+        const jobPrefix = (jobType == JobType.PROFILE) ? TaskType.DataProfileTask: TaskType.RecipeTask;
+        const res =  builder
+            .setContext(asset.catalog.domainId, asset.catalog.domainName, asset.execution.hubExecutionArn)
+            .setJob(
+                {
+                    // Supplied by StateMachine task
+                    jobName: `${jobPrefix}_${id}`,
+                    // Supplied by user
+                    assetName: asset.catalog.assetName
+                })
+            .setStartJob(
+                {
+                    executionId: event.detail.jobName,
+                    startTime: run.StartedOn.toISOString()
+                })
+            .setEndJob({
+                endTime: run.CompletedOn.toISOString(),
+                eventType: 'COMPLETE'
+            });
 
-    // private async extractColumnProfiles(profileData: any): Promise<ExtractedColumns> {
-    // 	this.log.info(`JobEventProcessor > extractColumnProfiles > in`);
-    // 	const profileColumns: ProfileColumns = [];
-    // 	let totalMissingValues = 0;
-    // 	if (profileData?.['columns']) {
-    // 		for (let column of profileData?.['columns']) {
-    // 			profileColumns.push({
-    // 				name: column['name'] as string,
-    // 				type: column['type'] as string,
-    // 				distinctValuesCount: column?.['distinctValuesCount'] as number,
-    // 				uniqueValuesCount: column?.['uniqueValuesCount'] as number,
-    // 				missingValuesCount: column?.['missingValuesCount'] as number,
-    // 				mostCommonValues: ((column?.['mostCommonValues'])? column?.['mostCommonValues'] : []).slice(0, 5),
-    // 				max: column?.['max'] as number,
-    // 				min: column?.['min'] as number,
-    // 				mean: column?.['mean'] as number
-    // 			});
-    // 			totalMissingValues += (!column?.['missingValuesCount']) ? 0 : (column?.['missingValuesCount'] as number);
-    // 			this.log.info(`JobEventProcessor > extractColumnProfiles > exit`);
-    // 		}
+            if (jobType == JobType.PROFILE){
 
-    // 	}
-    // 	this.log.info(`JobEventProcessor > extractColumnProfiles > exit ${JSON.stringify(profileColumns)}, totalMissingValues:${totalMissingValues}`);
-    // 	return { columns: profileColumns, totalMissingValues };
-    // }
+                const customInput: CustomDatasetInput = {
+                    type: 'Custom',
+                    dataSource: {
+                        url: `${asset.execution.glueDatabaseName}/${asset.execution.glueTableName}`,
+                        name: asset.catalog.assetName
+                    },
+                    storage: {
+                        storageLayer: 'glue'
+                    },
+                    name: asset.execution.glueTableName,
+                    producer: 'TODO User info'
+                };
+                const location = this.s3Utils.getProfilingJobOutputLocation(id, dataAssetTask.dataAsset.catalog.domainId, dataAssetTask.dataAsset.catalog.projectId)
+                res
+                .setDatasetInput(customInput)
+                .setDatasetOutput({
+                    name: `s3://${location.Bucket}/${location.Key}`,
+                    storageLayer: 's3',
+                })
+            }
 
+            return res.build()
 
+    }
 }
-
-// type ExtractedColumns = {
-// 	totalMissingValues: number,
-// 	columns: ProfileColumns
-// }
-
-// export type GetSignedUrl = (client: S3Client, command: GetObjectCommand, options?: RequestPresigningArguments) => Promise<string>;

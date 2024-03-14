@@ -33,9 +33,8 @@ import { SSMClient } from '@aws-sdk/client-ssm';
 import { RecipeJobTask } from '../stepFunction/tasks/spoke/create/recipeJobTask.js';
 import { GlueCrawlerTask } from '../stepFunction/tasks/spoke/create/glueCrawlerTask.js';
 import { GlueCrawlerEventProcessor } from '../events/glueCrawler.eventProcessor.js';
-import { CleanUpTask } from '../stepFunction/tasks/spoke/create/cleanupTask.js';
-import { DataQualityProfileEventProcessor } from "../events/dataQualityProfile.eventProcessor";
-import { S3Utils } from "../common/s3Utils";
+import { DataQualityProfileEventProcessor } from "../events/dataQualityProfile.eventProcessor.js";
+import { S3Utils } from "../common/s3Utils.js";
 
 const {captureAWSv3Client} = pkg;
 
@@ -81,7 +80,6 @@ declare module '@fastify/awilix' {
         recipeJobTask: RecipeJobTask;
         glueCrawlerTask: GlueCrawlerTask;
         spokeLineageTask: SpokeLineageTask;
-        cleanupTask: CleanUpTask;
     }
 }
 
@@ -325,10 +323,6 @@ const registerContainer = (app?: FastifyInstance) => {
             GlueDatabaseName,
             container.s3Utils
         ), {
-            ...commonInjectionOptions
-        }),
-
-        cleanupTask: asFunction((container: Cradle) => new CleanUpTask(app.log, container.stepFunctionClient), {
             ...commonInjectionOptions
         }),
 

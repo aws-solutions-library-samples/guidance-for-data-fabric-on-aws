@@ -228,6 +228,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 3.370.0
         version: 3.370.0
+      '@aws-sdk/smithy-client':
+        specifier: 3.374.0
+        version: 3.374.0
       '@aws-sdk/types':
         specifier: 3.370.0
         version: 3.370.0
@@ -288,6 +291,9 @@ importers:
       fastify-plugin:
         specifier: 4.5.1
         version: 4.5.1
+      merge:
+        specifier: 2.1.1
+        version: 2.1.1
       ulid:
         specifier: 2.3.0
         version: 2.3.0
@@ -4834,6 +4840,15 @@ packages:
       tslib: 2.6.2
     dev: false
 
+  /@aws-sdk/smithy-client@3.374.0:
+    resolution: {integrity: sha512-YQBdO/Nv5EXBg/qfMF4GgYYLNN3Y/06MyuVBYILC1TKAnMoLy2FV0VOYyediagepAcWPdJqyUq4MCNNBy0CPRg==}
+    engines: {node: '>=14.0.0'}
+    deprecated: This package has moved to @smithy/smithy-client
+    dependencies:
+      '@smithy/smithy-client': 1.1.0
+      tslib: 2.6.2
+    dev: false
+
   /@aws-sdk/token-providers@3.370.0:
     resolution: {integrity: sha512-EyR2ZYr+lJeRiZU2/eLR+mlYU9RXLQvNyGFSAekJKgN13Rpq/h0syzXVFLP/RSod/oZenh/fhVZ2HwlZxuGBtQ==}
     engines: {node: '>=14.0.0'}
@@ -9070,6 +9085,10 @@ packages:
   /merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
+
+  /merge@2.1.1:
+    resolution: {integrity: sha512-jz+Cfrg9GWOZbQAnDQ4hlVnQky+341Yk5ru8bZSe6sIDTCIg8n9i/u7hSQGSVOF3C7lH6mGtqjkiT9G4wFLL0w==}
+    dev: false
 
   /micromatch@4.0.5:
     resolution: {integrity: sha512-DMy+ERcEW2q8Z2Po+WNXuw3c5YaUSFjAO5GsJqfEl7UjvtIuFKO6ZrKvcItdy98dwFI2N1tg3zNIdKaQT+aNdA==}
