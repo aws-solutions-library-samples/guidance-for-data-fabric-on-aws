@@ -1,5 +1,5 @@
-import type { Workflow } from "../api/dataAsset/schemas";
-import { S3Utils } from "./s3Utils";
+import type { Workflow } from "../api/dataAsset/schemas.js";
+import { S3Utils } from "./s3Utils.js";
 
 
 export const ConnectionToAssetTypeMap = {

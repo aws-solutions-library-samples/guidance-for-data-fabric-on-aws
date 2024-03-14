@@ -4,7 +4,7 @@ import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 import { GetTagsCommand, GlueClient, ListCrawlsCommand } from '@aws-sdk/client-glue';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
-import { type DataAssetTask, TaskType } from '../stepFunction/tasks/models';
+import { type DataAssetTask, TaskType } from '../stepFunction/tasks/models.js';
 import { getConnectionType } from '../common/utils.js';
 import type { S3Utils } from '../common/s3Utils.js';
 

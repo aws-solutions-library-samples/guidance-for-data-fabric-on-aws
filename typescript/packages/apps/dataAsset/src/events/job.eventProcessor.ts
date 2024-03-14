@@ -3,8 +3,8 @@ import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 import { DataBrewClient, DescribeJobCommand, DescribeJobRunCommand, JobType } from '@aws-sdk/client-databrew';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
-import type { S3Utils } from '../common/s3Utils';
-import { type DataAssetTask, TaskType } from '../stepFunction/tasks/models';
+import type { S3Utils } from '../common/s3Utils.js';
+import { type DataAssetTask, TaskType } from '../stepFunction/tasks/models.js';
 
 export class JobEventProcessor {
     constructor(

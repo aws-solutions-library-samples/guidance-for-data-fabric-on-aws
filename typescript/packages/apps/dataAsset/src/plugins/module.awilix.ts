@@ -32,8 +32,8 @@ import { RecipeJobTask } from '../stepFunction/tasks/spoke/create/recipeJobTask.
 import { GlueCrawlerTask } from '../stepFunction/tasks/spoke/create/glueCrawlerTask.js';
 import { GlueCrawlerEventProcessor } from '../events/glueCrawler.eventProcessor.js';
 import { CleanUpTask } from '../stepFunction/tasks/spoke/create/cleanupTask.js';
-import { DataQualityProfileEventProcessor } from "../events/dataQualityProfile.eventProcessor";
-import { S3Utils } from "../common/s3Utils";
+import { DataQualityProfileEventProcessor } from "../events/dataQualityProfile.eventProcessor.js";
+import { S3Utils } from "../common/s3Utils.js";
 
 const {captureAWSv3Client} = pkg;
 

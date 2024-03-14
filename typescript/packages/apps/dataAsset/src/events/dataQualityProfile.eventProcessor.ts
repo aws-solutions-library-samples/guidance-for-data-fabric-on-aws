@@ -4,9 +4,9 @@ import type { BaseLogger } from "pino";
 import type { SFNClient } from "@aws-sdk/client-sfn";
 import { SendTaskSuccessCommand } from "@aws-sdk/client-sfn";
 import { GetDataQualityResultCommand, GetDataQualityRulesetEvaluationRunCommand, GetTagsCommand, GlueClient } from "@aws-sdk/client-glue";
-import { TaskType } from "../stepFunction/tasks/models.js";
 import { validateNotEmpty } from "@df/validators";
 import type { S3Utils } from "../common/s3Utils.js";
+import { TaskType } from "../stepFunction/tasks/models.js";
 
 export class DataQualityProfileEventProcessor {
 

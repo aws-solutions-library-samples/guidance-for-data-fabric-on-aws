@@ -1,9 +1,9 @@
 import type { BaseLogger } from 'pino';
-import type { DataAssetTask } from '../../models.js';
-import { TaskType } from "../../models.js";
 import { CreateDataQualityRulesetCommand, GlueClient, StartDataQualityRulesetEvaluationRunCommand, UpdateDataQualityRulesetCommand } from '@aws-sdk/client-glue';
 import { OpenLineageBuilder, RunEvent } from "@df/events";
-import type { S3Utils } from "../../../../common/s3Utils";
+import type { S3Utils } from "../../../../common/s3Utils.js";
+import type { DataAssetTask } from '../../models.js';
+import { TaskType } from "../../models.js";
 
 export class DataQualityProfileJobTask {
 

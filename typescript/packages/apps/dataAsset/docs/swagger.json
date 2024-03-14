@@ -21,87 +21,15 @@
             "description": "Unique id of the request.",
             "type": "string"
           },
-          "execution": {
-            "type": "object",
-            "properties": {
-              "hubExecutionArn": {
-                "description": "The hub execution id of the state machine",
-                "type": "string"
-              },
-              "spokeExecutionArn": {
-                "description": "The Spoke execution id of the state machine",
-                "type": "string"
-              },
-              "profilingJob": {
-                "type": "object",
-                "properties": {
-                  "jobRunId": {
-                    "description": "The job runId from databrew",
-                    "type": "string"
-                  },
-                  "jobRunStatus": {
-                    "description": "The run status of the job",
-                    "type": "string"
-                  },
-                  "jobStartTime": {
-                    "description": "The start time of the last job run",
-                    "type": "string"
-                  },
-                  "jobStopTime": {
-                    "description": "The stop time of the last job run",
-                    "type": "string"
-                  }
-                }
-              },
-              "transformJob": {
-                "type": "object",
-                "properties": {
-                  "jobRunId": {
-                    "description": "The job runId from databrew",
-                    "type": "string"
-                  },
-                  "jobRunStatus": {
-                    "description": "The run status of the job",
-                    "type": "string"
-                  },
-                  "jobStartTime": {
-                    "description": "The start time of the last job run",
-                    "type": "string"
-                  },
-                  "jobStopTime": {
-                    "description": "The stop time of the last job run",
-                    "type": "string"
-                  }
-                }
-              },
-              "dataSourceRun": {
-                "type": "object",
-                "properties": {
-                  "jobRunId": {
-                    "description": "The job runId from databrew",
-                    "type": "string"
-                  },
-                  "jobRunStatus": {
-                    "description": "The run status of the job",
-                    "type": "string"
-                  },
-                  "jobStartTime": {
-                    "description": "The start time of the last job run",
-                    "type": "string"
-                  },
-                  "jobStopTime": {
-                    "description": "The stop time of the last job run",
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
           "catalog": {
             "type": "object",
             "properties": {
               "domainId": {
                 "description": "Data Zone domain id",
+                "type": "string"
+              },
+              "domainName": {
+                "description": "Data Zone domain name",
                 "type": "string"
               },
               "environmentId": {
@@ -144,6 +72,7 @@
             },
             "required": [
               "domainId",
+              "domainName",
               "environmentId",
               "assetName",
               "accountId",
@@ -253,7 +182,76 @@
               },
               "transforms": {
                 "type": "object",
-                "properties": {}
+                "properties": {
+                  "recipeReference": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "The name of the existing recipe",
+                        "type": "string"
+                      },
+                      "version": {
+                        "description": "The version of the existing recipe",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "version"
+                    ]
+                  },
+                  "recipe": {
+                    "type": "object",
+                    "properties": {
+                      "steps": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "required": [
+                      "steps"
+                    ]
+                  },
+                  "targetFormat": {
+                    "type": "string",
+                    "enum": [
+                      "avro",
+                      "csv",
+                      "json",
+                      "parquet",
+                      "orc",
+                      "grok"
+                    ],
+                    "description": "The format of the data set."
+                  },
+                  "targetCompression": {
+                    "type": "string",
+                    "enum": [
+                      "brotli",
+                      "bzip2",
+                      "deflate",
+                      "gzip",
+                      "lz4",
+                      "lzo",
+                      "snappy",
+                      "zlib",
+                      "zstd"
+                    ],
+                    "description": "The compression of the data set."
+                  }
+                }
+              },
+              "dataQuality": {
+                "type": "object",
+                "properties": {
+                  "ruleset": {
+                    "description": "A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ruleset"
+                ]
               },
               "tags": {
                 "description": "tags to be added to our data brew constructs description etc.",
@@ -265,102 +263,6 @@
               "name",
               "roleArn",
               "dataset"
-            ]
-          },
-          "profile": {
-            "type": "object",
-            "properties": {
-              "summary": {
-                "type": "object",
-                "properties": {
-                  "sampleSize": {
-                    "description": "The number of rows used as a sample size from the dataset",
-                    "type": "number"
-                  },
-                  "columnCount": {
-                    "description": "The number of columns in the dataset",
-                    "type": "number"
-                  },
-                  "duplicateRowsCount": {
-                    "description": "The number of duplicate rows",
-                    "type": "number"
-                  },
-                  "location": {
-                    "description": "The location of the S3 file containing the profile information",
-                    "type": "string"
-                  },
-                  "totalMissingValues": {
-                    "description": "The number of total missing values across all columns",
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "sampleSize",
-                  "columnCount",
-                  "duplicateRowsCount",
-                  "location",
-                  "totalMissingValues"
-                ]
-              },
-              "columns": {
-                "description": "column profiles that are to be added to our asset.",
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "description": "The name of the column",
-                      "type": "string"
-                    },
-                    "type": {
-                      "description": "The type of the column",
-                      "type": "string"
-                    },
-                    "distinctValuesCount": {
-                      "description": "The number of distinct values",
-                      "type": "number"
-                    },
-                    "uniqueValuesCount": {
-                      "description": "The number of unique Values",
-                      "type": "number"
-                    },
-                    "missingValuesCount": {
-                      "description": "The number of missing values",
-                      "type": "number"
-                    },
-                    "mostCommonValues": {
-                      "description": "Top 5 most common values",
-                      "type": "number"
-                    },
-                    "max": {
-                      "description": "The number of total missing values across all columns",
-                      "type": "number"
-                    },
-                    "min": {
-                      "description": "The number of total missing values across all columns",
-                      "type": "number"
-                    },
-                    "mean": {
-                      "description": "The number of total missing values across all columns",
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "name",
-                    "type",
-                    "distinctValuesCount",
-                    "uniqueValuesCount",
-                    "missingValuesCount",
-                    "mostCommonValues",
-                    "max",
-                    "min",
-                    "mean"
-                  ]
-                }
-              }
-            },
-            "required": [
-              "summary"
             ]
           }
         },
@@ -381,6 +283,10 @@
                 "description": "Data Zone domain id",
                 "type": "string"
               },
+              "domainName": {
+                "description": "Data Zone domain name",
+                "type": "string"
+              },
               "environmentId": {
                 "description": "Data Zone environment id",
                 "type": "string"
@@ -421,6 +327,7 @@
             },
             "required": [
               "domainId",
+              "domainName",
               "environmentId",
               "assetName",
               "accountId",
@@ -530,7 +437,76 @@
               },
               "transforms": {
                 "type": "object",
-                "properties": {}
+                "properties": {
+                  "recipeReference": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "The name of the existing recipe",
+                        "type": "string"
+                      },
+                      "version": {
+                        "description": "The version of the existing recipe",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "version"
+                    ]
+                  },
+                  "recipe": {
+                    "type": "object",
+                    "properties": {
+                      "steps": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "required": [
+                      "steps"
+                    ]
+                  },
+                  "targetFormat": {
+                    "type": "string",
+                    "enum": [
+                      "avro",
+                      "csv",
+                      "json",
+                      "parquet",
+                      "orc",
+                      "grok"
+                    ],
+                    "description": "The format of the data set."
+                  },
+                  "targetCompression": {
+                    "type": "string",
+                    "enum": [
+                      "brotli",
+                      "bzip2",
+                      "deflate",
+                      "gzip",
+                      "lz4",
+                      "lzo",
+                      "snappy",
+                      "zlib",
+                      "zstd"
+                    ],
+                    "description": "The compression of the data set."
+                  }
+                }
+              },
+              "dataQuality": {
+                "type": "object",
+                "properties": {
+                  "ruleset": {
+                    "description": "A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ruleset"
+                ]
               },
               "tags": {
                 "description": "tags to be added to our data brew constructs description etc.",
@@ -561,6 +537,10 @@
                 "description": "Data Zone domain id",
                 "type": "string"
               },
+              "domainName": {
+                "description": "Data Zone domain name",
+                "type": "string"
+              },
               "environmentId": {
                 "description": "Data Zone environment id",
                 "type": "string"
@@ -601,6 +581,7 @@
             },
             "required": [
               "domainId",
+              "domainName",
               "environmentId",
               "assetName",
               "accountId",
@@ -710,7 +691,76 @@
               },
               "transforms": {
                 "type": "object",
-                "properties": {}
+                "properties": {
+                  "recipeReference": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "The name of the existing recipe",
+                        "type": "string"
+                      },
+                      "version": {
+                        "description": "The version of the existing recipe",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "version"
+                    ]
+                  },
+                  "recipe": {
+                    "type": "object",
+                    "properties": {
+                      "steps": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "required": [
+                      "steps"
+                    ]
+                  },
+                  "targetFormat": {
+                    "type": "string",
+                    "enum": [
+                      "avro",
+                      "csv",
+                      "json",
+                      "parquet",
+                      "orc",
+                      "grok"
+                    ],
+                    "description": "The format of the data set."
+                  },
+                  "targetCompression": {
+                    "type": "string",
+                    "enum": [
+                      "brotli",
+                      "bzip2",
+                      "deflate",
+                      "gzip",
+                      "lz4",
+                      "lzo",
+                      "snappy",
+                      "zlib",
+                      "zstd"
+                    ],
+                    "description": "The compression of the data set."
+                  }
+                }
+              },
+              "dataQuality": {
+                "type": "object",
+                "properties": {
+                  "ruleset": {
+                    "description": "A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ruleset"
+                ]
               },
               "tags": {
                 "description": "tags to be added to our data brew constructs description etc.",
@@ -982,87 +1032,15 @@
                       "description": "Unique id of the request.",
                       "type": "string"
                     },
-                    "execution": {
-                      "type": "object",
-                      "properties": {
-                        "hubExecutionArn": {
-                          "description": "The hub execution id of the state machine",
-                          "type": "string"
-                        },
-                        "spokeExecutionArn": {
-                          "description": "The Spoke execution id of the state machine",
-                          "type": "string"
-                        },
-                        "profilingJob": {
-                          "type": "object",
-                          "properties": {
-                            "jobRunId": {
-                              "description": "The job runId from databrew",
-                              "type": "string"
-                            },
-                            "jobRunStatus": {
-                              "description": "The run status of the job",
-                              "type": "string"
-                            },
-                            "jobStartTime": {
-                              "description": "The start time of the last job run",
-                              "type": "string"
-                            },
-                            "jobStopTime": {
-                              "description": "The stop time of the last job run",
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "transformJob": {
-                          "type": "object",
-                          "properties": {
-                            "jobRunId": {
-                              "description": "The job runId from databrew",
-                              "type": "string"
-                            },
-                            "jobRunStatus": {
-                              "description": "The run status of the job",
-                              "type": "string"
-                            },
-                            "jobStartTime": {
-                              "description": "The start time of the last job run",
-                              "type": "string"
-                            },
-                            "jobStopTime": {
-                              "description": "The stop time of the last job run",
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "dataSourceRun": {
-                          "type": "object",
-                          "properties": {
-                            "jobRunId": {
-                              "description": "The job runId from databrew",
-                              "type": "string"
-                            },
-                            "jobRunStatus": {
-                              "description": "The run status of the job",
-                              "type": "string"
-                            },
-                            "jobStartTime": {
-                              "description": "The start time of the last job run",
-                              "type": "string"
-                            },
-                            "jobStopTime": {
-                              "description": "The stop time of the last job run",
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    },
                     "catalog": {
                       "type": "object",
                       "properties": {
                         "domainId": {
                           "description": "Data Zone domain id",
+                          "type": "string"
+                        },
+                        "domainName": {
+                          "description": "Data Zone domain name",
                           "type": "string"
                         },
                         "environmentId": {
@@ -1105,6 +1083,7 @@
                       },
                       "required": [
                         "domainId",
+                        "domainName",
                         "environmentId",
                         "assetName",
                         "accountId",
@@ -1214,7 +1193,76 @@
                         },
                         "transforms": {
                           "type": "object",
-                          "properties": {}
+                          "properties": {
+                            "recipeReference": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "description": "The name of the existing recipe",
+                                  "type": "string"
+                                },
+                                "version": {
+                                  "description": "The version of the existing recipe",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "version"
+                              ]
+                            },
+                            "recipe": {
+                              "type": "object",
+                              "properties": {
+                                "steps": {
+                                  "type": "array",
+                                  "items": {}
+                                }
+                              },
+                              "required": [
+                                "steps"
+                              ]
+                            },
+                            "targetFormat": {
+                              "type": "string",
+                              "enum": [
+                                "avro",
+                                "csv",
+                                "json",
+                                "parquet",
+                                "orc",
+                                "grok"
+                              ],
+                              "description": "The format of the data set."
+                            },
+                            "targetCompression": {
+                              "type": "string",
+                              "enum": [
+                                "brotli",
+                                "bzip2",
+                                "deflate",
+                                "gzip",
+                                "lz4",
+                                "lzo",
+                                "snappy",
+                                "zlib",
+                                "zstd"
+                              ],
+                              "description": "The compression of the data set."
+                            }
+                          }
+                        },
+                        "dataQuality": {
+                          "type": "object",
+                          "properties": {
+                            "ruleset": {
+                              "description": "A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "ruleset"
+                          ]
                         },
                         "tags": {
                           "description": "tags to be added to our data brew constructs description etc.",
@@ -1226,102 +1274,6 @@
                         "name",
                         "roleArn",
                         "dataset"
-                      ]
-                    },
-                    "profile": {
-                      "type": "object",
-                      "properties": {
-                        "summary": {
-                          "type": "object",
-                          "properties": {
-                            "sampleSize": {
-                              "description": "The number of rows used as a sample size from the dataset",
-                              "type": "number"
-                            },
-                            "columnCount": {
-                              "description": "The number of columns in the dataset",
-                              "type": "number"
-                            },
-                            "duplicateRowsCount": {
-                              "description": "The number of duplicate rows",
-                              "type": "number"
-                            },
-                            "location": {
-                              "description": "The location of the S3 file containing the profile information",
-                              "type": "string"
-                            },
-                            "totalMissingValues": {
-                              "description": "The number of total missing values across all columns",
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "sampleSize",
-                            "columnCount",
-                            "duplicateRowsCount",
-                            "location",
-                            "totalMissingValues"
-                          ]
-                        },
-                        "columns": {
-                          "description": "column profiles that are to be added to our asset.",
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "description": "The name of the column",
-                                "type": "string"
-                              },
-                              "type": {
-                                "description": "The type of the column",
-                                "type": "string"
-                              },
-                              "distinctValuesCount": {
-                                "description": "The number of distinct values",
-                                "type": "number"
-                              },
-                              "uniqueValuesCount": {
-                                "description": "The number of unique Values",
-                                "type": "number"
-                              },
-                              "missingValuesCount": {
-                                "description": "The number of missing values",
-                                "type": "number"
-                              },
-                              "mostCommonValues": {
-                                "description": "Top 5 most common values",
-                                "type": "number"
-                              },
-                              "max": {
-                                "description": "The number of total missing values across all columns",
-                                "type": "number"
-                              },
-                              "min": {
-                                "description": "The number of total missing values across all columns",
-                                "type": "number"
-                              },
-                              "mean": {
-                                "description": "The number of total missing values across all columns",
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "name",
-                              "type",
-                              "distinctValuesCount",
-                              "uniqueValuesCount",
-                              "missingValuesCount",
-                              "mostCommonValues",
-                              "max",
-                              "min",
-                              "mean"
-                            ]
-                          }
-                        }
-                      },
-                      "required": [
-                        "summary"
                       ]
                     }
                   },
@@ -1530,87 +1482,15 @@
                       "description": "Unique id of the request.",
                       "type": "string"
                     },
-                    "execution": {
-                      "type": "object",
-                      "properties": {
-                        "hubExecutionArn": {
-                          "description": "The hub execution id of the state machine",
-                          "type": "string"
-                        },
-                        "spokeExecutionArn": {
-                          "description": "The Spoke execution id of the state machine",
-                          "type": "string"
-                        },
-                        "profilingJob": {
-                          "type": "object",
-                          "properties": {
-                            "jobRunId": {
-                              "description": "The job runId from databrew",
-                              "type": "string"
-                            },
-                            "jobRunStatus": {
-                              "description": "The run status of the job",
-                              "type": "string"
-                            },
-                            "jobStartTime": {
-                              "description": "The start time of the last job run",
-                              "type": "string"
-                            },
-                            "jobStopTime": {
-                              "description": "The stop time of the last job run",
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "transformJob": {
-                          "type": "object",
-                          "properties": {
-                            "jobRunId": {
-                              "description": "The job runId from databrew",
-                              "type": "string"
-                            },
-                            "jobRunStatus": {
-                              "description": "The run status of the job",
-                              "type": "string"
-                            },
-                            "jobStartTime": {
-                              "description": "The start time of the last job run",
-                              "type": "string"
-                            },
-                            "jobStopTime": {
-                              "description": "The stop time of the last job run",
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "dataSourceRun": {
-                          "type": "object",
-                          "properties": {
-                            "jobRunId": {
-                              "description": "The job runId from databrew",
-                              "type": "string"
-                            },
-                            "jobRunStatus": {
-                              "description": "The run status of the job",
-                              "type": "string"
-                            },
-                            "jobStartTime": {
-                              "description": "The start time of the last job run",
-                              "type": "string"
-                            },
-                            "jobStopTime": {
-                              "description": "The stop time of the last job run",
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    },
                     "catalog": {
                       "type": "object",
                       "properties": {
                         "domainId": {
                           "description": "Data Zone domain id",
+                          "type": "string"
+                        },
+                        "domainName": {
+                          "description": "Data Zone domain name",
                           "type": "string"
                         },
                         "environmentId": {
@@ -1653,6 +1533,7 @@
                       },
                       "required": [
                         "domainId",
+                        "domainName",
                         "environmentId",
                         "assetName",
                         "accountId",
@@ -1762,7 +1643,76 @@
                         },
                         "transforms": {
                           "type": "object",
-                          "properties": {}
+                          "properties": {
+                            "recipeReference": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "description": "The name of the existing recipe",
+                                  "type": "string"
+                                },
+                                "version": {
+                                  "description": "The version of the existing recipe",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "version"
+                              ]
+                            },
+                            "recipe": {
+                              "type": "object",
+                              "properties": {
+                                "steps": {
+                                  "type": "array",
+                                  "items": {}
+                                }
+                              },
+                              "required": [
+                                "steps"
+                              ]
+                            },
+                            "targetFormat": {
+                              "type": "string",
+                              "enum": [
+                                "avro",
+                                "csv",
+                                "json",
+                                "parquet",
+                                "orc",
+                                "grok"
+                              ],
+                              "description": "The format of the data set."
+                            },
+                            "targetCompression": {
+                              "type": "string",
+                              "enum": [
+                                "brotli",
+                                "bzip2",
+                                "deflate",
+                                "gzip",
+                                "lz4",
+                                "lzo",
+                                "snappy",
+                                "zlib",
+                                "zstd"
+                              ],
+                              "description": "The compression of the data set."
+                            }
+                          }
+                        },
+                        "dataQuality": {
+                          "type": "object",
+                          "properties": {
+                            "ruleset": {
+                              "description": "A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "ruleset"
+                          ]
                         },
                         "tags": {
                           "description": "tags to be added to our data brew constructs description etc.",
@@ -1774,102 +1724,6 @@
                         "name",
                         "roleArn",
                         "dataset"
-                      ]
-                    },
-                    "profile": {
-                      "type": "object",
-                      "properties": {
-                        "summary": {
-                          "type": "object",
-                          "properties": {
-                            "sampleSize": {
-                              "description": "The number of rows used as a sample size from the dataset",
-                              "type": "number"
-                            },
-                            "columnCount": {
-                              "description": "The number of columns in the dataset",
-                              "type": "number"
-                            },
-                            "duplicateRowsCount": {
-                              "description": "The number of duplicate rows",
-                              "type": "number"
-                            },
-                            "location": {
-                              "description": "The location of the S3 file containing the profile information",
-                              "type": "string"
-                            },
-                            "totalMissingValues": {
-                              "description": "The number of total missing values across all columns",
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "sampleSize",
-                            "columnCount",
-                            "duplicateRowsCount",
-                            "location",
-                            "totalMissingValues"
-                          ]
-                        },
-                        "columns": {
-                          "description": "column profiles that are to be added to our asset.",
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "description": "The name of the column",
-                                "type": "string"
-                              },
-                              "type": {
-                                "description": "The type of the column",
-                                "type": "string"
-                              },
-                              "distinctValuesCount": {
-                                "description": "The number of distinct values",
-                                "type": "number"
-                              },
-                              "uniqueValuesCount": {
-                                "description": "The number of unique Values",
-                                "type": "number"
-                              },
-                              "missingValuesCount": {
-                                "description": "The number of missing values",
-                                "type": "number"
-                              },
-                              "mostCommonValues": {
-                                "description": "Top 5 most common values",
-                                "type": "number"
-                              },
-                              "max": {
-                                "description": "The number of total missing values across all columns",
-                                "type": "number"
-                              },
-                              "min": {
-                                "description": "The number of total missing values across all columns",
-                                "type": "number"
-                              },
-                              "mean": {
-                                "description": "The number of total missing values across all columns",
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "name",
-                              "type",
-                              "distinctValuesCount",
-                              "uniqueValuesCount",
-                              "missingValuesCount",
-                              "mostCommonValues",
-                              "max",
-                              "min",
-                              "mean"
-                            ]
-                          }
-                        }
-                      },
-                      "required": [
-                        "summary"
                       ]
                     }
                   },
