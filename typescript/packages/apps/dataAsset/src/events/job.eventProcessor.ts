@@ -41,7 +41,7 @@ export class JobEventProcessor {
                     message: event.detail.message,
                 }
             }
-            taskInput.dataAsset.lineage[`${TaskType.RecipeTask}-${id}`] = this.constructLineage(id, taskInput, event, job.Type, run );
+            // taskInput.dataAsset.lineage[`${TaskType.RecipeTask}-${id}`] = this.constructLineage(id, taskInput, event, job.Type, run );
         } else if (job.Type === JobType.PROFILE) {
             taskInput = await this.s3Utils.getTaskData(TaskType.DataProfileTask, id);
             taskInput.dataAsset.execution = {

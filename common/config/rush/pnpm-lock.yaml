@@ -216,10 +216,16 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.370.0
         version: 3.370.0
+      '@aws-sdk/client-secrets-manager':
+        specifier: 3.370.0
+        version: 3.370.0
       '@aws-sdk/client-sfn':
         specifier: 3.370.0
         version: 3.370.0
       '@aws-sdk/client-ssm':
+        specifier: 3.370.0
+        version: 3.370.0
+      '@aws-sdk/client-sts':
         specifier: 3.370.0
         version: 3.370.0
       '@aws-sdk/lib-dynamodb':
@@ -2154,6 +2160,51 @@ packages:
     transitivePeerDependencies:
       - aws-crt
     dev: true
+
+  /@aws-sdk/client-secrets-manager@3.370.0:
+    resolution: {integrity: sha512-1o1mpWbI1RyzCQ4cVpHQJnm6PziAJ+ptLt4p+wlN74Z330/nnE0JkK3t9l3CxhPqCIW8VjGbTCno5IzwAXnjPw==}
+    engines: {node: '>=14.0.0'}
+    dependencies:
+      '@aws-crypto/sha256-browser': 3.0.0
+      '@aws-crypto/sha256-js': 3.0.0
+      '@aws-sdk/client-sts': 3.370.0
+      '@aws-sdk/credential-provider-node': 3.370.0
+      '@aws-sdk/middleware-host-header': 3.370.0
+      '@aws-sdk/middleware-logger': 3.370.0
+      '@aws-sdk/middleware-recursion-detection': 3.370.0
+      '@aws-sdk/middleware-signing': 3.370.0
+      '@aws-sdk/middleware-user-agent': 3.370.0
+      '@aws-sdk/types': 3.370.0
+      '@aws-sdk/util-endpoints': 3.370.0
+      '@aws-sdk/util-user-agent-browser': 3.370.0
+      '@aws-sdk/util-user-agent-node': 3.370.0
+      '@smithy/config-resolver': 1.1.0
+      '@smithy/fetch-http-handler': 1.1.0
+      '@smithy/hash-node': 1.1.0
+      '@smithy/invalid-dependency': 1.1.0
+      '@smithy/middleware-content-length': 1.1.0
+      '@smithy/middleware-endpoint': 1.1.0
+      '@smithy/middleware-retry': 1.1.0
+      '@smithy/middleware-serde': 1.1.0
+      '@smithy/middleware-stack': 1.1.0
+      '@smithy/node-config-provider': 1.1.0
+      '@smithy/node-http-handler': 1.1.0
+      '@smithy/protocol-http': 1.2.0
+      '@smithy/smithy-client': 1.1.0
+      '@smithy/types': 1.2.0
+      '@smithy/url-parser': 1.1.0
+      '@smithy/util-base64': 1.1.0
+      '@smithy/util-body-length-browser': 1.1.0
+      '@smithy/util-body-length-node': 1.1.0
+      '@smithy/util-defaults-mode-browser': 1.1.0
+      '@smithy/util-defaults-mode-node': 1.1.0
+      '@smithy/util-retry': 1.1.0
+      '@smithy/util-utf8': 1.1.0
+      tslib: 2.6.2
+      uuid: 8.3.2
+    transitivePeerDependencies:
+      - aws-crt
+    dev: false
 
   /@aws-sdk/client-sfn@3.370.0:
     resolution: {integrity: sha512-ANHwU1+nL5IM2jpw6BzxnCayAuZIi1Wy7pVTltWOc0BAF576k5ZcAU9AReolu5cjo7naXBDYN5VlCVrYl8TZuw==}

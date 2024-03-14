@@ -132,6 +132,15 @@ export class DataAssetSpoke extends Construct {
             ]
         });
 
+        const SecretsManagerPolicy = new PolicyStatement({
+            actions: [
+                'secretsmanager:GetSecretValue'
+            ],
+            resources: [
+                `arn:aws:secretsmanager:${region}:${accountId}:secret:*`,
+            ]
+        })
+
         const SSMPolicy = new PolicyStatement({
             actions: [
                 'ssm:GetParameter',
@@ -151,11 +160,14 @@ export class DataAssetSpoke extends Construct {
                 'glue:StartCrawler',
                 'glue:GetTags',
                 'glue:ListCrawls',
-                'glue:GetTable'
+                'glue:GetTable',
+                'glue:CreateConnection',
+                'glue:GetConnection',
             ],
             resources: [
                 `arn:aws:glue:${region}:${accountId}:crawler/*`,
                 `arn:aws:glue:${region}:${accountId}:catalog`,
+                `arn:aws:glue:${region}:${accountId}:connection/*`,
                 `${props.glueDatabaseArn}`,
                 `arn:aws:glue:${region}:${accountId}:table/${glueDatabase.databaseName}/*`
             ]
@@ -216,6 +228,8 @@ export class DataAssetSpoke extends Construct {
 
         createConnectionLambda.addToRolePolicy(StateMachinePolicy);
         createConnectionLambda.addToRolePolicy(IAMPassRolePolicy);
+        createConnectionLambda.addToRolePolicy(GluePolicy);
+        createConnectionLambda.addToRolePolicy(SecretsManagerPolicy);
 
         const createDataSetLambda = new NodejsFunction(this, 'CreateDataSetLambda', {
             description: 'Asset Manager dataset creator Task Handler',
@@ -227,7 +241,9 @@ export class DataAssetSpoke extends Construct {
             logRetention: RetentionDays.ONE_WEEK,
             timeout: Duration.minutes(5),
             environment: {
-                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName
+                SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
+                JOBS_BUCKET_NAME: props.bucketName,
+                JOBS_BUCKET_PREFIX: 'jobs'
             },
             bundling: {
                 minify: true,
@@ -245,6 +261,7 @@ export class DataAssetSpoke extends Construct {
         createDataSetLambda.addToRolePolicy(StateMachinePolicy);
         createDataSetLambda.addToRolePolicy(DataBrewPolicy);
         createDataSetLambda.addToRolePolicy(IAMPassRolePolicy);
+        createDataSetLambda.addToRolePolicy(GluePolicy);
 
 
         const createProfileDataSetLambda = new NodejsFunction(this, 'CreateProfileDataSetLambda', {
@@ -258,7 +275,9 @@ export class DataAssetSpoke extends Construct {
             timeout: Duration.minutes(5),
             environment: {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
-                SPOKE_GLUE_DATABASE_NAME: glueDatabase.databaseName
+                SPOKE_GLUE_DATABASE_NAME: glueDatabase.databaseName,
+                JOBS_BUCKET_NAME: props.bucketName,
+                JOBS_BUCKET_PREFIX: 'jobs'
             },
             bundling: {
                 minify: true,
@@ -841,10 +860,11 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:recipe/*`,
+                        `Resource::arn:aws:glue:${region}:${accountId}:connection/*`,
                         `Resource::arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-*`,
                         `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`,
                         `Resource::arn:aws:glue:${region}:${accountId}:table/{"Fn::Select":[1,{"Fn::Split":["/",{"Fn::Select":[5,{"Fn::Split":[":",{"Ref":"SsmParameterValuedfspokesharedgluedatabaseArnC96584B6F00A464EAD1953AFF4B05118Parameter"}]}]}]}]}/*`,
-                        `Resource::arn:aws:glue:us-west-2:767397875118:dataQualityRuleset*`
+                        `Resource::arn:aws:glue:${region}:${accountId}:dataQualityRuleset*`
                     ],
                     reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'
 
@@ -882,9 +902,11 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:databrew:${region}:${accountId}:recipe/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
                         `Resource::arn:aws:iam::${accountId}:role/df-*`,
+                        `Resource::arn:aws:secretsmanager:${region}:${accountId}:secret:*`,
                         `Resource::arn:aws:states:${region}:${accountId}:stateMachine:${namePrefix}-*`,
                         `Resource::arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*`,
                         `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`,
+                        `Resource::arn:aws:glue:${region}:${accountId}:connection/*`,
                         `Resource::arn:aws:glue:${region}:${accountId}:table/${glueDatabase.databaseName}/*`,
                         `Resource::arn:aws:glue:${region}:${accountId}:table/{"Fn::Select":[1,{"Fn::Split":["/",{"Fn::Select":[5,{"Fn::Split":[":",{"Ref":"SsmParameterValuedfspokesharedgluedatabaseArnC96584B6F00A464EAD1953AFF4B05118Parameter"}]}]}]}]}/*`,
                         `Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfspokesharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*`,

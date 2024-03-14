@@ -2,13 +2,15 @@ import type { BaseLogger } from 'pino';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 import type { DataAssetTask } from '../../models.js';
 import { CreateDatasetCommand, CreateDatasetCommandInput, DescribeDatasetCommand, type DataBrewClient } from '@aws-sdk/client-databrew';
+import type { S3Utils } from '../../../../common/s3Utils.js';
 
 export class ProfileDataSetTask {
 
 	constructor(private log: BaseLogger,
 		private sfnClient: SFNClient,
 		private dataBrewClient: DataBrewClient,
-		private GlueDbName: string
+		private GlueDbName: string,
+		private s3Utils: S3Utils,
 	) {
 	}
 
@@ -22,7 +24,7 @@ export class ProfileDataSetTask {
 		try{
 			this.log.debug(`ProfileDataSetTask > process > before DescribeDatasetCommand`);
 			await this.dataBrewClient.send(new DescribeDatasetCommand({
-				Name: id
+				Name: `${id}-profileDataSet`
 			}));
 		}catch (error){
 			this.log.debug(`ProfileDataSetTask > process > in > event: ${JSON.stringify(error)}`);
@@ -46,8 +48,9 @@ export class ProfileDataSetTask {
 
 		// use asset id as the id if available
 		const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+		const dataSetTempDirectory = this.s3Utils.getProfileDataSetTempLocation(id, event.dataAsset.catalog.domainId, event.dataAsset.catalog.projectId);
 		let input: CreateDatasetCommandInput = {
-			Name: id,
+			Name: `${id}-profileDataSet`,
 			Tags: {
 				domainId: event.dataAsset.catalog.domainId,
 				projectId: event.dataAsset.catalog.projectId,
@@ -58,8 +61,9 @@ export class ProfileDataSetTask {
 			Input: { 
 				DataCatalogInputDefinition: {
 				// CatalogId: event.dataAsset.catalog.accountId,
-				DatabaseName: this.GlueDbName,
-				TableName: event.dataAsset.execution.glueTableName
+				DatabaseName: this.GlueDbName, // Check if in execution
+				TableName: event.dataAsset.execution.glueTableName,
+				TempDirectory: dataSetTempDirectory,
 			}}
 		};
 
