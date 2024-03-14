@@ -5,6 +5,7 @@ import { GlueClient } from "@aws-sdk/client-glue";
 import type { DataAssetTask } from "../../models";
 import { S3Utils } from "../../../../common/s3Utils";
 import { S3Client } from "@aws-sdk/client-s3";
+import type { GetSignedUrl } from '../../../../plugins/module.awilix';
 
 describe('DataQualityProfileJobTask', () => {
 
@@ -17,7 +18,8 @@ describe('DataQualityProfileJobTask', () => {
             })
         );
         logger.level = 'info';
-        task = new DataQualityProfileJobTask(logger, new GlueClient({}), 'default', new S3Utils(logger, new S3Client({}), 'cdf-singlestack-ap-southeast-2', 'datafabric'))
+        let mockGetSignedUrl: GetSignedUrl;
+        task = new DataQualityProfileJobTask(logger, new GlueClient({}), 'default', new S3Utils(logger, new S3Client({}), 'cdf-singlestack-ap-southeast-2', 'datafabric',mockGetSignedUrl))
     })
 
     it('should process the event correctly', async () => {

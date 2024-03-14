@@ -1,11 +1,18 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { DataAssetTask, TaskType } from "../stepFunction/tasks/models.js";
 import type { BaseLogger } from "pino";
+import type { GetSignedUrl } from "../plugins/module.awilix.js";
 
 
 export class S3Utils {
 
-    constructor(private readonly log: BaseLogger, private readonly s3Client: S3Client, private readonly bucketName: string, private readonly bucketPrefix: string) {
+    constructor(
+        private readonly log: BaseLogger, 
+        private readonly s3Client: S3Client, 
+        private readonly bucketName: string, 
+        private readonly bucketPrefix: string,
+        private readonly getSignedUrl:GetSignedUrl
+        ) {
     }
 
     public static getObjectArnFromUri(uri: string): string {
@@ -40,6 +47,16 @@ export class S3Utils {
         return taskData;
     }
 
+    public async getTaskDataSignedUrl(taskName: string, id: string, expiresIn: number): Promise<string> {
+        this.log.trace(`S3Utils > getTaskDataSignedUrl > taskName: ${taskName}, id: ${id}`)
+        const params: GetObjectCommand = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: `${this.bucketPrefix}/${id}/${taskName}.json`
+        });
+        const url = await this.getSignedUrl(this.s3Client, params, { expiresIn: expiresIn });
+        return url;
+    }
+
     public getProfilingJobOutputLocation(id: string, domainId: string, projectId: string): { Bucket: string, Key: string } {
         return {
             Bucket: this.bucketName,
@@ -54,5 +71,6 @@ export class S3Utils {
         }
     }
 }
+
 
 

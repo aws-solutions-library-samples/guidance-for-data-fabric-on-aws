@@ -5,6 +5,7 @@ import { DataQualityProfileEventProcessor } from "./dataQualityProfile.eventProc
 import { SFNClient } from '@aws-sdk/client-sfn';
 import { S3Utils } from "../common/s3Utils";
 import { S3Client } from "@aws-sdk/client-s3";
+import type { GetSignedUrl } from '../plugins/module.awilix.js';
 
 describe('DataQualityProfileEventProcessor', () => {
 
@@ -17,10 +18,11 @@ describe('DataQualityProfileEventProcessor', () => {
             })
         );
         logger.level = 'info';
+        let mockGetSignedUrl: GetSignedUrl;
         processor = new DataQualityProfileEventProcessor(
             logger,
             new SFNClient({}),
-            new S3Utils(logger, new S3Client({}), 'cdf-singlestack-ap-southeast-2', 'datafabric'),
+            new S3Utils(logger, new S3Client({}), 'cdf-singlestack-ap-southeast-2', 'datafabric', mockGetSignedUrl),
             new GlueClient({}))
     })
 

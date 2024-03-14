@@ -6,7 +6,8 @@ export enum TaskType {
     DataProfileTask = 'DataProfileTask',
     DataQualityProfileTask = 'DataQualityProfileTask',
     RecipeTask = 'RecipeTask',
-    GlueCrawlerTask = 'GlueCrawlerTask'
+    GlueCrawlerTask = 'GlueCrawlerTask',
+    lineageTask = 'lineageTask'
 
 }
 
@@ -56,14 +57,32 @@ export type DataAssetEventBridgeEvent = {
 
 export type DataAssetEvent = {
     dataAssetEvent: DataAssetEventBridgeEvent,
-    execution: DataAssetTaskExecutionDetails
+    execution?: DataAssetTaskExecutionDetails
 }
 
 export type DataAssetTask = {
     dataAsset: DataAssetDetails
-    execution: DataAssetTaskExecutionDetails
+    execution?: DataAssetTaskExecutionDetails
 }
+
+export type DataAssetTasks = {
+    dataAssets: DataAssetDetails[]
+    execution?: DataAssetTaskExecutionDetails
+}
+
+export type CreateResponseEvent = {
+    requestId: string,
+    catalog: DataAssetCatalog,
+    workflow: Workflow,
+    fullPayloadSignedUrl: string,
+    dataProfileSignedUrl: string,
+    dataQualityProfileSignedUrl?: string
+    
+
+}
+
 
 export type DataAssetEventHandler = Handler<DataAssetEvent>;
 export type DataAssetTaskHandler = Handler<DataAssetTask>;
+export type DataAssetTasksHandler = Handler<DataAssetTasks>;
 

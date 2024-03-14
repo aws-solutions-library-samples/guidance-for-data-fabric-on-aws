@@ -3,7 +3,7 @@ import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import { SFNClient } from '@aws-sdk/client-sfn';
 import { DataZoneClient } from '@aws-sdk/client-datazone';
 import { Cradle, diContainer, FastifyAwilixOptions, fastifyAwilixPlugin } from '@fastify/awilix';
-import { asFunction, Lifetime } from 'awilix';
+import { asFunction, asValue, Lifetime } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { DynamoDbUtils } from '@df/dynamodb-utils';
@@ -20,7 +20,9 @@ import { DataQualityProfileJobTask } from '../stepFunction/tasks/spoke/create/da
 import { GlueClient } from '@aws-sdk/client-glue';
 import { DataBrewClient } from '@aws-sdk/client-databrew';
 import { S3Client } from '@aws-sdk/client-s3';
-// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import type { MetadataBearer, RequestPresigningArguments } from '@aws-sdk/types';
+import type { Client, Command } from '@aws-sdk/smithy-client';
 import { StartTask as HubCreateStartTask } from '../stepFunction/tasks/hub/create/startTask.js';
 import { StartTask as SpokeCreateStartTask } from '../stepFunction/tasks/spoke/create/startTask.js';
 import { SpokeResponseTask } from '../stepFunction/tasks/hub/create/spokeResponseTask.js';
@@ -36,6 +38,12 @@ import { DataQualityProfileEventProcessor } from "../events/dataQualityProfile.e
 import { S3Utils } from "../common/s3Utils";
 
 const {captureAWSv3Client} = pkg;
+
+export type GetSignedUrl = <InputTypesUnion extends object, InputType extends InputTypesUnion, OutputType extends MetadataBearer = MetadataBearer>(
+	client: Client<any, InputTypesUnion, MetadataBearer, any>,
+	command: Command<InputType, OutputType, any, InputTypesUnion, MetadataBearer>,
+	options?: RequestPresigningArguments
+) => Promise<string>;
 
 declare module '@fastify/awilix' {
     interface Cradle extends BaseCradle {
@@ -55,6 +63,7 @@ declare module '@fastify/awilix' {
         dataAssetRepository: DataAssetRepository;
         dataAssetService: DataAssetService;
         s3Utils: S3Utils;
+        getSignedUrl: GetSignedUrl;
 
         // Hub Tasks
         hubCreateStartTask: HubCreateStartTask;
@@ -173,9 +182,13 @@ const registerContainer = (app?: FastifyInstance) => {
         dynamoDbUtils: asFunction((container: Cradle) => new DynamoDbUtils(app.log, container.dynamoDBDocumentClient), {
             ...commonInjectionOptions,
         }),
-        s3Utils: asFunction((container: Cradle) => new S3Utils(app.log, container.s3Client, jobsBucketName, jobsBucketPrefix), {
+        
+        getSignedUrl: asValue(getSignedUrl),
+
+        s3Utils: asFunction((container: Cradle) => new S3Utils(app.log, container.s3Client, jobsBucketName, jobsBucketPrefix, container.getSignedUrl), {
             ...commonInjectionOptions,
         }),
+        
 
         hubEventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, hubEventBusName, DATA_ASSET_HUB_EVENT_SOURCE), {
             ...commonInjectionOptions
@@ -217,7 +230,7 @@ const registerContainer = (app?: FastifyInstance) => {
             (container) =>
                 new DataQualityProfileEventProcessor(
                     app.log,
-                    container.sfnClient,
+                    container.stepFunctionClient,
                     container.ssmClient,
                     container.glueClient
                 ),
@@ -319,7 +332,7 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        spokeLineageTask: asFunction((container: Cradle) => new SpokeLineageTask(app.log, container.stepFunctionClient, spokeEventBusName, container.spokeEventPublisher), {
+        spokeLineageTask: asFunction((container: Cradle) => new SpokeLineageTask(app.log, container.stepFunctionClient, spokeEventBusName, container.spokeEventPublisher, container.s3Utils), {
             ...commonInjectionOptions
         }),
 

@@ -2,7 +2,7 @@ import { buildLightApp } from '../../../../app.light';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import type { LineageTask } from '../../../tasks/spoke/create/lineageTask.js';
-import type { DataAssetTaskHandler as Handler } from '../../../tasks/models.js';
+import type { DataAssetTasksHandler as Handler } from '../../../tasks/models.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;

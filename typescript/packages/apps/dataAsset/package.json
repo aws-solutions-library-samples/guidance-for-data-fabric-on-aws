@@ -31,6 +31,7 @@
 		"@aws-sdk/client-s3": "3.370.0",
 		"@aws-sdk/s3-request-presigner" : "3.370.0",
 		"@aws-sdk/types" : "3.370.0",
+		"@aws-sdk/smithy-client" : "3.374.0",
 		"aws-lambda": "1.0.7",
 		"@fastify/awilix": "3.2.0",
 		"@fastify/aws-lambda": "3.3.0",
@@ -50,7 +51,9 @@
 		"fastify": "4.24.2",
 		"ulid": "2.3.0",
 		"aws-xray-sdk": "3.5.0",
-		"axios": "1.6.7"
+		"axios": "1.6.7",
+		"merge": "2.1.1"
+		
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",

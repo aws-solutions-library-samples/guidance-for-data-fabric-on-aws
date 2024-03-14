@@ -471,6 +471,8 @@ export class DataAssetSpoke extends Construct {
 
         spokeLineageLambda.addToRolePolicy(StateMachinePolicy);
         spokeEventBus.grantPutEventsTo(spokeLineageLambda);
+        bucket.grantPut(spokeLineageLambda);
+        bucket.grantRead(spokeLineageLambda);
 
         const createStartTask = new LambdaInvoke(this, 'CreateStartTask', {
             lambdaFunction: createStartLambda,
@@ -584,25 +586,25 @@ export class DataAssetSpoke extends Construct {
             outputPath: '$.dataAsset'
         });
 
-        const cleanupTask = new LambdaInvoke(this, 'CleanupTask', {
-            lambdaFunction: spokeCleanupLambda,
-            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
-            payload: TaskInput.fromObject({
-                'dataAsset.$': '$.[0]',
-                'execution': {
-                    'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
-                    'taskToken': JsonPath.taskToken
-                }
-            }),
-            outputPath: '$.dataAsset'
-        });
+        // const cleanupTask = new LambdaInvoke(this, 'CleanupTask', {
+        //     lambdaFunction: spokeCleanupLambda,
+        //     integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+        //     payload: TaskInput.fromObject({
+        //         'dataAsset.$': '$.[0]',
+        //         'execution': {
+        //             'executionStartTime.$': '$$.Execution.StartTime',
+        //             'executionArn.$': '$$.Execution.Id',
+        //             'taskToken': JsonPath.taskToken
+        //         }
+        //     }),
+        //     outputPath: '$.dataAsset'
+        // });
 
         const lineageTask = new LambdaInvoke(this, 'LineageTask', {
             lambdaFunction: spokeLineageLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
-                'dataAsset.$': '$',
+                'dataAssets.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
                     'executionArn.$': '$$.Execution.Id',
@@ -650,7 +652,7 @@ export class DataAssetSpoke extends Construct {
         //     .when(Condition.booleanEquals('$.glueDeltaDetected', true));
 
         const transformChoice = new Choice(this, 'Is transform present Found ?')
-            .otherwise(glueCrawlerTask.next(profileCreateDataSetTask.next(profilingTasks).next(cleanupTask.next(lineageTask))))
+            .otherwise(glueCrawlerTask.next(profileCreateDataSetTask.next(profilingTasks).next(lineageTask)))
             .when(Condition.isPresent('$.workflow.transforms'), recipeCreateDataSetTask.next(recipeJobTask).next(glueCrawlerTask));
 
         const dataAssetStateMachine = new StateMachine(this, 'DataAssetStateMachine', {
@@ -878,7 +880,8 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:databrew:${region}:${accountId}:recipe/*`,
                         `Resource::arn:aws:states:${region}:${accountId}:stateMachine:df-spoke-*`,
                         `Resource::arn:aws:glue:${region}:${accountId}:crawler/*`,
-                        `Resource::arn:aws:glue:${region}:${accountId}:table/{"Fn::Select":[1,{"Fn::Split":["/",{"Fn::Select":[5,{"Fn::Split":[":",{"Ref":"SsmParameterValuedfspokesharedgluedatabaseArnC96584B6F00A464EAD1953AFF4B05118Parameter"}]}]}]}]}/*`
+                        `Resource::arn:aws:glue:${region}:${accountId}:table/{"Fn::Select":[1,{"Fn::Split":["/",{"Fn::Select":[5,{"Fn::Split":[":",{"Ref":"SsmParameterValuedfspokesharedgluedatabaseArnC96584B6F00A464EAD1953AFF4B05118Parameter"}]}]}]}]}/*`,
+                        `Resource::arn:aws:glue:us-west-2:767397875118:dataQualityRuleset*`
                     ],
                     reason: 'This policy is required for the lambda to access job profiling objects stored in s3.'
 
@@ -908,8 +911,11 @@ export class DataAssetSpoke extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
+                        `Resource::*`,
                         `Action::s3:Abort*`,
-                        'Resource::*',
+                        'Action::s3:GetBucket*',
+                        'Action::s3:GetObject*',
+                        'Action::s3:List*',
                         `Resource::arn:aws:databrew:${region}:${accountId}:dataset/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:recipe/*`,
                         `Resource::arn:aws:databrew:${region}:${accountId}:job/*`,
@@ -920,6 +926,7 @@ export class DataAssetSpoke extends Construct {
                         `Resource::arn:aws:glue:${region}:${accountId}:table/${glueDatabase.databaseName}/*`,
                         `Resource::arn:aws:glue:${region}:${accountId}:table/{"Fn::Select":[1,{"Fn::Split":["/",{"Fn::Select":[5,{"Fn::Split":[":",{"Ref":"SsmParameterValuedfspokesharedgluedatabaseArnC96584B6F00A464EAD1953AFF4B05118Parameter"}]}]}]}]}/*`,
                         `Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfspokesharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*`,
+                        `Resource::arn:aws:glue:${region}:${accountId}:dataQualityRuleset*`
 
                     ],
                     reason: 'This policy is required for the lambda to perform profiling.'
