@@ -22,7 +22,7 @@ export class DataQualityProfileEventProcessor {
         validateNotEmpty(event, 'Data Quality Profile Completion event');
         validateNotEmpty(event.detail.rulesetNames, 'Data Quality Ruleset Names');
 
-        const {rulesetNames, resultID, context} = event.detail;
+        const {rulesetNames, resultId, context} = event.detail;
 
         /**
          * There will only one ruleset configured by Data Fabric
@@ -46,13 +46,13 @@ export class DataQualityProfileEventProcessor {
              * Data Quality Result contains list of assertion details
              */
             this.glueClient.send(new GetDataQualityResultCommand({
-                ResultId: resultID
+                ResultId: resultId
             }))
         ])
 
         const requestId = getTagsResponse.Tags['requestId'];
 
-        const dataAssetTask = await this.s3Utils.getTaskData(TaskType.DataQualityProfileTask, requestId)
+        const dataAssetTask = await this.s3Utils.getTaskData(TaskType.DataQualityProfileTask, requestId);
 
         const {rulesFailed, rulesSucceeded, rulesSkipped, score} = event.detail
         dataAssetTask.dataAsset.execution = {
@@ -71,7 +71,7 @@ export class DataQualityProfileEventProcessor {
             throw new Error('No start lineage event for data quality.')
         }
         dataAssetTask.dataAsset.lineage[TaskType.DataQualityProfileTask] = this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, context.runId)
-
+        this.log.info(`DataQualityProfileEventProcessor > dataQualityProfileCompletionEvent > before sfnClient.send`);
         // Signal back to the state machine
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(dataAssetTask), taskToken: dataAssetTask.execution.taskToken}));
     }

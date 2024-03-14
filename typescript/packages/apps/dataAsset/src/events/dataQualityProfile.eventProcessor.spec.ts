@@ -43,7 +43,7 @@ describe('DataQualityProfileEventProcessor', () => {
                     "tableName": "table-123",
                     "catalogId": "123456789012"
                 },
-                "resultID": "dqresult-884b8e684dd193d39816225397b466fd7ea63c03",
+                "resultId": "dqresult-884b8e684dd193d39816225397b466fd7ea63c03",
                 "rulesetNames": ["create-data-asset-12345-dataQualityProfile"],
                 "state": "SUCCEEDED",
                 "score": 1.00,

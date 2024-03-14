@@ -223,13 +223,12 @@ const registerContainer = (app?: FastifyInstance) => {
             }
         ),
 
-        // Event Processors
         dataQualityProfileEventProcessor: asFunction(
             (container) =>
                 new DataQualityProfileEventProcessor(
                     app.log,
                     container.stepFunctionClient,
-                    container.ssmClient,
+                    container.s3Utils,
                     container.glueClient
                 ),
             {
@@ -262,8 +261,6 @@ const registerContainer = (app?: FastifyInstance) => {
                     container.dataZoneClient,
                     container.stepFunctionClient,
                     hubCreateStateMachineArn
-                    // container.eventPublisher,
-                    // eventBusName
                 ),
             {
                 ...commonInjectionOptions,

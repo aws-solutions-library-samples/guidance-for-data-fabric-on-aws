@@ -35,7 +35,7 @@ export interface DataQualityResultsAvailableDetail {
         tableName: string;
         catalogId: string;
     };
-    resultID: string;
+    resultId: string;
     rulesetNames: string[];
     state: string;
     score: number;
