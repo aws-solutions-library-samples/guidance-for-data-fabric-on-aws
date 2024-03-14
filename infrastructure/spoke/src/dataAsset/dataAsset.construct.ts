@@ -11,7 +11,15 @@ import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput, Parallel, Succeed } from 'aws-cdk-lib/aws-stepfunctions';
-import { DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_HUB_EVENT_SOURCE, DATA_BREW_JOB_STATE_CHANGE, GLUE_CRAWLER_STATE_CHANGE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT } from '@df/events';
+import {
+    DATA_ASSET_HUB_CREATE_REQUEST_EVENT,
+    DATA_ASSET_SPOKE_EVENT_SOURCE,
+    DATA_ASSET_HUB_EVENT_SOURCE,
+    DATA_BREW_JOB_STATE_CHANGE,
+    GLUE_CRAWLER_STATE_CHANGE,
+    DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT,
+    DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE
+} from '@df/events';
 import { LambdaFunction, SfnStateMachine, EventBus as EventBusTarget } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
@@ -70,9 +78,29 @@ export class DataAssetSpoke extends Construct {
                 'iam:PassRole'
             ],
             resources: [
-                `arn:aws:iam::${accountId}:role/df-*` // we Only allow assume roles for roles that have a df- prefix 
+                `arn:aws:iam::${accountId}:role/df-*` // we Only allow assume roles for roles that have a df- prefix
             ]
         });
+
+        const CreateDataQualityPolicy = new PolicyStatement({
+            actions: [
+                'glue:CreateDataQualityRuleset'],
+            resources: [
+                `*`
+            ]
+        })
+
+        const DataQualityPolicy = new PolicyStatement({
+            actions: [
+                'glue:StartDataQualityRulesetEvaluationRun',
+                'glue:UpdateDataQualityRuleset',
+                'glue:GetDataQualityRulesetEvaluationRun',
+                'glue:GetDataQualityResult',
+                'glue:GetDataQualityRuleset'],
+            resources: [
+                `arn:aws:glue:${region}:${accountId}:dataQualityRuleset*`
+            ]
+        })
 
         const DataBrewPolicy = new PolicyStatement({
             actions: [
@@ -108,7 +136,7 @@ export class DataAssetSpoke extends Construct {
                 'ssm:PutParameter'
             ],
             resources: [
-                `arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*` // we Only allow assume roles for roles that have a df- prefix 
+                `arn:aws:ssm:${region}:${accountId}:parameter/df/spoke/dataAsset/*` // we Only allow assume roles for roles that have a df- prefix
             ]
         });
 
@@ -345,6 +373,8 @@ export class DataAssetSpoke extends Construct {
 
         dqProfileJobLambda.addToRolePolicy(StateMachinePolicy);
         dqProfileJobLambda.addToRolePolicy(DataBrewPolicy);
+        dqProfileJobLambda.addToRolePolicy(CreateDataQualityPolicy);
+        dqProfileJobLambda.addToRolePolicy(DataQualityPolicy);
         dqProfileJobLambda.addToRolePolicy(SSMPolicy);
         dqProfileJobLambda.addToRolePolicy(IAMPassRolePolicy);
         bucket.grantPut(dqProfileJobLambda);
@@ -711,7 +741,7 @@ export class DataAssetSpoke extends Construct {
         eventProcessorLambda.addToRolePolicy(SSMPolicy);
         eventProcessorLambda.addToRolePolicy(StateMachinePolicy);
         eventProcessorLambda.addToRolePolicy(GluePolicy);
-
+        eventProcessorLambda.addToRolePolicy(DataQualityPolicy);
 
         // Rule for Databrew Job events
         const databrewJobRule = new Rule(this, 'DatabrewJobRule', {
@@ -734,7 +764,9 @@ export class DataAssetSpoke extends Construct {
             eventBus: defaultEventBus,
             eventPattern: {
                 source: ['aws.glue'],
-                detailType: [GLUE_CRAWLER_STATE_CHANGE]
+                detailType: [
+                    GLUE_CRAWLER_STATE_CHANGE,
+                    DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE]
             }
         });
 

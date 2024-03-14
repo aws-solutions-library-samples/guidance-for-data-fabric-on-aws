@@ -1,4 +1,3 @@
-
 import { Static, Type } from '@sinclair/typebox';
 import { stringEnum } from '../../common/types.js'
 
@@ -52,6 +51,7 @@ export type Tags = Static<typeof tags>;
 
 export const catalog = Type.Object({
     domainId: Type.String({ description: 'Data Zone domain id' }),
+    domainName: Type.String({ description: 'Data Zone domain name' }),
     environmentId: Type.String({ description: 'Data Zone environment id' }),
     projectId: Type.Optional(Type.String({ description: 'Data Zone project id' })),
     region: Type.Optional(Type.String({ description: 'Data Zone environment region' })),
@@ -98,9 +98,13 @@ export const sampling = Type.Optional(Type.Object({
     // TODO to be implemented
 }));
 
+export const dataQuality = Type.Optional(Type.Object({
+    ruleset: Type.String({description: 'A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>'}),
+}));
+
 export const existingRecipe = Type.Object({
-    name: Type.String({ description: 'The name of the existing recipe' }),
-    version: Type.String({ description: 'The version of the existing recipe' })
+    name: Type.String({description: 'The name of the existing recipe'}),
+    version: Type.String({description: 'The version of the existing recipe'})
 });
 
 export const newRecipe = Type.Object({
@@ -126,7 +130,7 @@ export const schedule = Type.Optional(Type.Object({
 //         location: Type.String({ description: 'The location of the S3 file containing the profile information' }),
 //         totalMissingValues: Type.Number({ description: 'The number of total missing values across all columns' })
 //     }
-// ); 
+// );
 
 // export const columnProfile = Type.Object(
 //     {
@@ -159,6 +163,7 @@ export const workflow = Type.Object({
     dataset,
     sampling,
     transforms,
+    dataQuality,
     tags,
 });
 

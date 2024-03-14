@@ -1,12 +1,12 @@
 import type { BaseLogger } from 'pino';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 import type{ DataAssetTask } from '../../models.js';
-import type { EventPublisher } from '@df/events/dist/publisher.js';
+import type { EventPublisher } from '@df/events';
 import { DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder } from '@df/events';
 
 export class LineageTask {
 
-	constructor(private log: BaseLogger,		
+	constructor(private log: BaseLogger,
 				private sfnClient: SFNClient,
 				private eventBusName: string,
 				private eventPublisher: EventPublisher) {
@@ -29,6 +29,6 @@ export class LineageTask {
 
 		await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken:event.execution.taskToken }));
 		this.log.info(`LineageTask > process > exit:`);
-			
+
 	}
 }
