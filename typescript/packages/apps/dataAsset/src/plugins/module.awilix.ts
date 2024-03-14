@@ -2,6 +2,7 @@ import pkg from 'aws-xray-sdk';
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import { SFNClient } from '@aws-sdk/client-sfn';
 import { DataZoneClient } from '@aws-sdk/client-datazone';
+import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { Cradle, diContainer, FastifyAwilixOptions, fastifyAwilixPlugin } from '@fastify/awilix';
 import { asFunction, asValue, Lifetime } from 'awilix';
 import type { FastifyInstance } from 'fastify';
@@ -19,6 +20,7 @@ import { ProfileDataSetTask } from '../stepFunction/tasks/spoke/create/profileDa
 import { DataQualityProfileJobTask } from '../stepFunction/tasks/spoke/create/dataQualityProfileJobTask.js';
 import { GlueClient } from '@aws-sdk/client-glue';
 import { DataBrewClient } from '@aws-sdk/client-databrew';
+import {SecretsManagerClient} from "@aws-sdk/client-secrets-manager";
 import { S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { MetadataBearer, RequestPresigningArguments } from '@aws-sdk/types';
@@ -32,6 +34,7 @@ import { CreateDataSourceTask } from '../stepFunction/tasks/hub/create/createDat
 import { SSMClient } from '@aws-sdk/client-ssm';
 import { RecipeJobTask } from '../stepFunction/tasks/spoke/create/recipeJobTask.js';
 import { GlueCrawlerTask } from '../stepFunction/tasks/spoke/create/glueCrawlerTask.js';
+import type { BaseLogger } from 'pino';
 import { GlueCrawlerEventProcessor } from '../events/glueCrawler.eventProcessor.js';
 import { DataQualityProfileEventProcessor } from "../events/dataQualityProfile.eventProcessor.js";
 import { S3Utils } from "../common/s3Utils.js";
@@ -52,7 +55,10 @@ declare module '@fastify/awilix' {
         eventBridgeClient: EventBridgeClient;
         dynamoDbUtils: DynamoDbUtils;
         stepFunctionClient: SFNClient;
+		stsClient: STSClient;
         dataZoneClient: DataZoneClient;
+		dataZoneUserAuthClientFactory: DataZoneUserAuthClientFactory;
+		secretsManagerClient: SecretsManagerClient;
         glueClient: GlueClient;
         dataBrewClient: DataBrewClient;
         s3Client: S3Client;
@@ -97,12 +103,74 @@ class StepFunctionClientFactory {
     }
 }
 
-class DataZoneClientFactory {
+class STSClientFactory {
+	public static create(region: string | undefined): STSClient {
+	  const stsClient = captureAWSv3Client(new STSClient({ region }));
+	  return stsClient;
+	}
+  }
+
+  class DataZoneClientFactory {
     public static create(region: string | undefined): DataZoneClient {
         const dz = captureAWSv3Client(new DataZoneClient({region}));
         return dz;
-    }
+      }
+  }
+
+  class SecretsManagerClientFactory {
+	public static create(region: string | undefined): SecretsManagerClient {
+		const dz = captureAWSv3Client(new SecretsManagerClient({ region }));
+		return dz;
+	  }
+  }
+
+  export class DataZoneUserAuthClientFactory {
+	private readonly log: BaseLogger;
+	private readonly region: string | undefined;
+	private readonly stsClient: STSClient;
+	private readonly customDataZoneUserExecutionRoleArn: string;
+
+	public constructor(log: BaseLogger, region: string | undefined, stsClient: STSClient, customDataZoneUserExecutionRoleArn: string) {
+		this.log = log;
+		this.region = region
+		this.stsClient = stsClient;
+		this.customDataZoneUserExecutionRoleArn = customDataZoneUserExecutionRoleArn;
+	}
+
+	public async create(userId: string, domainId: string): Promise<DataZoneClient> {
+		this.log.debug(`DataZoneUserAuthClientFactory> create> in:`);
+		const assumeRoleCommand = new AssumeRoleCommand({
+			RoleArn: this.customDataZoneUserExecutionRoleArn,
+			Tags: [
+			{
+				Key: "datazone-domainId",
+				Value: domainId
+			},
+			{
+				Key: "datazone-userId",
+				Value: userId
+			}
+			],
+			RoleSessionName: `user-${userId}`
+		});
+		const assumeRoleResponse = await this.stsClient.send(assumeRoleCommand);
+		if (!assumeRoleResponse.Credentials) {
+			const error = new Error("Expected to get credentials back from AssumeRoleCommand");
+			this.log.error(error)
+			throw error;
+		}
+		const credentials = {
+			accessKeyId: assumeRoleResponse.Credentials.AccessKeyId,
+			secretAccessKey: assumeRoleResponse.Credentials.SecretAccessKey,
+			sessionToken: assumeRoleResponse.Credentials.SessionToken,
+			expiration: assumeRoleResponse.Credentials.Expiration
+		};
+		const dz = captureAWSv3Client(new DataZoneClient({ region: this.region, credentials }));
+		this.log.debug(`DataZoneUserAuthClientFactory> create> out:`);
+		return dz;
+	}
 }
+
 
 class GlueClientFactory {
     public static create(region: string | undefined): GlueClient {
@@ -145,6 +213,7 @@ const registerContainer = (app?: FastifyInstance) => {
     const jobsBucketName = process.env['JOBS_BUCKET_NAME'];
     const jobsBucketPrefix = process.env['JOBS_BUCKET_PREFIX'];
     const TableName = process.env['TABLE_NAME'];
+	const customDataZoneUserExecutionRoleArn = process.env['CUSTOM_DATAZONE_USER_EXECUTION_ROLE_ARN'];
     const GlueDatabaseName = process.env['SPOKE_GLUE_DATABASE_NAME'];
 
     diContainer.register({
@@ -157,9 +226,21 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
+		stsClient: asFunction(() => STSClientFactory.create(awsRegion), {
+			...commonInjectionOptions,
+		}),
+
         dataZoneClient: asFunction(() => DataZoneClientFactory.create(awsRegion), {
             ...commonInjectionOptions
         }),
+
+		dataZoneUserAuthClientFactory: asFunction((container: Cradle) => new DataZoneUserAuthClientFactory(app.log, awsRegion, container.stsClient, customDataZoneUserExecutionRoleArn), {
+			...commonInjectionOptions
+		}),
+
+		secretsManagerClient: asFunction(() => SecretsManagerClientFactory.create(awsRegion), {
+			...commonInjectionOptions,
+		}),
 
         glueClient: asFunction(() => GlueClientFactory.create(awsRegion), {
             ...commonInjectionOptions
@@ -291,19 +372,19 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        connectionTask: asFunction((container: Cradle) => new ConnectionTask(app.log, container.stepFunctionClient), {
-            ...commonInjectionOptions
-        }),
+		connectionTask: asFunction((container: Cradle) => new ConnectionTask(app.log, container.glueClient, container.stepFunctionClient, container.secretsManagerClient), {
+			...commonInjectionOptions
+		}),
 
         profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.s3Utils), {
             ...commonInjectionOptions
         }),
 
-        dataSetTask: asFunction((container: Cradle) => new DataSetTask(app.log, container.stepFunctionClient, container.dataBrewClient), {
-            ...commonInjectionOptions
-        }),
+		dataSetTask: asFunction((container: Cradle) => new DataSetTask(app.log, container.stepFunctionClient, container.dataBrewClient, container.s3Utils), {
+			...commonInjectionOptions
+		}),
 
-        profileDataSetTask: asFunction((container: Cradle) => new ProfileDataSetTask(app.log, container.stepFunctionClient, container.dataBrewClient, GlueDatabaseName), {
+        profileDataSetTask: asFunction((container: Cradle) => new ProfileDataSetTask(app.log, container.stepFunctionClient, container.dataBrewClient, GlueDatabaseName, container.s3Utils), {
             ...commonInjectionOptions
         }),
 

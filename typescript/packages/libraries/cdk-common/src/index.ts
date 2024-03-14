@@ -5,6 +5,7 @@ export * from './context/util.js';
 export * from './environment/util.js';
 export * from './facts/facts.utils.js';
 export * from './facts/lambdaArchitecture.js';
-export * from './eventBridge/util.js'
-export * from './eventBridge/eventbus.construct.js'
-export * from './organizations/models.js'
+export * from './eventBridge/util.js';
+export * from './eventBridge/eventbus.construct.js';
+export * from './organizations/models.js';
+export * from './dataZone/util.js';

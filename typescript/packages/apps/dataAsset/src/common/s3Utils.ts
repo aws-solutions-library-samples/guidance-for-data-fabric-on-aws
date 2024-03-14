@@ -43,7 +43,7 @@ export class S3Utils {
             Key: `${this.bucketPrefix}/${id}/${taskName}.json`
         }));
         const taskData = JSON.parse(await res.Body.transformToString())
-        this.log.trace(`S3Utils > getTaskData > taskData: ${taskData}`)
+        this.log.trace(`S3Utils > getTaskData > taskData: ${JSON.stringify(taskData)}`)
         return taskData;
     }
 
@@ -68,6 +68,25 @@ export class S3Utils {
         return {
             Bucket: this.bucketName,
             Key: `${this.bucketPrefix}/${domainId}/${projectId}/${id}/recipeJobOutput`
+        }
+    }
+
+    public getRecipeJobOutputLocationPath(id: string, domainId: string, projectId: string): string {
+        const outputLocation = this.getRecipeJobOutputLocation(id, domainId, projectId);
+        return `s3://${outputLocation.Bucket}/${outputLocation.Key}`;
+    }
+
+    public getRecipeDataSetTempLocation(id: string, domainId: string, projectId: string): { Bucket: string, Key: string } {
+        return {
+            Bucket: this.bucketName,
+            Key: `${this.bucketPrefix}/${domainId}/${projectId}/${id}/recipeDataSetTemp`
+        }
+    }
+
+    public getProfileDataSetTempLocation(id: string, domainId: string, projectId: string): { Bucket: string, Key: string } {
+        return {
+            Bucket: this.bucketName,
+            Key: `${this.bucketPrefix}/${domainId}/${projectId}/${id}/profileDataSetTemp`
         }
     }
 }

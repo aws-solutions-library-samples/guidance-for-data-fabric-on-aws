@@ -44,7 +44,7 @@ export function getResourceArn(workflow: Workflow): string {
             arn = `arn:aws:s3:::${S3Utils.extractObjectDetailsFromUri(workflow.dataset.connection.dataLake.s3.path)}`
             break;
         case 'glue':
-            arn = `rn:aws:glue:${workflow.dataset.connection.glue.region}:${workflow.dataset.connection.glue.region}:table/${workflow.dataset.connection.glue.databaseName}/${workflow.dataset.connection.glue.tableName}`;
+            arn = `arn:aws:glue:${workflow.dataset.connection.glue.region}:${workflow.dataset.connection.glue.region}:table/${workflow.dataset.connection.glue.databaseName}/${workflow.dataset.connection.glue.tableName}`;
             break;
         case 'redshift':
             arn = `TODO`;

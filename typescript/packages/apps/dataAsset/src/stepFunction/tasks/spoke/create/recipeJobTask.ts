@@ -59,7 +59,6 @@ export class RecipeJobTask {
                             requestId: event.dataAsset.requestId,
                             LineageRunId: lineageRunId,
                             executionArn: event.execution.executionArn,
-                            executionToken: event.execution.taskToken,
                         },
                     })
                 );
@@ -81,7 +80,6 @@ export class RecipeJobTask {
                                 requestId: event.dataAsset.requestId,
                                 LineageRunId: lineageRunId,
                                 executionArn: event.execution.executionArn,
-                                executionToken: event.execution.taskToken,
                             },
                         })
                     );
@@ -116,7 +114,7 @@ export class RecipeJobTask {
         const recipeJob = await this.dataBrewClient.send(
             new CreateRecipeJobCommand({
                 Name: jobName,
-                DatasetName: id,
+                DatasetName: `${id}-recipeDataSet`,
                 RoleArn: event.dataAsset.workflow.roleArn,
                 RecipeReference: {
                     Name: recipeName,
@@ -141,7 +139,6 @@ export class RecipeJobTask {
                     requestId: event.dataAsset.requestId,
                     LineageRunId: lineageRunId,
                     executionArn: event.execution.executionArn,
-                    executionToken: event.execution.taskToken,
                 },
             })
         );
@@ -154,7 +151,7 @@ export class RecipeJobTask {
         );
 
         // Update task data in S3 for next task
-        await this.s3Utils.putTaskData(TaskType.DataProfileTask, id, event);
+        await this.s3Utils.putTaskData(TaskType.RecipeTask, id, event);
 
         this.log.info(`RecipeJobTask > process > exit:`);
     }

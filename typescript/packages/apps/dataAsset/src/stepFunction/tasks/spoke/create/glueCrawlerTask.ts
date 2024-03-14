@@ -2,6 +2,7 @@ import type { BaseLogger } from 'pino';
 import { type DataAssetTask, TaskType } from '../../models.js';
 import { CrawlerTargets, CreateCrawlerCommand, CreateCrawlerCommandInput, GetCrawlerCommand, GlueClient, StartCrawlerCommand, UpdateCrawlerCommand } from '@aws-sdk/client-glue';
 import { ulid } from 'ulid';
+import { ConnectionTask } from './connectionTask.js';
 import type { S3Utils } from '../../../../common/s3Utils.js';
 
 export class GlueCrawlerTask {
@@ -86,32 +87,51 @@ export class GlueCrawlerTask {
 
     }
 
-    private getCrawlerTargets(event: DataAssetTask): CrawlerTargets {
-        const connection = event.dataAsset.workflow.dataset.connection;
+	private getCrawlerTargets(event: DataAssetTask): CrawlerTargets {
+		const connection = event.dataAsset.workflow.dataset.connection;
+		this.log.debug(`GlueCrawlerTask > getCrawlerTargets > in`);
 
-        let targets = {};
-        // Get the connection key
-        // We only support a single target for now
-        switch (Object.keys(connection)[0]) {
-            case 'dataLake':
-                targets = {
-                    S3Targets: [
-                        {
-                            Path: event.dataAsset.workflow.dataset.connection.dataLake.s3.path
-                        }
-                    ]
-                }
-                break;
-            case 'glue':
-                // TODO, NOT needed for demo
-                break;
-            case 'redshift':
-                // TODO Edmund
-
-                break;
-            default:
-                break;
+		let targets: CrawlerTargets = {};
+		// Get the connection key
+		// We only support a single target for now
+        if (event.dataAsset.execution.recipeJob) {
+            const id = (event.dataAsset.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+            targets = {
+                S3Targets: [
+                    {
+                        Path: this.s3Utils.getRecipeJobOutputLocationPath(id, event.dataAsset.catalog.domainId, event.dataAsset.catalog.projectId)
+                    }
+                ]
+            }
+        } else {
+            switch (Object.keys(connection)[0]) {
+                case 'dataLake':
+                    targets = {
+                        S3Targets: [
+                            {
+                                Path: event.dataAsset.workflow.dataset.connection.dataLake.s3.path
+                            }
+                        ]
+                    }
+                    break;
+                case 'glue':
+                    // TODO, NOT needed for demo
+                    break;
+                case 'redshift':
+                    targets = {
+                        JdbcTargets: [
+                            {
+                                ConnectionName: ConnectionTask.getConnectionName(event),
+                                Path: event.dataAsset.workflow.dataset.connection.redshift.path
+                            }
+                        ]
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
+		this.log.debug(`GlueCrawlerTask > getCrawlerTargets > out: ${JSON.stringify(targets)}`);
 
         return targets;
     }

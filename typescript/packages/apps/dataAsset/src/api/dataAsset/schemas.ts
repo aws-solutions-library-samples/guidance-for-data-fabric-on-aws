@@ -81,15 +81,28 @@ export const glueConnection = Type.Object({
     tableName: Type.String({ description: 'The glue table name' }),
 });
 
+export const redshiftConnection = Type.Object({
+    secretArn: Type.String({ description: 'The ARN of the Secrets Manager secret containing redshift credentials.'}),
+    jdbcConnectionUrl: Type.String({description: 'JDBC URL for the redshift cluster or workgroup.'}),
+    subnetId: Type.String({ description: 'Subnet ID for the Glue connection.'}),
+    securityGroupIdList: Type.Array(Type.String(), { description: "Security group Ids for the Glue connection."}),
+    availabilityZone: Type.String({ description: 'Availability zone for the Glue connection.'}),
+    path: Type.String({ description: "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)"}),
+    
+    databaseTableName: Type.String({ description: "The database table name for DataBrew dataset (used in recipe job data set)."}),
+    queryString: Type.String({ description: "The query string for DataBrew dataset (used in recipe job data set)."})
+});
+
 export const connection = Type.Optional(Type.Object({
     dataLake: Type.Optional(dataLakeConnection),
-    glue: Type.Optional(glueConnection)
+    glue: Type.Optional(glueConnection),
+    redshift: Type.Optional(redshiftConnection)
 }));
 
 export const dataset = Type.Object({
     name: Type.String({ description: 'The name of the workflow' }),
     format,
-    connectionId: Type.Optional(Type.String({ description: 'Data Zone project id' })),
+    connectionId: Type.Optional(Type.String({ description: 'Glue connection name' })),
     connection,
 
 });

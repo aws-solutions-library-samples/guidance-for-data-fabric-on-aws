@@ -25,7 +25,7 @@ The following example uses our shared hub account `767397689259` as an example  
 
 ```
 cd df-core/infrastructure/hub
-npm run cdk -- deploy -c orgId=o-lq7e4opv1i \n -c orgRootId=r-0cic -c orgOuId=ou-0cic-70sjyito -c loadBalancerCertificateArn=arn:aws:acm:us-west-2:767397689259:certificate/acede5b7-7f25-4e6a-a32a-ca4753590222 -c spokeAccountIds=767397875118,381492063957 -c identityStoreId=d-9267b8520e -c ssoInstanceArn=arn:aws:sso:::instance/ssoins-7907ae9daa2031e2 -c samlMetaDataUrl=https://portal.sso.us-west-2.amazonaws.com/saml/metadata/OTA1NDE4MzcwOTU4X2lucy1iYTNlODg5MWEzNDI2NzIy -c callbackUrls=http://localhost:3000 -c adminEmail=rotach+df@amazon.com --require-approval never --concurrency=10 --all
+npm run cdk -- deploy -c orgId=o-lq7e4opv1i -c orgRootId=r-0cic -c orgOuId=ou-0cic-70sjyito -c loadBalancerCertificateArn=arn:aws:acm:us-west-2:767397689259:certificate/acede5b7-7f25-4e6a-a32a-ca4753590222 -c spokeAccountIds=767397875118,381492063957 -c identityStoreId=d-9267b8520e -c ssoInstanceArn=arn:aws:sso:::instance/ssoins-7907ae9daa2031e2 -c samlMetaDataUrl=https://portal.sso.us-west-2.amazonaws.com/saml/metadata/OTA1NDE4MzcwOTU4X2lucy1iYTNlODg5MWEzNDI2NzIy -c callbackUrls=http://localhost:3000 -c adminEmail=rotach+df@amazon.com --require-approval never --concurrency=10 --all
 ```
 
 After deployment of the hub stack from the console of the hub account navigate to the lambda function `df-dataAsset-jobCompletion` and copy its role name:
@@ -83,3 +83,9 @@ curl --location 'http://localhost:30004/dataassets' \
     }
 }'
 ```
+
+
+## Prerequisites
+### Redshift Serverless
+- Turn on enhanced VPC routing
+- Place credentials in secrets manager

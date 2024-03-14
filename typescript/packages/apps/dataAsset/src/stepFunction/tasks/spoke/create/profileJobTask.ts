@@ -58,7 +58,7 @@ export class ProfileJobTask {
         // Create default profile job
         const command: CreateProfileJobCommandInput = {
             Name: jobName,
-            DatasetName: id,
+            DatasetName: `${id}-profileDataSet`,
             RoleArn: asset.workflow.roleArn,
             OutputLocation: this.s3Utils.getProfilingJobOutputLocation(id, asset.catalog.domainId, asset.catalog.projectId),
             Tags: {
