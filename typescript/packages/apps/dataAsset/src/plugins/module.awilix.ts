@@ -135,8 +135,8 @@ const registerContainer = (app?: FastifyInstance) => {
     const spokeEventBusName = process.env['SPOKE_EVENT_BUS_NAME'];
     const hubCreateStateMachineArn = process.env['HUB_CREATE_STATE_MACHINE_ARN'];
     // const spokeCreateStateMachineArn = process.env['SPOKE_CREATE_STATE_MACHINE_ARN'];
-    const JobsBucketName = process.env['JOBS_BUCKET_NAME'];
-    const JobsBucketPrefix = process.env['JOBS_BUCKET_PREFIX'];
+    const jobsBucketName = process.env['JOBS_BUCKET_NAME'];
+    const jobsBucketPrefix = process.env['JOBS_BUCKET_PREFIX'];
     const TableName = process.env['TABLE_NAME'];
     const GlueDatabaseName = process.env['SPOKE_GLUE_DATABASE_NAME'];
 
@@ -173,7 +173,7 @@ const registerContainer = (app?: FastifyInstance) => {
         dynamoDbUtils: asFunction((container: Cradle) => new DynamoDbUtils(app.log, container.dynamoDBDocumentClient), {
             ...commonInjectionOptions,
         }),
-        s3Utils: asFunction((container: Cradle) => new S3Utils(app.log, container.s3Client, JobsBucketName, JobsBucketName), {
+        s3Utils: asFunction((container: Cradle) => new S3Utils(app.log, container.s3Client, jobsBucketName, jobsBucketPrefix), {
             ...commonInjectionOptions,
         }),
 
@@ -303,7 +303,7 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.stepFunctionClient, container.dataBrewClient, JobsBucketName, JobsBucketPrefix), {
+        recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.s3Utils, container.dataBrewClient), {
             ...commonInjectionOptions
         }),
 

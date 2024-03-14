@@ -43,7 +43,14 @@ export class S3Utils {
     public getProfilingJobOutputLocation(id: string, domainId: string, projectId: string): { Bucket: string, Key: string } {
         return {
             Bucket: this.bucketName,
-            Key: `${this.bucketPrefix}/${domainId}/${projectId}/${id}/dataProfile`
+            Key: `${this.bucketPrefix}/${domainId}/${projectId}/${id}/profilingJobOutput`
+        }
+    }
+
+    public getRecipeJobOutputLocation(id: string, domainId: string, projectId: string): { Bucket: string, Key: string } {
+        return {
+            Bucket: this.bucketName,
+            Key: `${this.bucketPrefix}/${domainId}/${projectId}/${id}/recipeJobOutput`
         }
     }
 }
