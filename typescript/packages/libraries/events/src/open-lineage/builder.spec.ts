@@ -10,8 +10,8 @@ describe('OpenLineageBuilder', () => {
 
         builder.setContext('12345',
             'sample_domain',
-            'arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline',
-            ['testuser@admin.com'])
+            'arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline'
+        )
     })
 
     describe('Derived data asset with custom transformation applied outside DF', () => {
@@ -25,7 +25,7 @@ describe('OpenLineageBuilder', () => {
                     "documentation": {
                         "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
                         "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/DocumentationJobFacet.json",
-                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain 12345."
+                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain - df.12345"
                     },
                     "ownership": {
                         "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
@@ -70,7 +70,7 @@ describe('OpenLineageBuilder', () => {
                     "documentation": {
                         "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
                         "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/DocumentationJobFacet.json",
-                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain 12345."
+                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain - df.12345"
                     },
                     "ownership": {
                         "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
@@ -145,7 +145,8 @@ describe('OpenLineageBuilder', () => {
                             _producer: 'external_bash_script',
                             type: 'git',
                             url: 'some_git_url'
-                        }
+                        },
+                        usernames: ['testuser@admin.com']
                     })
                 .setStartJob(
                     {
@@ -162,8 +163,7 @@ describe('OpenLineageBuilder', () => {
 
             expect(actualStartEvent).toEqual(expectedStartEvent);
 
-            builder.setOpenLineageEvent(expectedStartEvent);
-
+            builder.setOpenLineageEvent(actualStartEvent);
 
             // this will be called at the end of the step function
             const actualCompleteEvent = builder
@@ -177,6 +177,7 @@ describe('OpenLineageBuilder', () => {
                     name: "df.stationary-combustion.77777",
                     storageLayer: "s3",
                     version: "1.2",
+                    usernames: ['testuser@admin.com'],
                     // TODO: JR & PB - Column Lineage information provided by user when transformation is performed outside of DF.
                     customTransformerMetadata: {
                         _producer: 'externalProducer',
@@ -209,63 +210,62 @@ describe('OpenLineageBuilder', () => {
 
     describe('Derived data asset with data profiling metrics', () => {
         const expectedCompleteEvent = {
-            "domainId": "12345", "domainName": "sample_domain", "stateMachineArn": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline", "domainNamespace": "sample_domain - df.12345", "openLineageEvent": {
-                "producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent",
-                "job": {
-                    "namespace": "sample_domain - df.12345",
-                    "name": "df_data_quality_metrics - SampleCsvAsset",
-                    "facets": {
-                        "documentation": {
-                            "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                            "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/DocumentationJobFacet.json",
-                            "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain 12345."
-                        },
-                        "ownership": {
-                            "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipJobFacet.json",
-                            "owners": [{"name": "user:testuser@admin.com"}, {"name": "application:df.DataAssetModule"}]
+
+            "producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+            "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent",
+            "job": {
+                "namespace": "sample_domain - df.12345",
+                "name": "df_data_quality_metrics - SampleCsvAsset",
+                "facets": {
+                    "documentation": {
+                        "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+                        "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/DocumentationJobFacet.json",
+                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain - df.12345"
+                    },
+                    "ownership": {
+                        "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipJobFacet.json",
+                        "owners": [{"name": "user:testuser@admin.com"}, {"name": "application:df.DataAssetModule"}]
+                    }
+                }
+            },
+            "inputs": [{
+                "name": "sampleAssetName",
+                "namespace": "asset.namespace.other",
+                "inputFacets": {
+                    "dataQualityMetrics": {
+                        "_producer": "8948df56-2116-401f-9349-95c42b646047",
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DataQualityMetricsInputDatasetFacet.json",
+                        "rowCount": 20000,
+                        "columnMetrics": {
+                            "age": {"min": 18, "max": 99, "sum": 1173386, "count": 0, "nullCount": 0, "distinctCount": 82, "quantiles": {"0.05": 22, "0.25": 38, "0.75": 79, "0.95": 95}},
+                            "city": {"min": 6, "max": 15, "count": 0, "nullCount": 0, "distinctCount": 25, "quantiles": {}}
                         }
                     }
                 },
-                "inputs": [{
-                    "name": "sampleAssetName",
-                    "namespace": "asset.namespace.other",
-                    "inputFacets": {
-                        "dataQualityMetrics": {
-                            "_producer": "8948df56-2116-401f-9349-95c42b646047",
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DataQualityMetricsInputDatasetFacet.json",
-                            "rowCount": 20000,
-                            "columnMetrics": {
-                                "age": {"min": 18, "max": 99, "sum": 1173386, "count": 0, "nullCount": 0, "distinctCount": 82, "quantiles": {"0.05": 22, "0.25": 38, "0.75": 79, "0.95": 95}},
-                                "city": {"min": 6, "max": 15, "count": 0, "nullCount": 0, "distinctCount": 25, "quantiles": {}}
-                            }
-                        }
+                "facets": {}
+            }],
+            "outputs": [],
+            "eventTime": "2024-03-08T04:46:23.275Z",
+            "eventType": "COMPLETE",
+            "run": {
+                "runId": "8948df56-2116-401f-9349-95c42b646047",
+                "facets": {
+                    "nominalTime": {
+                        "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/NominalTimeRunFacet.json",
+                        "nominalStartTime": "2024-03-08T04:46:23.275Z",
+                        "nominalEndTime": "2024-03-08T06:46:23.275Z"
                     },
-                    "facets": {}
-                }],
-                "outputs": [],
-                "eventTime": "2024-03-08T04:46:23.275Z",
-                "eventType": "COMPLETE",
-                "run": {
-                    "runId": "8948df56-2116-401f-9349-95c42b646047",
-                    "facets": {
-                        "nominalTime": {
-                            "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/NominalTimeRunFacet.json",
-                            "nominalStartTime": "2024-03-08T04:46:23.275Z",
-                            "nominalEndTime": "2024-03-08T06:46:23.275Z"
-                        },
-                        "parent": {
-                            "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ParentRunFacet.json",
-                            "job": {"name": "df_create_dataset - SampleCsvAsset", "namespace": "sample_domain - df.12345"},
-                            "run": {"runId": "284ae082-8385-4de5-9ec6-87d6ed65b113"}
-                        }
+                    "parent": {
+                        "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ParentRunFacet.json",
+                        "job": {"name": "df_create_dataset - SampleCsvAsset", "namespace": "sample_domain - df.12345"},
+                        "run": {"runId": "284ae082-8385-4de5-9ec6-87d6ed65b113"}
                     }
                 }
-            }, "owners": [{"name": "user:testuser@admin.com"}]
-        }
+            }
+        };
 
         const expectedStartEvent = {
             "producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
@@ -277,7 +277,7 @@ describe('OpenLineageBuilder', () => {
                     "documentation": {
                         "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
                         "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/DocumentationJobFacet.json",
-                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain 12345."
+                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain - df.12345"
                     },
                     "ownership": {
                         "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
@@ -367,6 +367,7 @@ describe('OpenLineageBuilder', () => {
                         jobName: "df_data_quality_metrics",
                         // Provided by user.
                         assetName: "SampleCsvAsset",
+                        usernames: ['testuser@admin.com']
                     })
                 .setStartJob(
                     {
@@ -397,12 +398,9 @@ describe('OpenLineageBuilder', () => {
                     eventType: 'COMPLETE'
                 })
                 .setProfilingResult({
-                    assetName: "sampleAssetName",
-                    assetNamespace: "asset.namespace.other",
-                    // TODO: JR & PB - For demo, we will pass in the first result if multiple profiling result exists for multiple files.
                     result: profilingResult,
                     runId: "8948df56-2116-401f-9349-95c42b646047"
-                });
+                }).build();
             expect(actualCompleteEvent).toEqual(expectedCompleteEvent);
         });
     });
@@ -419,7 +417,7 @@ describe('OpenLineageBuilder', () => {
                     "documentation": {
                         "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
                         "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/DocumentationJobFacet.json",
-                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain 12345."
+                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain - df.12345"
                     },
                     "ownership": {
                         "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
@@ -504,65 +502,64 @@ describe('OpenLineageBuilder', () => {
         }
 
         const expectedCompleteEvent = {
-            "domainId": "12345", "domainName": "sample_domain", "stateMachineArn": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline", "domainNamespace": "sample_domain - df.12345", "openLineageEvent": {
-                "producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent",
-                "job": {
-                    "namespace": "sample_domain - df.12345",
-                    "name": "df_data_quality_assertions - SampleCsvAsset",
-                    "facets": {
-                        "documentation": {
-                            "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                            "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/DocumentationJobFacet.json",
-                            "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain 12345."
-                        },
-                        "ownership": {
-                            "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipJobFacet.json",
-                            "owners": [{"name": "user:testuser@admin.com"}, {"name": "application:df.DataAssetModule"}]
-                        }
-                    }
-                },
-                "inputs": [{
-                    name: "sampleAssetName",
-                    namespace: "asset.namespace.other",
-                    "inputFacets": {},
-                    "facets": {
-                        "dataQualityAssertions": {
-                            "_producer": "8948df56-2116-401f-9349-95c42b646047",
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DataQualityAssertionsDatasetFacet.json",
-                            "assertions":
-                                [
-                                    {"assertion": "ColumnCount = 10", "success": false},
-                                    {"assertion": "ColumnValues \"zipcode\" matches \"[1-9]*\" with threshold > 0.1", "success": false},
-                                    {"assertion": "ColumnValues \"zipcode\" in [1,2,3]", "success": false},
-                                    {"assertion": "ColumnExists \"zipcode\"", "success": true},
-                                    {"assertion": "ColumnValues \"kwh\" < 10", "success": false}
-                                ]
-                        }
-                    }
-                }],
-                "outputs": [],
-                "eventTime": "2024-03-08T04:46:23.275Z",
-                "eventType": "COMPLETE",
-                "run": {
-                    "runId": "8948df56-2116-401f-9349-95c42b646047",
-                    "facets": {
-                        "nominalTime": {
-                            "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/NominalTimeRunFacet.json",
-                            "nominalStartTime": "2024-03-08T04:46:23.275Z",
-                            "nominalEndTime": "2024-03-08T06:46:23.275Z"
-                        },
-                        "parent": {
-                            "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ParentRunFacet.json",
-                            "job": {"name": "df_create_dataset - SampleCsvAsset", "namespace": "sample_domain - df.12345"},
-                            "run": {"runId": "284ae082-8385-4de5-9ec6-87d6ed65b113"}
-                        }
+
+            "producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+            "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent",
+            "job": {
+                "namespace": "sample_domain - df.12345",
+                "name": "df_data_quality_assertions - SampleCsvAsset",
+                "facets": {
+                    "documentation": {
+                        "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+                        "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/facets/DocumentationJobFacet.json",
+                        "description": "Catalogs the SampleCsvAsset within the DataZone catalog for domain sample_domain - df.12345"
+                    },
+                    "ownership": {
+                        "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipJobFacet.json",
+                        "owners": [{"name": "user:testuser@admin.com"}, {"name": "application:df.DataAssetModule"}]
                     }
                 }
-            }, "owners": [{"name": "user:testuser@admin.com"}]
+            },
+            "inputs": [{
+                name: "sampleAssetName",
+                namespace: "asset.namespace.other",
+                "inputFacets": {},
+                "facets": {
+                    "dataQualityAssertions": {
+                        "_producer": "8948df56-2116-401f-9349-95c42b646047",
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DataQualityAssertionsDatasetFacet.json",
+                        "assertions":
+                            [
+                                {"assertion": "ColumnCount = 10", "success": false},
+                                {"assertion": "ColumnValues \"zipcode\" matches \"[1-9]*\" with threshold > 0.1", "success": false},
+                                {"assertion": "ColumnValues \"zipcode\" in [1,2,3]", "success": false},
+                                {"assertion": "ColumnExists \"zipcode\"", "success": true},
+                                {"assertion": "ColumnValues \"kwh\" < 10", "success": false}
+                            ]
+                    }
+                }
+            }],
+            "outputs": [],
+            "eventTime": "2024-03-08T04:46:23.275Z",
+            "eventType": "COMPLETE",
+            "run": {
+                "runId": "8948df56-2116-401f-9349-95c42b646047",
+                "facets": {
+                    "nominalTime": {
+                        "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/NominalTimeRunFacet.json",
+                        "nominalStartTime": "2024-03-08T04:46:23.275Z",
+                        "nominalEndTime": "2024-03-08T06:46:23.275Z"
+                    },
+                    "parent": {
+                        "_producer": "arn:aws:states:ap-southeast-2:111111111:stateMachine:createDataSetPipeline",
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ParentRunFacet.json",
+                        "job": {"name": "df_create_dataset - SampleCsvAsset", "namespace": "sample_domain - df.12345"},
+                        "run": {"runId": "284ae082-8385-4de5-9ec6-87d6ed65b113"}
+                    }
+                }
+            }
         }
 
         it('Happy Path > Scenario 7.1.1 and Scenario 7.1.2', () => {
@@ -571,6 +568,7 @@ describe('OpenLineageBuilder', () => {
                     {
                         jobName: "df_data_quality_assertions",
                         assetName: "SampleCsvAsset",
+                        usernames: ['testuser@admin.com']
                     })
                 .setStartJob(
                     {
@@ -602,7 +600,8 @@ describe('OpenLineageBuilder', () => {
                 .setQualityResult({
                     result: qualityResult,
                     runId: "8948df56-2116-401f-9349-95c42b646047"
-                });
+                }).build();
+
             expect(actualCompleteEvent).toEqual(expectedCompleteEvent);
         })
 

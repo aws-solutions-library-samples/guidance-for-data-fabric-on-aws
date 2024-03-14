@@ -3,16 +3,16 @@ import { OpenLineageBuilder } from "@df/events";
 import type { BaseLogger } from "pino";
 import type { SFNClient } from "@aws-sdk/client-sfn";
 import { SendTaskSuccessCommand } from "@aws-sdk/client-sfn";
-import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { GetDataQualityResultCommand, GetDataQualityRulesetEvaluationRunCommand, GetTagsCommand, GlueClient } from "@aws-sdk/client-glue";
-import type { DataAssetTask } from "../stepFunction/tasks/models.js";
+import { TaskType } from "../stepFunction/tasks/models.js";
 import { validateNotEmpty } from "@df/validators";
+import type { S3Utils } from "../common/s3Utils.js";
 
 export class DataQualityProfileEventProcessor {
 
     constructor(private readonly log: BaseLogger,
                 private readonly sfnClient: SFNClient,
-                private readonly ssmClient: SSMClient,
+                private readonly s3Utils: S3Utils,
                 private readonly glueClient: GlueClient) {
     }
 
@@ -50,16 +50,13 @@ export class DataQualityProfileEventProcessor {
             }))
         ])
 
-        const param = await this.ssmClient.send(new GetParameterCommand({
-            Name: `/df/spoke/dataAsset/stateMachineExecution/create/${getTagsResponse.Tags['requestId']!}`
-        }));
+        const requestId = getTagsResponse.Tags['requestId'];
 
-        const taskInput: DataAssetTask = JSON.parse(param.Parameter.Value);
+        const dataAssetTask = await this.s3Utils.getTaskData(TaskType.DataQualityProfileTask, requestId)
 
         const {rulesFailed, rulesSucceeded, rulesSkipped, score} = event.detail
-
-        taskInput.dataAsset.execution = {
-            ...taskInput.dataAsset.execution,
+        dataAssetTask.dataAsset.execution = {
+            ...dataAssetTask.dataAsset.execution,
             dataQualityProfileJob: {
                 id: context.runId,
                 status: event.detail.state,
@@ -69,12 +66,14 @@ export class DataQualityProfileEventProcessor {
             }
         }
 
-        // TODO: add the code to publish the lineage event.
-        // @ts-ignore
-        const lineageEvent = this.constructDataLineage(taskInput.dataAsset.lineage!.pop(), getResultResponse.RuleResults, context.runId);
+        const dataQualityProfileLineageEvent = dataAssetTask.dataAsset?.lineage?.[TaskType.DataQualityProfileTask];
+        if (!dataQualityProfileLineageEvent) {
+            throw new Error('No start lineage event for data quality.')
+        }
+        dataAssetTask.dataAsset.lineage[TaskType.DataQualityProfileTask] = this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, context.runId)
 
         // Signal back to the state machine
-        await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken}));
+        await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(dataAssetTask), taskToken: dataAssetTask.execution.taskToken}));
     }
 
     private constructDataLineage(lineageEvent: Partial<RunEvent>, ruleResults: RuleResult[], runId: string): Partial<RunEvent> {

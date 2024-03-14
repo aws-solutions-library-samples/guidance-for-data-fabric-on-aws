@@ -1,5 +1,5 @@
 import type { Workflow } from "../api/dataAsset/schemas";
-import { getObjectArnFromUri } from "./s3Utils.js";
+import { S3Utils } from "./s3Utils";
 
 
 export const ConnectionToAssetTypeMap = {
@@ -17,32 +17,32 @@ export const AssetTypeToFormMap = {
 export const connectionMap = {
     dataLake: {
         assetType: '',
-        forms:['GlueTableForm'],
+        forms: ['GlueTableForm'],
         dataSourceType: 'GLUE'
     },
-    managedRedshift:{
+    managedRedshift: {
         assetType: '',
         dataSourceType: 'REDSHIFT'
     },
-    glue:{
+    glue: {
         assetType: 'amazon.datazone.GlueTableAssetType',
-        forms:['GlueTableForm'],
+        forms: ['GlueTableForm'],
         dataSourceType: 'GLUE'
     }
-} 
-
-export function getConnectionType(workflow: Workflow ):string{
-    const connection = workflow.dataset.connection;
-     return Object.keys(connection)[0];	
 }
 
-export function getResourceArn(workflow: Workflow ): string{
+export function getConnectionType(workflow: Workflow): string {
+    const connection = workflow.dataset.connection;
+    return Object.keys(connection)[0];
+}
+
+export function getResourceArn(workflow: Workflow): string {
     const connectionType = getConnectionType(workflow);
     let arn = undefined;
-    switch( connectionType){
+    switch (connectionType) {
         case 'datalake':
-                arn = `arn:aws:s3:::${getObjectArnFromUri(workflow.dataset.connection.dataLake.s3.path)}`
-            break; 
+            arn = `arn:aws:s3:::${S3Utils.extractObjectDetailsFromUri(workflow.dataset.connection.dataLake.s3.path)}`
+            break;
         case 'glue':
             arn = `rn:aws:glue:${workflow.dataset.connection.glue.region}:${workflow.dataset.connection.glue.region}:table/${workflow.dataset.connection.glue.databaseName}/${workflow.dataset.connection.glue.tableName}`;
             break;

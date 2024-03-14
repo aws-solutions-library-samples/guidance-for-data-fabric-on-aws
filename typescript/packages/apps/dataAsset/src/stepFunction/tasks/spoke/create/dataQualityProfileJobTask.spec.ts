@@ -2,9 +2,9 @@ import { beforeEach, describe, it } from 'vitest';
 import { DataQualityProfileJobTask } from "./dataQualityProfileJobTask";
 import pino from "pino";
 import { GlueClient } from "@aws-sdk/client-glue";
-import { SSMClient } from "@aws-sdk/client-ssm";
 import type { DataAssetTask } from "../../models";
-
+import { S3Utils } from "../../../../common/s3Utils";
+import { S3Client } from "@aws-sdk/client-s3";
 
 describe('DataQualityProfileJobTask', () => {
 
@@ -17,7 +17,7 @@ describe('DataQualityProfileJobTask', () => {
             })
         );
         logger.level = 'info';
-        task = new DataQualityProfileJobTask(logger, new GlueClient({}), 'default', new SSMClient({}))
+        task = new DataQualityProfileJobTask(logger, new GlueClient({}), 'default', new S3Utils(logger, new S3Client({}), 'cdf-singlestack-ap-southeast-2', 'datafabric'))
     })
 
     it('should process the event correctly', async () => {
@@ -37,7 +37,7 @@ describe('DataQualityProfileJobTask', () => {
                     autoPublish: false,
 
                 },
-                lineage:[],
+                lineage: {},
                 workflow: {
                     name: 'create-data-asset',
                     roleArn: 'arn:aws:iam::033295216537:role/service-role/AWSGlueServiceRole-SIF',
@@ -52,7 +52,7 @@ describe('DataQualityProfileJobTask', () => {
             }, execution: {
                 executionArn: '',
                 executionStartTime: '',
-
+                taskToken: 'someTaskToken'
             }
         }
 

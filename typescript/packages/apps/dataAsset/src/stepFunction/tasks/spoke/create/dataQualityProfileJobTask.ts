@@ -1,15 +1,16 @@
 import type { BaseLogger } from 'pino';
 import type { DataAssetTask } from '../../models.js';
+import { TaskType } from "../../models.js";
 import { CreateDataQualityRulesetCommand, GlueClient, StartDataQualityRulesetEvaluationRunCommand, UpdateDataQualityRulesetCommand } from '@aws-sdk/client-glue';
-import { ParameterType, PutParameterCommand, type SSMClient } from '@aws-sdk/client-ssm';
 import { OpenLineageBuilder, RunEvent } from "@df/events";
+import type { S3Utils } from "../../../../common/s3Utils";
 
 export class DataQualityProfileJobTask {
 
     constructor(private readonly log: BaseLogger,
                 private readonly glueClient: GlueClient,
                 private readonly GlueDbName: string,
-                private readonly ssmClient: SSMClient) {
+                private readonly s3Utils: S3Utils) {
     }
 
     public async process(event: DataAssetTask): Promise<any> {
@@ -59,20 +60,13 @@ export class DataQualityProfileJobTask {
             Role: asset.workflow.roleArn
         }))
 
-        /**
-         * The lineage event for Data Quality will be augmented will the assertion results by DataQualityEventProcessor
-         */
-        const lineageEvent = this.constructDataLineage(event, startDataQualityRulesetEvaluationResponse.RunId);
-        event.dataAsset.lineage.push(lineageEvent);
+        const taskName = TaskType.DataQualityProfileTask;
+        if (!event.dataAsset.lineage?.[taskName]) {
+            event.dataAsset.lineage[taskName] = {}
+        }
+        event.dataAsset.lineage[taskName] = this.constructDataLineage(event, startDataQualityRulesetEvaluationResponse.RunId);
 
-        // TODO: This will be replaced with utility function that will store it in S3.
-        await this.ssmClient.send(new PutParameterCommand({
-            Name: `/df/spoke/dataAsset/stateMachineExecution/create/${event.dataAsset.requestId}`,
-            Value: JSON.stringify(event),
-            Type: ParameterType.STRING,
-            Overwrite: true
-        }));
-
+        await this.s3Utils.putTaskData(taskName, id, event);
         this.log.info(`DataQualityProfileJobTask > process > exit:`);
     }
 
@@ -83,7 +77,7 @@ export class DataQualityProfileJobTask {
 
         const openlineageBuilder = new OpenLineageBuilder();
         openlineageBuilder
-            .setContext(catalog.domainId, catalog.domainName, execution.hubExecutionArn, [])
+            .setContext(catalog.domainId, catalog.domainName, execution.hubExecutionArn)
             .setJob(
                 {
                     assetName: catalog.assetName,

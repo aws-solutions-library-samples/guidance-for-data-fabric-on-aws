@@ -1,44 +1,23 @@
 import type { FastifyBaseLogger } from 'fastify';
-import type { EditDataAsset, NewDataAsset, DataAssetListOptions, DataAsset, Catalog, Workflow } from './schemas.js';
+import type { Catalog, DataAsset, DataAssetListOptions, EditDataAsset, NewDataAsset, Workflow } from './schemas.js';
 import { validateNotEmpty, validateRegularExpression } from '@df/validators';
 import type { DataAssetRepository } from './repository.js';
-import { GetAssetCommand, type DataZoneClient, CreateAssetCommand, CreateAssetOutput, CreateAssetRevisionCommand, CreateListingChangeSetCommand } from '@aws-sdk/client-datazone';
-// import { NotFoundError } from '@df/resource-api-base';
-// import { EventBridgeEventBuilder, type EventPublisher, DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_HUB_CREATE_REQUEST_EVENT } from '@df/events';
-import { getObjectArnFromUri } from '../../common/s3Utils.js';
+import { CreateAssetCommand, CreateAssetOutput, CreateAssetRevisionCommand, CreateListingChangeSetCommand, type DataZoneClient, GetAssetCommand } from '@aws-sdk/client-datazone';
 import { AssetTypeToFormMap, ConnectionToAssetTypeMap, getConnectionType } from '../../common/utils.js';
 import { ulid } from 'ulid';
-import { StartExecutionCommand, type SFNClient } from '@aws-sdk/client-sfn';
+import { type SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
+import { S3Utils } from "../../common/s3Utils.js";
 
 export class DataAssetService {
-    private readonly log: FastifyBaseLogger;
-    private readonly repository: DataAssetRepository;
-    private readonly dzClient: DataZoneClient;
-    // private readonly eventPublisher: EventPublisher;
-    // private readonly eventBusName: string;
-    private readonly sfnClient: SFNClient;
-    private readonly createAssetStateMachineArn:string;
-
-
 
     public constructor(
-        log: FastifyBaseLogger,
-        repository: DataAssetRepository,
-        dzClient: DataZoneClient,
-        // eventPublisher: EventPublisher,
-        // eventBusName: string,
-        sfnClient:SFNClient,
-        createAssetStateMachineArn:string,
+        private readonly log: FastifyBaseLogger,
+        private readonly repository: DataAssetRepository,
+        private readonly dzClient: DataZoneClient,
+        private readonly sfnClient: SFNClient,
+        private readonly createAssetStateMachineArn: string,
     ) {
-        this.log = log;
-        this.repository = repository;
-        this.dzClient = dzClient;
-        // this.eventPublisher = eventPublisher;
-        // this.eventBusName = eventBusName;
-        this.sfnClient = sfnClient;
-        this.createAssetStateMachineArn = createAssetStateMachineArn;
     }
-
 
     public async create(asset: NewDataAsset): Promise<DataAsset> {
         this.log.debug(`DataAssetService > create > in asset: ${JSON.stringify(asset)}`);
@@ -58,7 +37,7 @@ export class DataAssetService {
             workflow: asset.workflow
         }
 
-        await this.sfnClient.send(new StartExecutionCommand({ stateMachineArn: this.createAssetStateMachineArn, input: JSON.stringify(fullAsset) }));
+        await this.sfnClient.send(new StartExecutionCommand({stateMachineArn: this.createAssetStateMachineArn, input: JSON.stringify(fullAsset)}));
 
         // Publish event
         // const event = new EventBridgeEventBuilder()
@@ -94,17 +73,18 @@ export class DataAssetService {
         this.log.debug(`DataAssetService > list > exit`);
 
     }
+
     public async update(dataAssetId: string, updatedAsset: EditDataAsset): Promise<DataAsset> {
         this.log.debug(`DataAssetService > update > in dataAssetId:${dataAssetId}, asset:${JSON.stringify(updatedAsset)}`);
 
         const existing: DataAsset = {
-            requestId : dataAssetId,
+            requestId: dataAssetId,
             ...updatedAsset
         }
 
-        // Run the update step function 
+        // Run the update step function
 
-        
+
         this.log.debug(`DataAssetService > update > exit`);
         return existing;
     }
@@ -113,30 +93,6 @@ export class DataAssetService {
         this.log.debug(`DataAssetService > delete > in dataAssetId:${dataAssetId}`);
 
         this.log.debug(`DataAssetService > delete > exit`);
-    }
-
-    private validateCatalog(catalog: Catalog) {
-        validateNotEmpty(catalog, "catalog");
-        validateNotEmpty(catalog.domainId, "domain Id");
-        validateNotEmpty(catalog.projectId, "projectId");
-        validateRegularExpression(catalog.projectId, "projectId", "^[a-zA-Z0-9_-]{1,36}$")
-        validateNotEmpty(catalog.assetName, "assetName");
-        validateNotEmpty(catalog.accountId, "accountId");
-        validateNotEmpty(catalog.autoPublish, "autoPublish");
-
-    }
-
-    private validateWorkflow(workflow: Workflow) {
-        validateNotEmpty(workflow, "workflow");
-        validateNotEmpty(workflow.name, "workflow name");
-        validateNotEmpty(workflow.dataset, "workflow dataset");
-        validateNotEmpty(workflow.dataset.name, "dataset name");
-        validateNotEmpty(workflow.dataset.format, "dataset format");
-        // TODO Validate Connections
-        // TODO Validate transforms
-        // TODO Validate schedule
-        // TODO validate Profile
-
     }
 
     public async createDataZoneAsset(asset: NewDataAsset): Promise<CreateAssetOutput> {
@@ -170,12 +126,12 @@ export class DataAssetService {
                 entityIdentifier: result.id,
                 entityType: 'ASSET'
             }));
-        };
+        }
+        ;
 
         this.log.debug(`DataAssetService > createDataZoneAsset > exit subResp:${JSON.stringify(subResp)}`);
         return result;
     }
-
 
     public async updateDataZoneProfile(asset: DataAsset, profile: any): Promise<CreateAssetOutput> {
         this.log.debug(`DataAssetService > updateDataZoneProfile > profile:${JSON.stringify(profile)}`);
@@ -215,10 +171,34 @@ export class DataAssetService {
             domainIdentifier: asset.catalog.domainId,
             formsInput
         };
-        
+
         const assetId = await this.dzClient.send(new CreateAssetRevisionCommand(props))
         this.log.debug(`DataAssetService > updateDataZoneProfile > exit`);
         return assetId;
+    }
+
+    private validateCatalog(catalog: Catalog) {
+        validateNotEmpty(catalog, "catalog");
+        validateNotEmpty(catalog.domainId, "domain Id");
+        validateNotEmpty(catalog.projectId, "projectId");
+        validateRegularExpression(catalog.projectId, "projectId", "^[a-zA-Z0-9_-]{1,36}$")
+        validateNotEmpty(catalog.assetName, "assetName");
+        validateNotEmpty(catalog.accountId, "accountId");
+        validateNotEmpty(catalog.autoPublish, "autoPublish");
+
+    }
+
+    private validateWorkflow(workflow: Workflow) {
+        validateNotEmpty(workflow, "workflow");
+        validateNotEmpty(workflow.name, "workflow name");
+        validateNotEmpty(workflow.dataset, "workflow dataset");
+        validateNotEmpty(workflow.dataset.name, "dataset name");
+        validateNotEmpty(workflow.dataset.format, "dataset format");
+        // TODO Validate Connections
+        // TODO Validate transforms
+        // TODO Validate schedule
+        // TODO validate Profile
+
     }
 
     private createFormInput(formName: string, asset: NewDataAsset): any {
@@ -229,7 +209,7 @@ export class DataAssetService {
                 input = {
                     formName,
                     content: JSON.stringify({
-                        arn: getObjectArnFromUri(asset.workflow.dataset.connection.dataLake.s3.path),
+                        arn: S3Utils.getObjectArnFromUri(asset.workflow.dataset.connection.dataLake.s3.path),
                         accountId: asset.catalog.accountId,
                         region: asset.workflow.dataset.connection.dataLake.s3.region
                     })
@@ -240,7 +220,7 @@ export class DataAssetService {
                     formName,
                     typeIdentifier: 'amazon.datazone.S3ObjectCollectionFormType',
                     content: JSON.stringify({
-                        bucketArn: getObjectArnFromUri(asset.workflow.dataset.connection.dataLake.s3.path)
+                        bucketArn: S3Utils.getObjectArnFromUri(asset.workflow.dataset.connection.dataLake.s3.path)
                     })
                 };
                 break;
