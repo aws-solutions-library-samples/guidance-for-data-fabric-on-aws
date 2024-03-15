@@ -1,6 +1,6 @@
 import type { Handler } from 'aws-lambda/handler';
-import type { Workflow } from '../../api/dataAsset/schemas';
 import type { DataAssetCatalog, RunEvent } from '@df/events';
+import type { Workflow } from "../../api/dataAssetTask/schemas.js";
 
 export enum TaskType {
     DataProfileTask = 'df_data_profile',

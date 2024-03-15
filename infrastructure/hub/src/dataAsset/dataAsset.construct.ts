@@ -4,7 +4,7 @@ import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { AttributeType, BillingMode, ProjectionType, Table, TableEncryption } from 'aws-cdk-lib/aws-dynamodb';
-import { RemovalPolicy, Aspects, Stack, Duration } from 'aws-cdk-lib';
+import { Aspects, Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import { UserPool } from 'aws-cdk-lib/aws-cognito';
 import { AccessLogFormat, AuthorizationType, CfnMethod, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
 
@@ -66,44 +66,16 @@ export class DataAsset extends Construct {
 
         // define GSI1
         table.addGlobalSecondaryIndex({
-            indexName: 'siKey1-pk-index',
+            indexName: 'siKey1-sk-index',
             partitionKey: {
                 name: 'siKey1',
                 type: AttributeType.STRING,
             },
             sortKey: {
-                name: 'pk',
+                name: 'sk',
                 type: AttributeType.STRING,
             },
-            projectionType: ProjectionType.ALL,
-        });
-
-        // define GSI2
-        table.addGlobalSecondaryIndex({
-            indexName: 'siKey2-pk-index',
-            partitionKey: {
-                name: 'siKey2',
-                type: AttributeType.STRING,
-            },
-            sortKey: {
-                name: 'pk',
-                type: AttributeType.STRING,
-            },
-            projectionType: ProjectionType.ALL,
-        });
-
-        // define GSI3
-        table.addGlobalSecondaryIndex({
-            indexName: 'siKey3-siSort3-index',
-            partitionKey: {
-                name: 'siKey3',
-                type: AttributeType.STRING,
-            },
-            sortKey: {
-                name: 'siSort3',
-                type: AttributeType.STRING,
-            },
-            projectionType: ProjectionType.ALL,
+            projectionType: ProjectionType.KEYS_ONLY,
         });
 
         this.tableName = table.tableName;
@@ -274,13 +246,13 @@ export class DataAsset extends Construct {
             outputPath: '$.dataAsset'
         });
 
-        const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset-create`, removalPolicy: RemovalPolicy.DESTROY });
+        const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', {logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset-create`, removalPolicy: RemovalPolicy.DESTROY});
 
         const dataAssetCreateStateMachine = new StateMachine(this, 'DataAssetCreateStateMachine', {
             definitionBody: DefinitionBody.fromChainable(
                 startTask.next(dataSourceTask.next(lineAgeTask))
             ),
-            logs: { destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
+            logs: {destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true},
             stateMachineName: `${namePrefix}-data-asset`,
             tracingEnabled: true
         });
