@@ -12,8 +12,8 @@ export class EventProcessor {
     ) {
     }
 
-    public async processSpokeCompletionEvent(event: CreateResponseEvent): Promise<void> {
-        this.log.info(`EventProcessor > processSpokeCompletionEvent >in  event: ${JSON.stringify(event)}`);
+    public async processRunCompletionEvent(event: CreateResponseEvent): Promise<void> {
+        this.log.info(`DataZoneEventProcessor > processRunCompletionEvent >in  event: ${JSON.stringify(event)}`);
 
         validateNotEmpty(event.detail, 'eventDetails is not empty');
 
@@ -25,7 +25,7 @@ export class EventProcessor {
 
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(payload), taskToken: payload.dataAsset.execution.hubTaskToken}));
 
-        this.log.info(`EventProcessor > processSpokeCompletionEvent >exit`);
+        this.log.info(`DataZoneEventProcessor > processRunCompletionEvent >exit`);
         return;
     }
 }
