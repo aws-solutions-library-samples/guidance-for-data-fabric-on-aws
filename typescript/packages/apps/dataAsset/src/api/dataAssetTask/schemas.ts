@@ -127,9 +127,7 @@ export const newRecipe = Type.Object({
 
 export const transforms = Type.Optional(Type.Object({
     recipeReference: Type.Optional(existingRecipe),
-    recipe: Type.Optional(newRecipe),
-    targetFormat: Type.Optional(format),
-    targetCompression: Type.Optional(compression)
+    recipe: Type.Optional(newRecipe)
 }));
 
 export const schedule = Type.Optional(Type.Object({

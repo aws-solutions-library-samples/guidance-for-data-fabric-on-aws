@@ -1,5 +1,5 @@
 import type { BaseLogger } from "pino";
-import { CreateRecipeCommand, CreateRecipeJobCommand, type DataBrewClient, DeleteJobCommand, DescribeRecipeCommand, PublishRecipeCommand, StartJobRunCommand, TagResourceCommand, UpdateRecipeCommand } from '@aws-sdk/client-databrew';
+import { CreateRecipeCommand, CreateRecipeJobCommand, type DataBrewClient, DeleteJobCommand, DescribeRecipeCommand, PublishRecipeCommand, StartJobRunCommand, TagResourceCommand, UpdateRecipeCommand, OutputFormat } from '@aws-sdk/client-databrew';
 import { type DataAssetTask, TaskType } from "../../models.js";
 import { ulid } from 'ulid';
 import type { S3Utils } from '../../../../common/s3Utils.js';
@@ -123,8 +123,7 @@ export class RecipeJobTask {
                 Outputs: [
                     {
                         Location: this.s3Utils.getRecipeJobOutputLocation(id, event.dataAsset.catalog.domainId, event.dataAsset.catalog.projectId),
-                        Format: event.dataAsset.workflow.transforms?.targetFormat ? event.dataAsset.workflow.transforms.targetFormat.toUpperCase() : undefined,
-                        CompressionFormat: event.dataAsset.workflow.transforms?.targetCompression ? event.dataAsset.workflow.transforms.targetCompression.toUpperCase() : undefined,
+                        Format: OutputFormat.GLUEPARQUET,
                         Overwrite: true,
                         MaxOutputFiles: 1
                     },
