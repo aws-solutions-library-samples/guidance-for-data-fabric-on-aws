@@ -1,19 +1,15 @@
-import { apiVersion100, commonHeaders, FastifyTypebox, fromTokenPaginationQS, id } from '@df/resource-api-base';
+import { apiVersion100, commonHeaders, FastifyTypebox, fromTokenPaginationQS } from '@df/resource-api-base';
 import { Type } from '@sinclair/typebox';
-import { countPaginationParam, DataAssetResourceList, dataAssetResourceList } from '../schemas.js';
+import { countPaginationParam, dataAssetTaskResourceList, DataAssetTaskResourceList } from '../schemas.js';
 
-export default function listDataAssetsRoute(fastify: FastifyTypebox, _options: unknown, done: () => void): void {
+export default function listDataAssetTasksRoute(fastify: FastifyTypebox, _options: unknown, done: () => void): void {
     fastify.route({
         method: 'GET',
-        url: '/domains/:domainId/projects/:projectId/dataAssets',
+        url: '/dataAssetTasks',
         schema: {
-            description: `Lists of data assets.`,
-            tags: ['Data Assets'],
+            description: `Lists of data asset tasks.`,
+            tags: ['Data Asset Tasks'],
             headers: commonHeaders,
-            params: Type.Object({
-                domainId: id,
-                projectId: id,
-            }),
             querystring: Type.Object({
                 count: countPaginationParam,
                 fromToken: fromTokenPaginationQS,
@@ -21,7 +17,7 @@ export default function listDataAssetsRoute(fastify: FastifyTypebox, _options: u
             response: {
                 200: {
                     description: 'Success.',
-                    ...dataAssetResourceList,
+                    ...dataAssetTaskResourceList,
                 },
             },
         },
@@ -30,12 +26,12 @@ export default function listDataAssetsRoute(fastify: FastifyTypebox, _options: u
         },
 
         handler: async (request, reply) => {
-            const svc = fastify.diContainer.resolve('dataAssetService');
+            const svc = fastify.diContainer.resolve('dataAssetTaskService');
             const {count, fromToken} = request.query;
 
-            const [dataAssets, lastEvaluatedToken] = await svc.list(request.params.domainId, request.params.projectId, {count, lastEvaluatedToken: fromToken});
+            const [dataAssetTasks, lastEvaluatedToken] = await svc.list(request.authz, {count, lastEvaluatedToken: fromToken});
 
-            const response: DataAssetResourceList = {dataAssets};
+            const response: DataAssetTaskResourceList = {dataAssetTasks};
 
             if (count || lastEvaluatedToken) {
                 response.pagination = {};

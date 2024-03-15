@@ -5,20 +5,20 @@ import { stringEnum } from '../../common/types.js'
 /**
  * Resource specific path parameters
  */
-export const id = Type.String({ description: 'Unique id of the request.' });
-export const version = Type.Optional(Type.Number({ description: 'specify the version number' }));
-export const createdBy = Type.String({ description: 'ID of owner.' });
+export const id = Type.String({description: 'the identifier of the Amazon DataZone inventory asset..'});
+export const version = Type.Optional(Type.Number({description: 'specify the version number'}));
+export const createdBy = Type.String({description: 'ID of owner.'});
 export const createdAt = Type.String({
     description: 'Date/time created',
     format: 'date-time'
 });
-export const updatedBy = Type.String({ description: 'Last ID of user who made a change.' });
+export const updatedBy = Type.String({description: 'Last ID of user who made a change.'});
 export const updatedAt = Type.String({
     description: 'Date/time updated',
     format: 'date-time'
 });
 
-export const state = Type.String({ description: 'State of the Data asset.' });
+export const state = Type.String({description: 'State of the Data asset.'});
 
 export const format = stringEnum(
     ['avro', 'csv', 'json', 'parquet', 'orc', 'grok'],
@@ -35,13 +35,13 @@ export const count = Type.Optional(
         description: 'No. of results returned when pagination requested.'
     })
 );
-export const paginationToken = Type.String({ description: 'Token used to paginate to the next page of search result.' });
-export const countPaginationParam = Type.Optional(Type.Integer({ description: 'Count of results to return.' }));
+export const paginationToken = Type.String({description: 'Token used to paginate to the next page of search result.'});
+export const countPaginationParam = Type.Optional(Type.Integer({description: 'Count of results to return.'}));
 
 export const tags = Type.Optional(
-	Type.Record(Type.String(), Type.Any(), {
-		description: 'tags to be added to our data brew constructs description etc.'
-	})
+    Type.Record(Type.String(), Type.Any(), {
+        description: 'tags to be added to our data brew constructs description etc.'
+    })
 );
 export type Tags = Static<typeof tags>;
 
@@ -49,157 +49,17 @@ export type Tags = Static<typeof tags>;
  * API specific resources
  */
 
-export const catalog = Type.Object({
-    domainId: Type.String({ description: 'Data Zone domain id' }),
-    domainName: Type.Optional(Type.String({ description: 'Data Zone domain name' })),
-    environmentId: Type.String({ description: 'Data Zone environment id' }),
-    projectId: Type.Optional(Type.String({ description: 'Data Zone project id' })),
-    region: Type.Optional(Type.String({ description: 'Data Zone environment region' })),
-    dataSourceId: Type.Optional(Type.String({ description: 'Data Zone asset data source id' })),
-    assetName: Type.String({ description: 'Data Zone asset name' }),
-    assetId: Type.Optional(Type.String({ description: 'Data Zone asset id' })),
-    accountId: Type.String({ description: 'The account id here the asset resides' }),
-    autoPublish: Type.Boolean({
-        description: 'Publish the asset automatically.',
-        default: true,
-    }),
-    revision: Type.Optional(Type.Number({ description: 'specify the version number of the datazone asset' })),
-
-});
-
-export const dataLakeConnection = Type.Object({
-    s3: Type.Object({
-        path: Type.String({ description: 'The uri of the source S3 file' }),
-        region: Type.String({ description: 'The region of the S3 bucket' })
-    })
-});
-
-export const glueConnection = Type.Object({
-    accountId: Type.String({ description: 'The account Id the glue table belongs to' }),
-    region: Type.String({ description: 'The region of the glue table' }),
-    databaseName: Type.String({ description: 'The database name the glue table belongs to' }),
-    tableName: Type.String({ description: 'The glue table name' }),
-});
-
-export const redshiftConnection = Type.Object({
-    secretArn: Type.String({ description: 'The ARN of the Secrets Manager secret containing redshift credentials.'}),
-    jdbcConnectionUrl: Type.String({description: 'JDBC URL for the redshift cluster or workgroup.'}),
-    subnetId: Type.String({ description: 'Subnet ID for the Glue connection.'}),
-    securityGroupIdList: Type.Array(Type.String(), { description: "Security group Ids for the Glue connection."}),
-    availabilityZone: Type.String({ description: 'Availability zone for the Glue connection.'}),
-    path: Type.String({ description: "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)"}),
-    
-    databaseTableName: Type.String({ description: "The database table name for DataBrew dataset (used in recipe job data set)."}),
-    queryString: Type.Optional(Type.String({ description: "The query string for DataBrew dataset (used in recipe job data set)."}))
-});
-
-export const connection = Type.Optional(Type.Object({
-    dataLake: Type.Optional(dataLakeConnection),
-    glue: Type.Optional(glueConnection),
-    redshift: Type.Optional(redshiftConnection)
-}));
-
-export const dataset = Type.Object({
-    name: Type.String({ description: 'The name of the workflow' }),
-    format,
-    connectionId: Type.Optional(Type.String({ description: 'Glue connection name' })),
-    connection,
-
-});
-
-export const sampling = Type.Optional(Type.Object({
-    // TODO to be implemented
-}));
-
-export const dataQuality = Type.Optional(Type.Object({
-    ruleset: Type.String({description: 'A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>'}),
-}));
-
-export const existingRecipe = Type.Object({
-    name: Type.String({description: 'The name of the existing recipe'}),
-    version: Type.String({description: 'The version of the existing recipe'})
-});
-
-export const newRecipe = Type.Object({
-    steps: Type.Array(Type.Any())       // can this be further specified?
-});
-
-export const transforms = Type.Optional(Type.Object({
-    recipeReference: Type.Optional(existingRecipe),
-    recipe: Type.Optional(newRecipe),
-    targetFormat: Type.Optional(format),
-    targetCompression: Type.Optional(compression)
-}));
-
-export const schedule = Type.Optional(Type.Object({
-    // TODO to be implemented
-}));
-
-export const workflow = Type.Object({
-    name: Type.String({ description: 'The name of the workflow' }),
-    roleArn: Type.String({ description: 'The Arn of the IAM Role to be used for the job execution' }),
-    dataset,
-    sampling,
-    transforms,
-    dataQuality,
-    tags,
-});
-
-export const job = Type.Object({
-    jobRunId: Type.Optional(Type.String({ description: 'The job runId from databrew' })),
-    jobRunStatus: Type.Optional(Type.String({ description: 'The run status of the job' })),
-    jobStartTime: Type.Optional(Type.String({ description: 'The start time of the last job run' })),
-    jobStopTime: Type.Optional(Type.String({ description: 'The stop time of the last job run' })),
-    status: Type.Optional(Type.String({ description: 'The status of the Job' })),
-    message: Type.Optional(Type.String({ description: 'The message of the Job' })),
-    profileLocation: Type.Optional(Type.String({ description: 'The S3 Location of the profile job results' })),
-    profileSignedUrl: Type.Optional(Type.String({ description: 'The Signed Url for the profile results' })),
-});
-
-export const glueTable = Type.Object({
-    name: Type.String({ description: 'The glue table name' }),
-    location: Type.Optional(Type.String({ description: 'location of the data source' })),
-});
-
-export const crawlerRun = Type.Object({
-    id: Type.Optional(Type.String({ description: 'The job runId from databrew' })),
-    name: Type.Optional(Type.String({ description: 'The run status of the job' })),
-    StartTime: Type.Optional(Type.String({ description: 'The start time of the last job run' })),
-    StopTime: Type.Optional(Type.String({ description: 'The stop time of the last job run' })),
-    status: Type.Optional(Type.String({ description: 'The status of the Job' })),
-    message: Type.Optional(Type.String({ description: 'The message of the Job' })),
-    tables: Type.Optional(Type.Array(glueTable)),
-});
-
-export const execution = Type.Object({
-    hubExecutionArn: Type.Optional(Type.String({ description: 'The hub execution id of the state machine' }))   ,
-    spokeExecutionArn: Type.Optional(Type.String({ description: 'The Spoke execution id of the state machine' })),
-    profileJob: Type.Optional(job),
-    transformJob: Type.Optional(job),
-    dataSourceRun: Type.Optional(job),
-    crawlerRun: Type.Optional(crawlerRun),
-});
-
 export const dataAssetResource = Type.Object({
-    requestId: id,
-    catalog,
-    workflow
-}, { $id: 'dataAssetResource' });
-
-export const newDataAssetResource = Type.Object({
-    catalog,
-    workflow
-}, {
-    $id: 'newDataAssetRequestBody',
-}
-);
-
-export const editDataAssetResource = Type.Object({
-    catalog,
-    workflow
-}, {
-    $id: 'editDataAssetRequestBody',
-});
+    id,
+    domainId: Type.Optional(Type.String({description: 'The identifier of the Amazon DataZone domain in which the inventory asset exists.'})),
+    name: Type.String({description: 'The identifier of the Amazon DataZone domain in which the inventory asset.'}),
+    description: Type.Optional(Type.String({description: 'The description of an Amazon DataZone inventory asset.'})),
+    owningProjectId: Type.String({description: 'The identifier of the Amazon DataZone project that owns the inventory asset.'}),
+    typeIdentifier: Type.String({description: 'The identifier of the asset type of the specified Amazon DataZone inventory asset.'}),
+    typeRevision: Type.String({description: 'The revision of the inventory asset type.'}),
+    createdAt: Type.Optional(Type.String({description: 'The timestamp of when the Amazon DataZone inventory asset was created.'})),
+    createdBy: Type.Optional(Type.String({description: 'The Amazon DataZone user who created the inventory asset.'})),
+}, {$id: 'dataAssetResource'});
 
 export const dataAssetListOptions = Type.Object(
     {
@@ -208,7 +68,7 @@ export const dataAssetListOptions = Type.Object(
     }
 );
 
-export const listDataAssetResource = Type.Object(
+export const dataAssetResourceList = Type.Object(
     {
         dataAssets: Type.Array(Type.Ref(dataAssetResource)),
         pagination: Type.Optional(
@@ -216,18 +76,10 @@ export const listDataAssetResource = Type.Object(
         ),
     },
     {
-        $id: 'listDataAsset',
+        $id: 'dataAssetResourceList',
     }
 );
 
-
-
-export type Catalog = Static<typeof catalog>;
-export type Workflow = Static<typeof workflow>;
-export type DataAsset = Static<typeof dataAssetResource>;
-export type NewDataAsset = Static<typeof newDataAssetResource>;
-export type EditDataAsset = Static<typeof editDataAssetResource>;
+export type DataAssetResource = Static<typeof dataAssetResource>;
+export type DataAssetResourceList = Static<typeof dataAssetResourceList>;
 export type DataAssetListOptions = Static<typeof dataAssetListOptions>;
-export type ListDataAsset = Static<typeof listDataAssetResource>;
-// export type DataProfile = Static<typeof profile>;
-// export type ProfileColumns = Static<typeof columns>;

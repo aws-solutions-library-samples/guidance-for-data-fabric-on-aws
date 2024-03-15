@@ -1,4 +1,4 @@
-import type { Workflow } from "../api/dataAsset/schemas.js";
+import type { Workflow } from "../api/dataAssetTask/schemas.js";
 import { S3Utils } from "./s3Utils.js";
 
 
