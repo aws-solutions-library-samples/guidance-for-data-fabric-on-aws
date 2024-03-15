@@ -53,7 +53,7 @@ export class DataAssetTaskRepository {
         try {
             const response = await this.dynamoDBClient.send(new QueryCommand(queryCommandParams));
             this.log.debug(`DataAssetTaskRepository> list> response:${JSON.stringify(response)}`);
-            return [this.assembleTaskResourceList(response.Items), response.LastEvaluatedKey['sk']]
+            return [this.assembleTaskResourceList(response.Items), response?.LastEvaluatedKey?.['sk']]
         } catch (err) {
             if (err instanceof Error) {
                 this.log.error(err);

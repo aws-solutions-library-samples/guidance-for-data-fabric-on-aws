@@ -23,9 +23,11 @@ export class DataAssetTasksService {
     public async create(securityContext: SecurityContext, asset: NewDataAssetTaskResource): Promise<DataAssetTaskResource> {
         this.log.debug(`DataAssetTaskService > create > in > securityContext: ${securityContext}, asset: ${JSON.stringify(asset)}`);
 
+        validateNotEmpty(securityContext, "securityContext");
+        validateNotEmpty(securityContext.userId, "securityContext.userId");
+
         this.validateCatalog(asset.catalog);
         this.validateWorkflow(asset.workflow);
-
 
         const fullAsset: DataAssetTaskResource = {
             id: ulid().toLowerCase(),
@@ -46,6 +48,11 @@ export class DataAssetTasksService {
 
     public async get(securityContext: SecurityContext, dataAssetId: string): Promise<DataAssetTaskResource> {
         this.log.debug(`DataAssetTaskService > get > in dataAssetId:${dataAssetId}`);
+
+        validateNotEmpty(securityContext, "securityContext");
+        validateNotEmpty(securityContext.userId, "securityContext.userId");
+        validateNotEmpty(dataAssetId, "dataAssetId");
+
         const dataAsset = await this.dataAssetTaskRepository.get(securityContext.userId, dataAssetId);
         if (!dataAsset) {
             throw new NotFoundError(`Data Asset Task ${dataAssetId} not found`)
@@ -56,6 +63,10 @@ export class DataAssetTasksService {
 
     public async list(securityContext: SecurityContext, options: DataAssetTaskResourceListOptions): Promise<[DataAssetTaskResource[], string]> {
         this.log.debug(`DataAssetTaskService > list > in options:${JSON.stringify(options)}`);
+
+        validateNotEmpty(securityContext, "securityContext");
+        validateNotEmpty(securityContext.userId, "securityContext.userId");
+
         const [tasks, lastEvaluatedKey] = await this.dataAssetTaskRepository.list(securityContext.userId, options);
         this.log.debug(`DataAssetTaskService > list > exit`);
         return [tasks, lastEvaluatedKey ? lastEvaluatedKey : undefined]

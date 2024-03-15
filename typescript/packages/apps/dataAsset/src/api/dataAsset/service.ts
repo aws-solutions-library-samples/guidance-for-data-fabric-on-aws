@@ -1,6 +1,7 @@
 import type { FastifyBaseLogger } from 'fastify';
 import type { DataAssetListOptions, DataAssetResource } from './schemas.js';
 import { AssetItem, type DataZoneClient, GetAssetCommand, GetAssetCommandOutput, SearchCommand, SearchCommandOutput } from '@aws-sdk/client-datazone';
+import { validateNotEmpty } from "@df/validators";
 
 export class DataAssetService {
 
@@ -12,16 +13,24 @@ export class DataAssetService {
 
     public async get(domainId: string, dataAssetId: string): Promise<DataAssetResource> {
         this.log.debug(`DataAssetService > get > in > domainId:${domainId}, dataAssetId:${dataAssetId}`);
+
+        validateNotEmpty(domainId, "domainId");
+        validateNotEmpty(dataAssetId, "dataAssetId");
+
         const getAssetResponse = await this.dzClient.send(new GetAssetCommand({
             domainIdentifier: domainId,
             identifier: dataAssetId
         }));
+
         this.log.debug(`DataAssetService > get > exit`);
         return this.assembleGetAssetOutput(getAssetResponse);
     }
 
     public async list(domainId: string, projectId: string, options: DataAssetListOptions): Promise<[DataAssetResource[], string]> {
         this.log.debug(`DataAssetService > list > in options:${JSON.stringify(options)}`);
+
+        validateNotEmpty(domainId, "domainId");
+        validateNotEmpty(projectId, "projectId");
 
         const searchResponses = await this.dzClient.send(new SearchCommand({domainIdentifier: domainId, owningProjectIdentifier: projectId, searchScope: 'ASSET'}))
 
