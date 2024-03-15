@@ -14,6 +14,11 @@ export class StartTask {
 	public async process(event: DataAssetTask): Promise<any> {
 		this.log.info(`StartTask > process > in > event: ${JSON.stringify(event)}`);
 		
+		event.dataAsset.execution ={
+			hubExecutionArn: event.execution.executionArn,
+			hubTaskToken: event.execution.taskToken
+		}
+		
 		// Send Job Start event
 		const publishEvent = new EventBridgeEventBuilder()
 			.setEventBusName(this.eventBusName)

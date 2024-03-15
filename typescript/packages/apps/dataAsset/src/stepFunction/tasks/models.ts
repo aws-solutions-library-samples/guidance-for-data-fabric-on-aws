@@ -20,8 +20,8 @@ export type DataAssetJob = {
 };
 
 export type DataAssetExecution = {
-    hubExecutionArn?: string,
-    hubTaskToken?: string,
+    hubExecutionArn: string,
+    hubTaskToken: string,
     spokeExecutionArn?: string,
     dataProfileJob?: DataAssetJob,
     dataQualityProfileJob?: DataAssetJob,
@@ -68,17 +68,6 @@ export type DataAssetTask = {
 export type DataAssetTasks = {
     dataAssets: DataAssetDetails[]
     execution?: DataAssetTaskExecutionDetails
-}
-
-export type CreateResponseEvent = {
-    requestId: string,
-    catalog: DataAssetCatalog,
-    workflow: Workflow,
-    fullPayloadSignedUrl: string,
-    dataProfileSignedUrl: string,
-    dataQualityProfileSignedUrl?: string
-    
-
 }
 
 

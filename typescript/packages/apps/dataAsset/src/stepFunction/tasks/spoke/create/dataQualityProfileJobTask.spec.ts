@@ -27,7 +27,9 @@ describe('DataQualityProfileJobTask', () => {
         const input: DataAssetTask = {
             dataAsset: {
                 execution: {
-                    glueTableName: 'metrics'
+                    glueTableName: 'metrics',
+                    hubExecutionArn: 'testHubExecutionArn',
+                    hubTaskToken: 'testHubTaskToken'
                 },
                 requestId: '12345',
                 catalog: {

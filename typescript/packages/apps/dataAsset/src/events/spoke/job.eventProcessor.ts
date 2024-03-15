@@ -3,8 +3,8 @@ import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 import { DataBrewClient, DescribeJobCommand, DescribeJobRunCommand, DescribeJobRunCommandOutput, JobType } from '@aws-sdk/client-databrew';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
-import type { S3Utils } from '../common/s3Utils.js';
-import { type DataAssetTask, TaskType } from '../stepFunction/tasks/models.js';
+import type { S3Utils } from '../../common/s3Utils.js';
+import { type DataAssetTask, TaskType } from '../../stepFunction/tasks/models.js';
 
 export class JobEventProcessor {
     constructor(
@@ -32,27 +32,25 @@ export class JobEventProcessor {
 
         if (job.Type === JobType.RECIPE) {
             taskInput = await this.s3Utils.getTaskData(TaskType.RecipeTask, id);
-            taskInput.dataAsset.execution = {
-                recipeJob: {
+            taskInput.dataAsset.execution.recipeJob = {
                     id: event.detail.jobRunId,
                     status: event.detail.state,
                     stopTime: run.CompletedOn.toString(),
                     startTime: run.ExecutionTime.toString(),
                     message: event.detail.message,
                 }
-            }
+            
             // taskInput.dataAsset.lineage[`${TaskType.RecipeTask}-${id}`] = this.constructLineage(id, taskInput, event, job.Type, run );
         } else if (job.Type === JobType.PROFILE) {
             taskInput = await this.s3Utils.getTaskData(TaskType.DataProfileTask, id);
-            taskInput.dataAsset.execution = {
-                dataProfileJob: {
+            taskInput.dataAsset.execution.dataProfileJob= {
                     id: event.detail.jobRunId,
                     status: event.detail.state,
                     stopTime: run.CompletedOn.toString(),
                     startTime: run.ExecutionTime.toString(),
                     message: event.detail.message,
                 }
-            }
+                
             taskInput.dataAsset.lineage[`${TaskType.DataProfileTask}-${id}`] = this.constructLineage(id, taskInput, event, job.Type, run);
         }
 

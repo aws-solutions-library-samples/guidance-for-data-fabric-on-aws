@@ -72,7 +72,6 @@
             },
             "required": [
               "domainId",
-              "domainName",
               "environmentId",
               "assetName",
               "accountId",
@@ -110,7 +109,7 @@
                     "description": "The format of the data set."
                   },
                   "connectionId": {
-                    "description": "Data Zone project id",
+                    "description": "Glue connection name",
                     "type": "string"
                   },
                   "connection": {
@@ -166,6 +165,55 @@
                           "region",
                           "databaseName",
                           "tableName"
+                        ]
+                      },
+                      "redshift": {
+                        "type": "object",
+                        "properties": {
+                          "secretArn": {
+                            "description": "The ARN of the Secrets Manager secret containing redshift credentials.",
+                            "type": "string"
+                          },
+                          "jdbcConnectionUrl": {
+                            "description": "JDBC URL for the redshift cluster or workgroup.",
+                            "type": "string"
+                          },
+                          "subnetId": {
+                            "description": "Subnet ID for the Glue connection.",
+                            "type": "string"
+                          },
+                          "securityGroupIdList": {
+                            "description": "Security group Ids for the Glue connection.",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "availabilityZone": {
+                            "description": "Availability zone for the Glue connection.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)",
+                            "type": "string"
+                          },
+                          "databaseTableName": {
+                            "description": "The database table name for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          },
+                          "queryString": {
+                            "description": "The query string for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "secretArn",
+                          "jdbcConnectionUrl",
+                          "subnetId",
+                          "securityGroupIdList",
+                          "availabilityZone",
+                          "path",
+                          "databaseTableName"
                         ]
                       }
                     }
@@ -327,7 +375,6 @@
             },
             "required": [
               "domainId",
-              "domainName",
               "environmentId",
               "assetName",
               "accountId",
@@ -365,7 +412,7 @@
                     "description": "The format of the data set."
                   },
                   "connectionId": {
-                    "description": "Data Zone project id",
+                    "description": "Glue connection name",
                     "type": "string"
                   },
                   "connection": {
@@ -421,6 +468,55 @@
                           "region",
                           "databaseName",
                           "tableName"
+                        ]
+                      },
+                      "redshift": {
+                        "type": "object",
+                        "properties": {
+                          "secretArn": {
+                            "description": "The ARN of the Secrets Manager secret containing redshift credentials.",
+                            "type": "string"
+                          },
+                          "jdbcConnectionUrl": {
+                            "description": "JDBC URL for the redshift cluster or workgroup.",
+                            "type": "string"
+                          },
+                          "subnetId": {
+                            "description": "Subnet ID for the Glue connection.",
+                            "type": "string"
+                          },
+                          "securityGroupIdList": {
+                            "description": "Security group Ids for the Glue connection.",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "availabilityZone": {
+                            "description": "Availability zone for the Glue connection.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)",
+                            "type": "string"
+                          },
+                          "databaseTableName": {
+                            "description": "The database table name for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          },
+                          "queryString": {
+                            "description": "The query string for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "secretArn",
+                          "jdbcConnectionUrl",
+                          "subnetId",
+                          "securityGroupIdList",
+                          "availabilityZone",
+                          "path",
+                          "databaseTableName"
                         ]
                       }
                     }
@@ -581,7 +677,6 @@
             },
             "required": [
               "domainId",
-              "domainName",
               "environmentId",
               "assetName",
               "accountId",
@@ -619,7 +714,7 @@
                     "description": "The format of the data set."
                   },
                   "connectionId": {
-                    "description": "Data Zone project id",
+                    "description": "Glue connection name",
                     "type": "string"
                   },
                   "connection": {
@@ -675,6 +770,55 @@
                           "region",
                           "databaseName",
                           "tableName"
+                        ]
+                      },
+                      "redshift": {
+                        "type": "object",
+                        "properties": {
+                          "secretArn": {
+                            "description": "The ARN of the Secrets Manager secret containing redshift credentials.",
+                            "type": "string"
+                          },
+                          "jdbcConnectionUrl": {
+                            "description": "JDBC URL for the redshift cluster or workgroup.",
+                            "type": "string"
+                          },
+                          "subnetId": {
+                            "description": "Subnet ID for the Glue connection.",
+                            "type": "string"
+                          },
+                          "securityGroupIdList": {
+                            "description": "Security group Ids for the Glue connection.",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "availabilityZone": {
+                            "description": "Availability zone for the Glue connection.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)",
+                            "type": "string"
+                          },
+                          "databaseTableName": {
+                            "description": "The database table name for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          },
+                          "queryString": {
+                            "description": "The query string for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "secretArn",
+                          "jdbcConnectionUrl",
+                          "subnetId",
+                          "securityGroupIdList",
+                          "availabilityZone",
+                          "path",
+                          "databaseTableName"
                         ]
                       }
                     }
@@ -1083,7 +1227,6 @@
                       },
                       "required": [
                         "domainId",
-                        "domainName",
                         "environmentId",
                         "assetName",
                         "accountId",
@@ -1121,7 +1264,7 @@
                               "description": "The format of the data set."
                             },
                             "connectionId": {
-                              "description": "Data Zone project id",
+                              "description": "Glue connection name",
                               "type": "string"
                             },
                             "connection": {
@@ -1177,6 +1320,55 @@
                                     "region",
                                     "databaseName",
                                     "tableName"
+                                  ]
+                                },
+                                "redshift": {
+                                  "type": "object",
+                                  "properties": {
+                                    "secretArn": {
+                                      "description": "The ARN of the Secrets Manager secret containing redshift credentials.",
+                                      "type": "string"
+                                    },
+                                    "jdbcConnectionUrl": {
+                                      "description": "JDBC URL for the redshift cluster or workgroup.",
+                                      "type": "string"
+                                    },
+                                    "subnetId": {
+                                      "description": "Subnet ID for the Glue connection.",
+                                      "type": "string"
+                                    },
+                                    "securityGroupIdList": {
+                                      "description": "Security group Ids for the Glue connection.",
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "availabilityZone": {
+                                      "description": "Availability zone for the Glue connection.",
+                                      "type": "string"
+                                    },
+                                    "path": {
+                                      "description": "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)",
+                                      "type": "string"
+                                    },
+                                    "databaseTableName": {
+                                      "description": "The database table name for DataBrew dataset (used in recipe job data set).",
+                                      "type": "string"
+                                    },
+                                    "queryString": {
+                                      "description": "The query string for DataBrew dataset (used in recipe job data set).",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "secretArn",
+                                    "jdbcConnectionUrl",
+                                    "subnetId",
+                                    "securityGroupIdList",
+                                    "availabilityZone",
+                                    "path",
+                                    "databaseTableName"
                                   ]
                                 }
                               }
@@ -1533,7 +1725,6 @@
                       },
                       "required": [
                         "domainId",
-                        "domainName",
                         "environmentId",
                         "assetName",
                         "accountId",
@@ -1571,7 +1762,7 @@
                               "description": "The format of the data set."
                             },
                             "connectionId": {
-                              "description": "Data Zone project id",
+                              "description": "Glue connection name",
                               "type": "string"
                             },
                             "connection": {
@@ -1627,6 +1818,55 @@
                                     "region",
                                     "databaseName",
                                     "tableName"
+                                  ]
+                                },
+                                "redshift": {
+                                  "type": "object",
+                                  "properties": {
+                                    "secretArn": {
+                                      "description": "The ARN of the Secrets Manager secret containing redshift credentials.",
+                                      "type": "string"
+                                    },
+                                    "jdbcConnectionUrl": {
+                                      "description": "JDBC URL for the redshift cluster or workgroup.",
+                                      "type": "string"
+                                    },
+                                    "subnetId": {
+                                      "description": "Subnet ID for the Glue connection.",
+                                      "type": "string"
+                                    },
+                                    "securityGroupIdList": {
+                                      "description": "Security group Ids for the Glue connection.",
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "availabilityZone": {
+                                      "description": "Availability zone for the Glue connection.",
+                                      "type": "string"
+                                    },
+                                    "path": {
+                                      "description": "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)",
+                                      "type": "string"
+                                    },
+                                    "databaseTableName": {
+                                      "description": "The database table name for DataBrew dataset (used in recipe job data set).",
+                                      "type": "string"
+                                    },
+                                    "queryString": {
+                                      "description": "The query string for DataBrew dataset (used in recipe job data set).",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "secretArn",
+                                    "jdbcConnectionUrl",
+                                    "subnetId",
+                                    "securityGroupIdList",
+                                    "availabilityZone",
+                                    "path",
+                                    "databaseTableName"
                                   ]
                                 }
                               }

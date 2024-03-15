@@ -3,8 +3,8 @@ import pino from "pino";
 import { GlueClient } from "@aws-sdk/client-glue";
 import { SFNClient } from '@aws-sdk/client-sfn';
 import { S3Client } from "@aws-sdk/client-s3";
-import type { GetSignedUrl } from '../plugins/module.awilix.js';
-import { S3Utils } from "../common/s3Utils.js";
+import type { GetSignedUrl } from '../../plugins/module.awilix.js';
+import { S3Utils } from "../../common/s3Utils.js";
 import { DataQualityProfileEventProcessor } from "./dataQualityProfile.eventProcessor.js";
 
 

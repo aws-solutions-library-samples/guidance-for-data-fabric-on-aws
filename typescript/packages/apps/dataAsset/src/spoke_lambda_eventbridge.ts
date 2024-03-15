@@ -3,9 +3,9 @@ import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from './app.light';
 import { CrawlerStateChangeEvent, DATA_BREW_JOB_STATE_CHANGE, DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE, DataQualityResultsAvailableEvent, GLUE_CRAWLER_STATE_CHANGE, JobStateChangeEvent } from '@df/events';
-import type { JobEventProcessor } from './events/job.eventProcessor.js';
-import type { GlueCrawlerEventProcessor } from './events/glueCrawler.eventProcessor';
-import type { DataQualityProfileEventProcessor } from "./events/dataQualityProfile.eventProcessor";
+import type { JobEventProcessor } from './events/spoke/job.eventProcessor.js';
+import type { GlueCrawlerEventProcessor } from './events/spoke/glueCrawler.eventProcessor';
+import type { DataQualityProfileEventProcessor } from "./events/spoke/dataQualityProfile.eventProcessor";
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
@@ -16,7 +16,7 @@ const dataQualityEventProcessor = di.resolve<DataQualityProfileEventProcessor>('
 
 
 export const handler: EventBridgeHandler<string, EventDetails, void> = async (event, _context: Context, _callback: Callback) => {
-	app.log.info(`EventBridgeLambda > handler > event: ${JSON.stringify(event)}`);
+	app.log.info(`SpokeEventBridgeLambda > handler > event: ${JSON.stringify(event)}`);
 
 	// Filter Data brew Job status change events
 	if ( (event['detail-type'] as string) === DATA_BREW_JOB_STATE_CHANGE && event['source'] === 'aws.databrew' ) {

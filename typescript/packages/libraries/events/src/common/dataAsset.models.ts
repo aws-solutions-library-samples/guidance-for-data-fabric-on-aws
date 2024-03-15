@@ -69,7 +69,8 @@ export type DataAssetWorkflow = {
 };
 
 export type DataAssetExecution = {
-    hubExecutionArn?: string ,
+    hubExecutionArn: string ,
+    hubTaskToken: string ,
     spokeExecutionArn?: string,
     id?: string,
     status?: string,
@@ -95,8 +96,7 @@ export type JobExecution = {
     jobStopTime?: string, 
     message?:string,
     profileLocation?: string,
-    profileSignedUrl?: string,
-    hubTaskToken?: string,
+    profileSignedUrl?: string
 };
 
 export type DataAssetJobStartEvent = {

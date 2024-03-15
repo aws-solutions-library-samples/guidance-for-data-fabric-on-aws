@@ -5,8 +5,8 @@ import type { SFNClient } from "@aws-sdk/client-sfn";
 import { SendTaskSuccessCommand } from "@aws-sdk/client-sfn";
 import { GetDataQualityResultCommand, GetDataQualityRulesetEvaluationRunCommand, GetTagsCommand, GlueClient } from "@aws-sdk/client-glue";
 import { validateNotEmpty } from "@df/validators";
-import type { S3Utils } from "../common/s3Utils.js";
-import { TaskType } from "../stepFunction/tasks/models.js";
+import type { S3Utils } from "../../common/s3Utils.js";
+import { TaskType } from "../../stepFunction/tasks/models.js";
 
 export class DataQualityProfileEventProcessor {
 
@@ -70,7 +70,7 @@ export class DataQualityProfileEventProcessor {
         if (!dataQualityProfileLineageEvent) {
             throw new Error('No start lineage event for data quality.')
         }
-        // dataAssetTask.dataAsset.lineage[TaskType.DataQualityProfileTask] = this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, context.runId)
+        dataAssetTask.dataAsset.lineage[TaskType.DataQualityProfileTask] = this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, context.runId)
         this.log.info(`DataQualityProfileEventProcessor > dataQualityProfileCompletionEvent > before sfnClient.send`);
         // Signal back to the state machine
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(dataAssetTask), taskToken: dataAssetTask.execution.taskToken}));

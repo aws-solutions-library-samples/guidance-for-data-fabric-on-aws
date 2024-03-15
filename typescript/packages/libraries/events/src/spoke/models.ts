@@ -2,6 +2,8 @@
  * A place holder for outgoing events sent by the Spoke
 */
 
+import type { DataAssetCatalog, DataAssetWorkflow } from "../common/dataAsset.models";
+
 export const ACCESS_CONTROL_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.accessControl';
 export const DATA_LINEAGE_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.dataLineage';
 export const DATA_ASSET_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.dataAsset';
@@ -87,5 +89,27 @@ export interface crawlerStateChangeEvent {
     detail: crawlerStateChangeDetail,
 };
 
+export interface createResponseEventDetails {
+    requestId: string,
+    catalog: DataAssetCatalog,
+    workflow: DataAssetWorkflow,
+    hubTaskToken:string,
+    fullPayloadSignedUrl: string,
+    dataProfileSignedUrl: string,
+    dataQualityProfileSignedUrl?: string
+}
+
+export interface createResponseEvent {
+    id: string,
+    account: string,
+    region: string,
+    source: string,
+    'detail-type': string,
+    time: string,
+    detail: createResponseEventDetails,
+};
+
 export type { jobStateChangeEvent as JobStateChangeEvent };
 export type { crawlerStateChangeEvent as CrawlerStateChangeEvent };
+export type { createResponseEventDetails as CreateResponseEventDetails };
+export type { createResponseEvent as CreateResponseEvent };

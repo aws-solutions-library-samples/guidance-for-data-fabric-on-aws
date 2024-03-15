@@ -1,7 +1,7 @@
 import type { BaseLogger } from 'pino';
 import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
-import { DataAssetTasks, CreateResponseEvent, TaskType, DataAssetTask } from '../../models.js';
-import type { EventPublisher } from '@df/events';
+import { DataAssetTasks, TaskType, DataAssetTask } from '../../models.js';
+import type { CreateResponseEventDetails, EventPublisher } from '@df/events';
 import { DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder } from '@df/events';
 import merge from 'merge';
 import type { S3Utils } from '../../../../common/s3Utils.js';
@@ -35,10 +35,11 @@ export class LineageTask {
 		await this.s3Utils.putTaskData(TaskType.lineageTask, id, asset);
 		const signedUrl = await this.s3Utils.getTaskDataSignedUrl(TaskType.lineageTask, id, 3600);
 
-		const response: CreateResponseEvent = {
+		const response: CreateResponseEventDetails = {
 			requestId: assets[0].requestId,
 			catalog: assets[0].catalog,
 			workflow: assets[0].workflow,
+			hubTaskToken: assets[0].execution.hubTaskToken,
 			fullPayloadSignedUrl: signedUrl,
 			dataProfileSignedUrl: signedUrl,
 			dataQualityProfileSignedUrl: signedUrl

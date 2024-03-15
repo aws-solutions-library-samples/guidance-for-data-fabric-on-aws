@@ -8,7 +8,7 @@ import { asFunction, asValue, Lifetime } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { DynamoDbUtils } from '@df/dynamodb-utils';
-import { JobEventProcessor } from '../events/job.eventProcessor.js';
+import { JobEventProcessor } from '../events/spoke/job.eventProcessor.js';
 import { DataAssetRepository } from '../api/dataAsset/repository.js';
 import { DataAssetService } from '../api/dataAsset/service.js';
 import { BaseCradle, registerBaseAwilix } from '@df/resource-api-base';
@@ -35,8 +35,9 @@ import { SSMClient } from '@aws-sdk/client-ssm';
 import { RecipeJobTask } from '../stepFunction/tasks/spoke/create/recipeJobTask.js';
 import { GlueCrawlerTask } from '../stepFunction/tasks/spoke/create/glueCrawlerTask.js';
 import type { BaseLogger } from 'pino';
-import { GlueCrawlerEventProcessor } from '../events/glueCrawler.eventProcessor.js';
-import { DataQualityProfileEventProcessor } from "../events/dataQualityProfile.eventProcessor.js";
+import { GlueCrawlerEventProcessor } from '../events/spoke/glueCrawler.eventProcessor.js';
+import { DataQualityProfileEventProcessor } from "../events/spoke/dataQualityProfile.eventProcessor.js";
+import { EventProcessor as HubEventProcessor} from "../events/hub/eventProcessor.js";
 import { S3Utils } from "../common/s3Utils.js";
 
 const {captureAWSv3Client} = pkg;
@@ -52,6 +53,7 @@ declare module '@fastify/awilix' {
         jobEventProcessor: JobEventProcessor;
         glueCrawlerEventProcessor: GlueCrawlerEventProcessor;
         dataQualityProfileEventProcessor: DataQualityProfileEventProcessor;
+        hubEventProcessor:  HubEventProcessor;
         eventBridgeClient: EventBridgeClient;
         dynamoDbUtils: DynamoDbUtils;
         stepFunctionClient: SFNClient;
@@ -277,7 +279,19 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        // Event Processors
+        // Event Processors hub
+        hubEventProcessor: asFunction(
+            (container) =>
+                new HubEventProcessor(
+                    app.log,
+                    container.stepFunctionClient
+                ),
+            {
+                ...commonInjectionOptions
+            }
+        ),
+
+        // Event Processors spoke
         jobEventProcessor: asFunction(
             (container) =>
                 new JobEventProcessor(

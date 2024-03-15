@@ -690,7 +690,7 @@ export class DataAssetSpoke extends Construct {
         });
         const eventProcessorLambda = new NodejsFunction(this, 'EventProcessorLambda', {
             description: 'Data Brew Job Completion Event Handler',
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/lambda_eventbridge.ts'),
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/spoke_lambda_eventbridge.ts'),
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             functionName: `${namePrefix}-dataAsset-eventProcessor`,

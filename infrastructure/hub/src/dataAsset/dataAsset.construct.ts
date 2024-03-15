@@ -404,7 +404,7 @@ export class DataAsset extends Construct {
         */
         const jobCompletionEventLambda = new NodejsFunction(this, 'JobCompletionEventLambda', {
             description: `Job Completion Event Handler`,
-            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/lambda_eventbridge.ts'),
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/hub_lambda_eventbridge.ts'),
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             functionName: `${namePrefix}-dataAsset-jobCompletion`,

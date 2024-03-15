@@ -2,7 +2,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { Catalog, DataAsset, DataAssetListOptions, EditDataAsset, NewDataAsset, Workflow } from './schemas.js';
 import { validateNotEmpty, validateRegularExpression } from '@df/validators';
 import type { DataAssetRepository } from './repository.js';
-import { CreateAssetCommand, CreateAssetOutput, CreateAssetRevisionCommand, CreateListingChangeSetCommand, type DataZoneClient, GetAssetCommand } from '@aws-sdk/client-datazone';
+import { CreateAssetCommand, CreateAssetOutput, CreateAssetRevisionCommand, CreateListingChangeSetCommand, type DataZoneClient, GetAssetCommand, GetDomainCommand } from '@aws-sdk/client-datazone';
 import { AssetTypeToFormMap, ConnectionToAssetTypeMap, getConnectionType } from '../../common/utils.js';
 import { ulid } from 'ulid';
 import { type SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
@@ -26,16 +26,15 @@ export class DataAssetService {
 
         this.validateWorkflow(asset.workflow);
 
-        // Set the data version to 0
-        // asset.catalog['dataVersion'] = 0;
-
-        // const dzAsset = await this.createDataZoneAsset(asset);
+        const domain = await this.dzClient.send(new GetDomainCommand({identifier: asset.catalog.domainId}));
 
         const fullAsset: DataAsset = {
             requestId: ulid().toLowerCase(),
             catalog: asset.catalog,
             workflow: asset.workflow
         }
+
+        fullAsset.catalog.domainName = domain.name;
 
         await this.sfnClient.send(new StartExecutionCommand({stateMachineArn: this.createAssetStateMachineArn, input: JSON.stringify(fullAsset)}));
 
