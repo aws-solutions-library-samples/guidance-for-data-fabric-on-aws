@@ -50,9 +50,9 @@ export class DataQualityProfileEventProcessor {
             }))
         ])
 
-        const requestId = getTagsResponse.Tags['requestId'];
+        const id = getTagsResponse.Tags['id'];
 
-        const dataAssetTask = await this.s3Utils.getTaskData(TaskType.DataQualityProfileTask, requestId);
+        const dataAssetTask = await this.s3Utils.getTaskData(TaskType.DataQualityProfileTask, id);
 
         const {rulesFailed, rulesSucceeded, rulesSkipped, score} = event.detail
         dataAssetTask.dataAsset.execution = {

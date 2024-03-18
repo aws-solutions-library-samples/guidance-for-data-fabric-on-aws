@@ -22,7 +22,7 @@ export class JobEventProcessor {
 
         // Get the relevant Job and tags to link it back to the Data Zone asset
         const job = await this.dataBrewClient.send(new DescribeJobCommand({Name: event.detail.jobName}));
-        const id = (job.Tags?.['assetId']) ? job.Tags['assetId'] : job.Tags['requestId'];
+        const id = (job.Tags?.['assetId']) ? job.Tags['assetId'] : job.Tags['id'];
 
         //Get the Job startTime
         const run = await this.dataBrewClient.send(new DescribeJobRunCommand({RunId: event.detail.jobRunId, Name: event.detail.jobName}));
@@ -53,12 +53,13 @@ export class JobEventProcessor {
                 }
                 
             taskInput.dataAsset.lineage[`${TaskType.DataProfileTask}-${id}`] = this.constructLineage(id, taskInput, event, job.Type, run);
+            await this.s3Utils.putTaskData(TaskType.DataProfileTask, id,taskInput);
         }
 
         
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken}));
 
-        this.log.info(`JobEventProcessor > processJobCompletionEvent >exit`);
+        this.log.info(`JobEventProcessor > processJobCompletionEvent >exit ${JSON.stringify(taskInput)}`);
         return;
     }
 

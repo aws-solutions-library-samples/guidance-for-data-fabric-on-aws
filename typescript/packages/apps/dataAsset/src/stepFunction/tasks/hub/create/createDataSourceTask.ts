@@ -31,10 +31,7 @@ export class CreateDataSourceTask {
 		if (!dataSources?.items[0]) {
 			const params  = await this.constructDataSourceCommand(event);
 			const dataSource = await this.dzClient.send(new CreateDataSourceCommand(params));
-
 			dataSourceId = dataSource.id;
-		} else {
-			dataSourceId = dataSources?.items[0];
 		}
 
 		// Run data source
@@ -42,7 +39,6 @@ export class CreateDataSourceTask {
 		const run = await this.dzClient.send(new StartDataSourceRunCommand({
 			dataSourceIdentifier: dataSourceId,
 			domainIdentifier: event.dataAsset.catalog.domainId,
-
 		}))
 		event.dataAsset['execution']['dataSourceRun'] = {
 			id: run.id,
@@ -146,8 +142,9 @@ export class CreateDataSourceTask {
 			assetFormsInput: [
 				{
 					formName: 'df_profile_form',
+					typeIdentifier:'df_profile_form',
 					content: JSON.stringify({
-						task_id : event.dataAsset.requestId,
+						task_id : event.dataAsset.id,
 						data_profile_location: event.dataAsset.execution.dataProfileJob.outputPath,
 						data_quality_profile_location: event.dataAsset.execution?.dataQualityProfileJob?.outputPath
 					})

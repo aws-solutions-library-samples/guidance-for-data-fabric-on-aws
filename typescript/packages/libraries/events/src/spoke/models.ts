@@ -90,7 +90,7 @@ export interface crawlerStateChangeEvent {
 };
 
 export interface createResponseEventDetails {
-    requestId: string,
+    id: string,
     catalog: DataAssetCatalog,
     workflow: DataAssetWorkflow,
     hubTaskToken:string,

@@ -17,7 +17,7 @@ export class DataQualityProfileJobTask {
         this.log.info(`DataQualityProfileJobTask > process > in > event: ${JSON.stringify(event)}`);
 
         const asset = event.dataAsset;
-        const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.requestId
+        const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.id
         const jobName = `${asset.workflow.name}-${id}-dataQualityProfile`;
 
         const qualityRulesetCommandPayload = {
@@ -33,7 +33,7 @@ export class DataQualityProfileJobTask {
             await this.glueClient.send(new CreateDataQualityRulesetCommand({
                 ...qualityRulesetCommandPayload,
                 Tags: {
-                    requestId: event.dataAsset.requestId,
+                    id: event.dataAsset.id,
                 }
             }))
         } catch (e) {

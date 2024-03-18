@@ -19,7 +19,7 @@ export class DataSetTask {
     public async process(event: DataAssetTask): Promise<any> {
         this.log.debug(`DataSetTask > process > in > event: ${JSON.stringify(event)}`);
 
-        const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+        const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
 
 		// Check if DataSet has been created for this asset before
 		try {
@@ -49,7 +49,7 @@ export class DataSetTask {
         this.log.debug(`DataSetTask > constructInputCommand > in > event: ${JSON.stringify(event)}`);
         const connectionType = getConnectionType(event.dataAsset.workflow);
 
-		const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+		const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
 
 		let input: CreateDatasetCommandInput = {
 			Name: `${id}-recipeDataSet`,
@@ -58,7 +58,7 @@ export class DataSetTask {
 				projectId: event.dataAsset.catalog.projectId,
 				assetName: event.dataAsset.catalog.assetName,
 				assetId: event.dataAsset.catalog.assetId,
-				requestId: event.dataAsset.requestId
+				id: event.dataAsset.id
 			},
 			Input: {}
 		};

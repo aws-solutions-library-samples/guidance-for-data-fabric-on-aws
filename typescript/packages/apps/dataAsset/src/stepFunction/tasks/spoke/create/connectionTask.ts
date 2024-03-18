@@ -62,7 +62,7 @@ export class ConnectionTask {
     if (!connectionName) {
       const id = event.dataAsset?.catalog?.assetId
         ? event.dataAsset.catalog.assetId
-        : event.dataAsset.requestId; 
+        : event.dataAsset.id; 
         connectionName = `${id}-connection`
     }
     return connectionName;

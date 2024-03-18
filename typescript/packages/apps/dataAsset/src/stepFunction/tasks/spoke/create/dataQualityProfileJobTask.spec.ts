@@ -31,7 +31,7 @@ describe('DataQualityProfileJobTask', () => {
                     hubExecutionArn: 'testHubExecutionArn',
                     hubTaskToken: 'testHubTaskToken'
                 },
-                requestId: '12345',
+                id: '12345',
                 catalog: {
                     domainId: '1111',
                     domainName: 'TestName',

@@ -18,7 +18,7 @@ export class ProfileDataSetTask {
 	public async process(event: DataAssetTask): Promise<any> {
 		this.log.debug(`ProfileDataSetTask > process > in > event: ${JSON.stringify(event)}`);
 
-		const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+		const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
 
 		// Check if DataSet has been created for this asset before
 		try{
@@ -47,7 +47,7 @@ export class ProfileDataSetTask {
 		this.log.debug(`ProfileDataSetTask > constructInputCommand > in > event: ${JSON.stringify(event)}`);
 
 		// use asset id as the id if available
-		const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+		const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
 		const dataSetTempDirectory = this.s3Utils.getProfileDataSetTempLocation(id, event.dataAsset.catalog.domainId, event.dataAsset.catalog.projectId);
 		let input: CreateDatasetCommandInput = {
 			Name: `${id}-profileDataSet`,
@@ -56,7 +56,7 @@ export class ProfileDataSetTask {
 				projectId: event.dataAsset.catalog.projectId,
 				assetName: event.dataAsset.catalog.assetName,
 				assetId: event.dataAsset.catalog.assetId,
-				requestId: event.dataAsset.requestId
+				id: event.dataAsset.id
 			},
 			Input: { 
 				DataCatalogInputDefinition: {

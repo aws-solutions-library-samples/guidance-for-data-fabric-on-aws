@@ -22,24 +22,40 @@ export class LineageTask {
 		this.log.info(`LineageTask > process > in > event: ${JSON.stringify(event)}`);
 
 		const assets = event.dataAssets;
-		const mergedLineage = merge.recursive(assets[0].lineage, assets[1].lineage);
+		// Use assetId if it exists else no asset exists so use the id
+        const id = (assets[0].catalog?.assetId) ? assets[0].catalog.assetId : assets[0].id;
+
+		const profile = await this.s3Utils.getTaskData(TaskType.DataProfileTask,id);
+		
+		let mergedLineage;
+		let mergedExecution;
+		if(profile.dataAsset.workflow?.dataQuality){
+			const dataQualityProfile = await this.s3Utils.getTaskData(TaskType.DataQualityProfileTask,id);
+			
+			mergedLineage = merge.recursive(profile.dataAsset.lineage, dataQualityProfile.dataAsset.lineage);
+			mergedExecution = merge.recursive(profile.dataAsset.execution, dataQualityProfile.dataAsset.execution);
+		}else {
+			mergedLineage = profile.dataAsset.lineage;
+			mergedExecution = profile.dataAsset.execution;
+		}
+		
 		this.log.info(`LineageTask > process > in > lineage: ${JSON.stringify(mergedLineage)}`);
 
 		const asset:DataAssetTask = {
-			dataAsset: assets[0]
+			dataAsset: profile.dataAsset
 		};
 		asset.dataAsset.lineage = mergedLineage;
+		asset.dataAsset.lineage = mergedExecution;
 
-		// Use assetId if it exists else no asset exists so use the requestId
-        const id = (asset.dataAsset.catalog?.assetId) ? asset.dataAsset.catalog.assetId : asset.dataAsset.requestId;
+		
 		await this.s3Utils.putTaskData(TaskType.lineageTask, id, asset);
 		const signedUrl = await this.s3Utils.getTaskDataSignedUrl(TaskType.lineageTask, id, 3600);
 
 		const response: CreateResponseEventDetails = {
-			requestId: assets[0].requestId,
-			catalog: assets[0].catalog,
-			workflow: assets[0].workflow,
-			hubTaskToken: assets[0].execution.hubTaskToken,
+			id: profile.dataAsset.id,
+			catalog: profile.dataAsset.catalog,
+			workflow: profile.dataAsset.workflow,
+			hubTaskToken: profile.dataAsset.execution.hubTaskToken,
 			fullPayloadSignedUrl: signedUrl,
 			dataProfileSignedUrl: signedUrl,
 			dataQualityProfileSignedUrl: signedUrl

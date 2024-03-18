@@ -21,7 +21,7 @@ export class TransformJobTask {
     public async process(event: DataAssetTask): Promise<any> {
         this.log.info(`TranformJobTask > process > in > event: ${JSON.stringify(event)}`);
 
-        const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+        const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
 
         // TODO @Willsia Construct the Lineage start event using the lineageRunId
         const lineageRunId = ulid().toLowerCase();
@@ -39,7 +39,7 @@ export class TransformJobTask {
                 projectId: event.dataAsset.catalog.projectId,
                 assetName: event.dataAsset.catalog.assetName,
                 assetId: event.dataAsset.catalog.assetId,
-                requestId: event.dataAsset.requestId,
+                id: event.dataAsset.id,
                 LineageRunId: lineageRunId,
                 executionArn: event.execution.executionArn,
                 executionToken: event.execution.taskToken
@@ -72,7 +72,7 @@ export class TransformJobTask {
                 projectId: event.dataAsset.catalog.projectId,
                 assetName: event.dataAsset.catalog.assetName,
                 assetId: event.dataAsset.catalog.assetId,
-                requestId: event.dataAsset.requestId,
+                id: event.dataAsset.id,
                 LineageRunId: lineageRunId,
                 executionArn: event.execution.executionArn,
                 executionToken: event.execution.taskToken

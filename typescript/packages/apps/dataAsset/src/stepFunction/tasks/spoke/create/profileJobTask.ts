@@ -19,8 +19,8 @@ export class ProfileJobTask {
 
         const profileCommand = await this.createProfilingJob(event);
 
-        // Use assetId if it exists else no asset exists so use the requestId
-        const id = (event.dataAsset.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId
+        // Use assetId if it exists else no asset exists so use the id
+        const id = (event.dataAsset.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id
         const jobName = `${event.dataAsset.workflow.name}-${id}-dataProfile`;
         let res = undefined;
 
@@ -46,8 +46,8 @@ export class ProfileJobTask {
     private async createProfilingJob(event: DataAssetTask): Promise<CreateProfileJobCommandInput> {
 
         const asset = event.dataAsset;
-        // Use assetId if it exists else no asset exists so use the requestId
-        const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.requestId
+        // Use assetId if it exists else no asset exists so use the id
+        const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.id
 
         const jobName = `${asset.workflow.name}-${id}-dataProfile`;
 
@@ -68,7 +68,7 @@ export class ProfileJobTask {
                 projectId: event.dataAsset.catalog.projectId,
                 assetName: event.dataAsset.catalog.assetName,
                 assetId: event.dataAsset.catalog?.assetId,
-                requestId: event.dataAsset.requestId,
+                id: event.dataAsset.id,
                 LineageRunId: lineageRunId,
                 executionArn: event.execution.executionArn
             }
