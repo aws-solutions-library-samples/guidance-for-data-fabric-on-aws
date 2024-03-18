@@ -4,6 +4,7 @@ import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { RemovalPolicy, Stack, Duration } from 'aws-cdk-lib';
+import { CfnPermissions } from 'aws-cdk-lib/aws-lakeformation';
 import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Construct } from 'constructs';
 import path from 'path';
@@ -200,6 +201,18 @@ export class DataAssetSpoke extends Construct {
         });
 
         createStartLambda.addToRolePolicy(StateMachinePolicy);
+        new CfnPermissions(this, 'CreateStartLambdaLakeFormationPermissions', {
+            dataLakePrincipal: {
+                dataLakePrincipalIdentifier: createStartLambda.role?.roleArn,
+              },
+              resource: {
+                tableResource: {
+                    catalogId: accountId,
+                    databaseName: glueDatabase.databaseName,
+                    tableWildcard: { }, // empty object === ALL_TABLES
+                }
+              }
+        });
 
         const createConnectionLambda = new NodejsFunction(this, 'CreateConnectionLambda', {
             description: 'Asset Manager Connection creator Task Handler',
@@ -330,6 +343,18 @@ export class DataAssetSpoke extends Construct {
         recipeJobLambda.addToRolePolicy(IAMPassRolePolicy);
         recipeJobLambda.addToRolePolicy(GluePolicy);
         bucket.grantPut(recipeJobLambda);
+        new CfnPermissions(this, 'RecipeJobLambdaPermissions', {
+            dataLakePrincipal: {
+                dataLakePrincipalIdentifier: recipeJobLambda.role?.roleArn,
+              },
+              resource: {
+                tableResource: {
+                    catalogId: accountId,
+                    databaseName: glueDatabase.databaseName,
+                    tableWildcard: { }, // empty object === ALL_TABLES
+                }
+              }
+        });
 
         const profileJobLambda = new NodejsFunction(this, 'ProfileJobLambda', {
             description: 'Asset Manager profile job Task Handler',
@@ -364,6 +389,18 @@ export class DataAssetSpoke extends Construct {
         profileJobLambda.addToRolePolicy(IAMPassRolePolicy);
         profileJobLambda.addToRolePolicy(GluePolicy);
         bucket.grantPut(profileJobLambda);
+        new CfnPermissions(this, 'ProfileJobLambdaPermissions', {
+            dataLakePrincipal: {
+                dataLakePrincipalIdentifier: profileJobLambda.role?.roleArn,
+              },
+              resource: {
+                tableResource: {
+                    catalogId: accountId,
+                    databaseName: glueDatabase.databaseName,
+                    tableWildcard: { }, // empty object === ALL_TABLES
+                }
+              }
+        });
 
         const dqProfileJobLambda = new NodejsFunction(this, 'DQProfileJobLambda', {
             description: 'Asset Manager DQ profile job Task Handler',
@@ -401,6 +438,18 @@ export class DataAssetSpoke extends Construct {
         dqProfileJobLambda.addToRolePolicy(IAMPassRolePolicy);
         dqProfileJobLambda.addToRolePolicy(GluePolicy);
         bucket.grantPut(dqProfileJobLambda);
+        new CfnPermissions(this, 'DQProfileJobLambdaLakeFormationPermissions', {
+            dataLakePrincipal: {
+                dataLakePrincipalIdentifier: dqProfileJobLambda.role?.roleArn,
+              },
+              resource: {
+                tableResource: {
+                    catalogId: accountId,
+                    databaseName: glueDatabase.databaseName,
+                    tableWildcard: { }, // empty object === ALL_TABLES
+                }
+              }
+        });
 
         const glueCrawlerLambda = new NodejsFunction(this, 'GlueCrawlerLambda', {
             description: 'Asset Manager Glue Crawler Task Handler',
