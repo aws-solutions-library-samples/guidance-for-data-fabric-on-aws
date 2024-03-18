@@ -47,6 +47,11 @@ export const tags = Type.Optional(
 );
 export type Tags = Static<typeof tags>;
 
+export const redshiftDbType = stringEnum(
+    ['serverless', 'cluster'],
+    'The type of the redshift db used.'
+);
+
 /**
  * API specific resources
  */
@@ -82,9 +87,12 @@ export const redshiftConnection = Type.Object({
     securityGroupIdList: Type.Array(Type.String(), {description: "Security group Ids for the Glue connection."}),
     availabilityZone: Type.String({description: 'Availability zone for the Glue connection.'}),
     path: Type.String({description: "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)"}),
-
     databaseTableName: Type.String({description: "The database table name for DataBrew dataset (used in recipe job data set)."}),
-    queryString: Type.Optional(Type.String({description: "The query string for DataBrew dataset (used in recipe job data set)."}))
+    queryString: Type.Optional(Type.String({description: "The query string for DataBrew dataset (used in recipe job data set)."})),
+    type: Type.Optional(redshiftDbType),
+    workgroupName: Type.Optional(Type.String({description: "The name of the serverless workgroup the DB belongs to(used by data zone)."})),
+    clusterName: Type.Optional(Type.String({description: "The cluster name of the DB cluster to(used by data zone)."})),
+
 });
 
 export const glueConnection = Type.Object({

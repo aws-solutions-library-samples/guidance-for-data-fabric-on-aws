@@ -7,6 +7,7 @@ export enum TaskType {
     DataQualityProfileTask = 'DataQualityProfileTask',
     RecipeTask = 'df_recipe',
     GlueCrawlerTask = 'df_glue_crawler',
+    CreateDataSourceTask = 'df_create_data_source',
     lineageTask = 'lineageTask'
 
 }
@@ -17,6 +18,7 @@ export type DataAssetJob = {
     stopTime?: string,
     status?: string,
     message?: string,
+    outputPath?: string
 };
 
 export type DataAssetExecution = {

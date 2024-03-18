@@ -19,9 +19,7 @@ export class EventProcessor {
 
         // Get the full payload
         const res = await axios.get(event.detail.fullPayloadSignedUrl);  
-        const payload:DataAssetTask = res.data;    
-
-        // TODO publish lineage
+        const payload:DataAssetTask = res.data;
 
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(payload), taskToken: payload.dataAsset.execution.hubTaskToken}));
 

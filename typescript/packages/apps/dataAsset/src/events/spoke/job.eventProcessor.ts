@@ -49,13 +49,13 @@ export class JobEventProcessor {
                     stopTime: run.CompletedOn.toString(),
                     startTime: run.ExecutionTime.toString(),
                     message: event.detail.message,
+                    outputPath: this.s3Utils.getProfilingJobOutputPath(id, taskInput.dataAsset.catalog.domainId, taskInput.dataAsset.catalog.projectId),
                 }
                 
             taskInput.dataAsset.lineage[`${TaskType.DataProfileTask}-${id}`] = this.constructLineage(id, taskInput, event, job.Type, run);
         }
 
         
-
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken}));
 
         this.log.info(`JobEventProcessor > processJobCompletionEvent >exit`);
