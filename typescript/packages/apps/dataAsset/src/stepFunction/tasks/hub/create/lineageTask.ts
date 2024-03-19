@@ -19,7 +19,7 @@ export class LineageTask {
         // Construct the asset lineage for all created assets
         const rootEventComplete = this.constructLineage(event.dataAsset.lineage.root, event.dataAsset.catalog.assetName)
 
-        this.log.info(`LineageTask > process > rootCompleteEvent: ${rootEventComplete}`);
+        this.log.info(`LineageTask > process > rootCompleteEvent: ${JSON.stringify(rootEventComplete)}`);
 
         // Send lineage event for each asset Placeholder
         const publishEvent = new EventBridgeEventBuilder()

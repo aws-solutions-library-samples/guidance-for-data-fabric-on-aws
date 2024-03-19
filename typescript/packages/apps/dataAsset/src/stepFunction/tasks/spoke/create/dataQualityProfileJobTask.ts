@@ -64,7 +64,7 @@ export class DataQualityProfileJobTask {
 
         event.dataAsset.lineage.dataQualityProfile = this.constructDataLineage(event, startDataQualityRulesetEvaluationResponse.RunId, jobName);
 
-        this.log.info(`DataQualityProfileJobTask > process > dataQualityProfileTaskStartEvent: ${event.dataAsset.lineage.dataQualityProfile}`);
+        this.log.info(`DataQualityProfileJobTask > process > dataQualityProfileTaskStartEvent: ${JSON.stringify(event.dataAsset.lineage.dataQualityProfile)}`);
 
         await this.s3Utils.putTaskData(TaskType.DataQualityProfileTask, id, event);
 

@@ -71,9 +71,9 @@ export class DataQualityProfileEventProcessor {
         if (!dataQualityProfileLineageEvent) {
             throw new Error('No start lineage event for data quality.')
         }
-        dataAssetTask.dataAsset.lineage.dataQualityProfile= this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, rulesetArn);
+        dataAssetTask.dataAsset.lineage.dataQualityProfile = this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, rulesetArn);
 
-        this.log.info(`DataQualityProfileEventProcessor > dataQualityProfileCompletionEvent > dataQualityProfileTaskCompleteEvent: ${dataAssetTask.dataAsset.lineage.dataQualityProfile}`);
+        this.log.info(`DataQualityProfileEventProcessor > dataQualityProfileCompletionEvent > dataQualityProfileTaskCompleteEvent: ${JSON.stringify(dataAssetTask.dataAsset.lineage.dataQualityProfile)}`);
 
         this.log.info(`DataQualityProfileEventProcessor > dataQualityProfileCompletionEvent > before sfnClient.send`);
         // Signal back to the state machine
