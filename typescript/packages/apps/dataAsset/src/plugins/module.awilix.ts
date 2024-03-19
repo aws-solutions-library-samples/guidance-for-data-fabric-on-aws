@@ -485,7 +485,7 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        spokeLineageTask: asFunction((container: Cradle) => new SpokeLineageTask(app.log, container.stepFunctionClient, spokeEventBusName, container.spokeEventPublisher, container.spokeS3Utils), {
+        spokeLineageTask: asFunction((container: Cradle) => new SpokeLineageTask(app.log, container.stepFunctionClient, spokeEventBusName, container.spokeEventPublisher, container.spokeS3Utils, container.dataBrewClient), {
             ...commonInjectionOptions
         }),
 

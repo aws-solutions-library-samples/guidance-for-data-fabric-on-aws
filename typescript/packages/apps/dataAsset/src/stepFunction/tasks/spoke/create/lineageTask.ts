@@ -5,15 +5,18 @@ import type { CreateResponseEventDetails, EventPublisher } from '@df/events';
 import { DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder } from '@df/events';
 import merge from 'merge';
 import type { S3Utils } from '../../../../common/s3Utils.js';
+import { DeleteDatasetCommand, type DataBrewClient} from '@aws-sdk/client-databrew';
 
 
 export class LineageTask {
 
-    constructor(private log: BaseLogger,
+    constructor(
+				private log: BaseLogger,
                 private sfnClient: SFNClient,
                 private eventBusName: string,
                 private eventPublisher: EventPublisher,
-                private readonly s3Utils: S3Utils
+                private readonly s3Utils: S3Utils,
+				private dataBrewClient: DataBrewClient
     ) {
     }
 
@@ -38,6 +41,19 @@ export class LineageTask {
             mergedLineage = profile.dataAsset.lineage;
             mergedExecution = profile.dataAsset.execution;
         }
+
+		// Start Cleanup stage
+
+		if ( profile.dataAsset.workflow?.transforms) {
+			// Remove the recipe data set
+			await this.dataBrewClient.send( new DeleteDatasetCommand({
+				Name:`${id}-recipeDataSet`
+			}));
+		}
+		// Remove the profile data set
+		await this.dataBrewClient.send( new DeleteDatasetCommand({
+			Name: `${id}-profileDataSet`
+		}));
 
         this.log.info(`LineageTask > process > in > lineage: ${JSON.stringify(mergedLineage)}`);
 
