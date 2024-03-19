@@ -1,5 +1,5 @@
 import type { BaseLogger } from "pino";
-import { CreateRecipeCommand, CreateRecipeJobCommand, type DataBrewClient, DeleteJobCommand, DescribeRecipeCommand, PublishRecipeCommand, StartJobRunCommand, TagResourceCommand, UpdateRecipeCommand } from '@aws-sdk/client-databrew';
+import { CreateRecipeCommand, CreateRecipeJobCommand, type DataBrewClient, DeleteJobCommand, DescribeRecipeCommand, PublishRecipeCommand, StartJobRunCommand, TagResourceCommand, UpdateRecipeCommand, OutputFormat } from '@aws-sdk/client-databrew';
 import { type DataAssetTask, TaskType } from "../../models.js";
 import { ulid } from 'ulid';
 import type { S3Utils } from '../../../../common/s3Utils.js';
@@ -15,7 +15,7 @@ export class RecipeJobTask {
     public async process(event: DataAssetTask): Promise<any> {
         this.log.info(`RecipeJobTask > process > in > event: ${JSON.stringify(event)}`);
 
-        const id = event.dataAsset?.catalog?.assetId ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+        const id = event.dataAsset?.catalog?.assetId ? event.dataAsset.catalog.assetId : event.dataAsset.id;
 
         // TODO @Willsia Construct the Lineage start event using the lineageRunId
         const lineageRunId = ulid().toLowerCase();
@@ -56,7 +56,7 @@ export class RecipeJobTask {
                             projectId: event.dataAsset.catalog.projectId,
                             assetName: event.dataAsset.catalog.assetName,
                             assetId: event.dataAsset.catalog.assetId,
-                            requestId: event.dataAsset.requestId,
+                            id: event.dataAsset.id,
                             LineageRunId: lineageRunId,
                             executionArn: event.execution.executionId,
                         },
@@ -77,7 +77,7 @@ export class RecipeJobTask {
                                 projectId: event.dataAsset.catalog.projectId,
                                 assetName: event.dataAsset.catalog.assetName,
                                 assetId: event.dataAsset.catalog.assetId,
-                                requestId: event.dataAsset.requestId,
+                                id: event.dataAsset.id,
                                 LineageRunId: lineageRunId,
                                 executionArn: event.execution.executionId,
                             },
@@ -123,8 +123,7 @@ export class RecipeJobTask {
                 Outputs: [
                     {
                         Location: this.s3Utils.getRecipeJobOutputLocation(id, event.dataAsset.catalog.domainId, event.dataAsset.catalog.projectId),
-                        Format: event.dataAsset.workflow.transforms?.targetFormat ? event.dataAsset.workflow.transforms.targetFormat.toUpperCase() : undefined,
-                        CompressionFormat: event.dataAsset.workflow.transforms?.targetCompression ? event.dataAsset.workflow.transforms.targetCompression.toUpperCase() : undefined,
+                        Format: OutputFormat.GLUEPARQUET,
                         Overwrite: true,
                         MaxOutputFiles: 1
                     },
@@ -136,7 +135,7 @@ export class RecipeJobTask {
                     projectId: event.dataAsset.catalog.projectId,
                     assetName: event.dataAsset.catalog.assetName,
                     assetId: event.dataAsset.catalog.assetId,
-                    requestId: event.dataAsset.requestId,
+                    id: event.dataAsset.id,
                     LineageRunId: lineageRunId,
                     executionArn: event.execution.executionId,
                 },

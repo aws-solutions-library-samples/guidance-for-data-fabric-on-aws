@@ -18,11 +18,10 @@ export class EventProcessor {
         validateNotEmpty(event.detail, 'eventDetails is not empty');
 
         // Get the full payload
-        const fullPayload:DataAssetTask = await axios.get(event.detail.fullPayloadSignedUrl);       
-        this.log.info(`EventProcessor > processSpokeCompletionEvent >  fullPayload: ${fullPayload}`);
-        this.log.info(`EventProcessor > processSpokeCompletionEvent >  fullPayload: ${JSON.stringify(fullPayload)}`);
+        const res = await axios.get(event.detail.fullPayloadSignedUrl);  
+        const payload:DataAssetTask = res.data;
 
-        await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(fullPayload), taskToken: fullPayload.execution.taskToken}));
+        await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(payload), taskToken: payload.dataAsset.execution.hubTaskToken}));
 
         this.log.info(`EventProcessor > processSpokeCompletionEvent >exit`);
         return;

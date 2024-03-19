@@ -17,8 +17,8 @@ export class GlueCrawlerTask {
     public async process(event: DataAssetTask): Promise<any> {
         this.log.debug(`GlueCrawlerTask > process > in > event: ${JSON.stringify(event)}`);
 
-        // Use assetId if it exists else no asset exists so use the requestId
-        const id = (event.dataAsset.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+        // Use assetId if it exists else no asset exists so use the id
+        const id = (event.dataAsset.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
         const crawlerName = `${event.dataAsset.workflow.name}-${id}-crawler`;
 
         const command = await this.createCrawlerCommandInput(event);
@@ -50,8 +50,8 @@ export class GlueCrawlerTask {
         this.log.debug(`GlueCrawlerTask > createCrawlerCommandInput > in`);
 
         const asset = event.dataAsset;
-        // Use assetId if it exists else no asset exists so use the requestId
-        const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.requestId
+        // Use assetId if it exists else no asset exists so use the id
+        const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.id
 
         const crawlerName = `${asset.workflow.name}-${id}-crawler`;
 
@@ -75,7 +75,7 @@ export class GlueCrawlerTask {
                 projectId: event.dataAsset.catalog.projectId,
                 assetName: event.dataAsset.catalog.assetName,
                 assetId: event.dataAsset.catalog.assetId,
-                requestId: event.dataAsset.requestId,
+                id: event.dataAsset.id,
                 LineageRunId: lineageRunId,
                 executionArn: event.execution.executionId
             }
@@ -95,7 +95,7 @@ export class GlueCrawlerTask {
 		// Get the connection key
 		// We only support a single target for now
         if (event.dataAsset.execution.recipeJob) {
-            const id = (event.dataAsset.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+            const id = (event.dataAsset.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
             targets = {
                 S3Targets: [
                     {

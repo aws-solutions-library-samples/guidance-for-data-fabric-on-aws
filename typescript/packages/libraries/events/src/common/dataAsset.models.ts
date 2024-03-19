@@ -80,7 +80,7 @@ export type DataAssetExecution = {
 };
 
 export type DataAsset = {
-    requestId: string,
+    id: string,
     execution?: DataAssetExecution,
     catalog: DataAssetCatalog,
     workflow: DataAssetWorkflow,
@@ -89,7 +89,7 @@ export type DataAsset = {
 
 export type JobExecution = {
     assetId?: string,
-    requestId?:string,
+    id?:string,
     jobRunId?: string,
     jobRunStatus?: string,
     jobStartTime?: string,

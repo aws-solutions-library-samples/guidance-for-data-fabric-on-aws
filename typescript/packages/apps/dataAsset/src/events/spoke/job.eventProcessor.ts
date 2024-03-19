@@ -25,7 +25,7 @@ export class JobEventProcessor {
 
         // Get the relevant Job and tags to link it back to the Data Zone asset
         const job = await this.dataBrewClient.send(new DescribeJobCommand({Name: event.detail.jobName}));
-        const id = (job.Tags?.['assetId']) ? job.Tags['assetId'] : job.Tags['requestId'];
+        const id = (job.Tags?.['assetId']) ? job.Tags['assetId'] : job.Tags['id'];
 
         //Get the Job startTime
         const run = await this.dataBrewClient.send(new DescribeJobRunCommand({RunId: event.detail.jobRunId, Name: event.detail.jobName}));
@@ -45,14 +45,14 @@ export class JobEventProcessor {
         } else if (job.Type === JobType.PROFILE) {
 
             taskInput = await this.s3Utils.getTaskData(TaskType.DataProfileTask, id);
-
-            taskInput.dataAsset.execution.dataProfileJob = {
-                id: event.detail.jobRunId,
-                status: event.detail.state,
-                stopTime: run.CompletedOn.toString(),
-                startTime: run.ExecutionTime.toString(),
-                message: event.detail.message,
-            }
+            taskInput.dataAsset.execution.dataProfileJob= {
+                    id: event.detail.jobRunId,
+                    status: event.detail.state,
+                    stopTime: run.CompletedOn.toString(),
+                    startTime: run.ExecutionTime.toString(),
+                    message: event.detail.message,
+                    outputPath: this.s3Utils.getProfilingJobOutputPath(id, taskInput.dataAsset.catalog.domainId, taskInput.dataAsset.catalog.projectId),
+                }
 
             const location = this.s3Utils.getProfilingJobOutputLocation(id, taskInput.dataAsset.catalog.domainId, taskInput.dataAsset.catalog.domainId)
             const response = await this.s3Client.send(new GetObjectCommand(location))
@@ -61,12 +61,13 @@ export class JobEventProcessor {
 
             taskInput.dataAsset.lineage.dataProfile = this.constructLineage(taskInput.dataAsset.lineage.dataProfile, profilingJobArn, profilingResult);
 
-            this.log.info(`JobEventProcessor > processJobCompletionEvent > profileJobTaskCompleteEvent: ${taskInput.dataAsset.lineage.dataProfile}`);
+            await this.s3Utils.putTaskData(TaskType.DataProfileTask, id,taskInput);
         }
+
 
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken}));
 
-        this.log.info(`JobEventProcessor > processJobCompletionEvent >exit`);
+        this.log.info(`JobEventProcessor > processJobCompletionEvent >exit ${JSON.stringify(taskInput)}`);
         return;
     }
 

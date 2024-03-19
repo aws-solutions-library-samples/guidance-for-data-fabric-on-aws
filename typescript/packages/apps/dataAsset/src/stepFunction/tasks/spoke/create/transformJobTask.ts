@@ -20,7 +20,7 @@ export class TransformJobTask {
     public async process(event: DataAssetTask): Promise<any> {
         this.log.info(`TranformJobTask > process > in > event: ${JSON.stringify(event)}`);
 
-        const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.requestId;
+        const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
 
         // TODO add if condition to check for recipeId s exists before creating
 
@@ -35,8 +35,8 @@ export class TransformJobTask {
                 projectId: event.dataAsset.catalog.projectId,
                 assetName: event.dataAsset.catalog.assetName,
                 assetId: event.dataAsset.catalog.assetId,
-                requestId: event.dataAsset.requestId,
-                executionArn: event.execution.executionId,
+                id: event.dataAsset.id,
+                executionId: event.execution.executionId,
                 executionToken: event.execution.taskToken
             }
         }));
@@ -67,8 +67,7 @@ export class TransformJobTask {
                 projectId: event.dataAsset.catalog.projectId,
                 assetName: event.dataAsset.catalog.assetName,
                 assetId: event.dataAsset.catalog.assetId,
-                requestId: event.dataAsset.requestId,
-                executionArn: event.execution.executionId,
+                executionId: event.execution.executionId,
                 executionToken: event.execution.taskToken
             }
 

@@ -13,11 +13,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE } from '@df/events';
+import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED, DATA_ZONE_EVENT_SOURCE } from '@df/events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
 import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
+import { Bucket } from 'aws-cdk-lib/aws-s3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +27,8 @@ export type DataAssetConstructProperties = {
     moduleName: string;
     eventBusName: string;
     cognitoUserPoolId: string;
-    orgPath: OrganizationUnitPath
+    orgPath: OrganizationUnitPath;
+    bucketName: string;
 };
 
 
@@ -38,6 +40,7 @@ export class DataAsset extends Construct {
     public readonly apiName: string;
     public readonly createStateMachineArn: string;
 
+
     constructor(scope: Construct, id: string, props: DataAssetConstructProperties) {
         super(scope, id);
 
@@ -46,6 +49,8 @@ export class DataAsset extends Construct {
 
         const accountId = Stack.of(this).account;
         const region = Stack.of(this).region;
+
+        const bucket = Bucket.fromBucketName(this, 'jobsOutputBucket', props.bucketName);
 
 
         const table = new Table(this, 'Table', {
@@ -161,6 +166,7 @@ export class DataAsset extends Construct {
                 'datazone:GetDataSource',
                 'datazone:StartDataSourceRun',
                 'datazone:GetDataSourceRun',
+                'datazone:ListDataSources',
             ],
             resources: [`*`]
         });
@@ -377,17 +383,19 @@ export class DataAsset extends Construct {
             * Job Completion Listener
             * Will update datazone once job completion is detected in the event bus
         */
-        const jobCompletionEventLambda = new NodejsFunction(this, 'JobCompletionEventLambda', {
+        const hubEventProcessorLambda = new NodejsFunction(this, 'HubEventProcessorLambda', {
             description: `Job Completion Event Handler`,
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/hub_lambda_eventbridge.ts'),
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
-            functionName: `${namePrefix}-dataAsset-jobCompletion`,
+            functionName: `${namePrefix}-dataAsset-hubEventProcessor`,
             timeout: Duration.seconds(30),
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
             environment: {
                 TABLE_NAME: table.tableName,
+                HUB_BUCKET_NAME: props.bucketName,
+                HUB_BUCKET_PREFIX: 'workflows'
             },
             bundling: {
                 minify: true,
@@ -402,9 +410,13 @@ export class DataAsset extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
-        table.grantReadWriteData(jobCompletionEventLambda);
-        jobCompletionEventLambda.addToRolePolicy(DataZoneAssetReadPolicy);
-        jobCompletionEventLambda.addToRolePolicy(DataZoneAssetWritePolicy);
+        table.grantReadWriteData(hubEventProcessorLambda);
+        hubEventProcessorLambda.addToRolePolicy(DataZoneAssetReadPolicy);
+        hubEventProcessorLambda.addToRolePolicy(DataZoneAssetWritePolicy);
+        hubEventProcessorLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        hubEventProcessorLambda.addToRolePolicy(DataZoneDataSourcePolicy);
+        bucket.grantPut(hubEventProcessorLambda);
+        bucket.grantRead(hubEventProcessorLambda);
 
 
         // Rule for Job Start events
@@ -448,7 +460,31 @@ export class DataAsset extends Construct {
         });
 
         createFlowCompletionRule.addTarget(
-            new LambdaFunction(jobCompletionEventLambda, {
+            new LambdaFunction(hubEventProcessorLambda, {
+                deadLetterQueue: deadLetterQueue,
+                maxEventAge: Duration.minutes(5),
+                retryAttempts: 2
+            })
+        );
+
+        // Rule for DataZone data source creation event
+        const dataSourceEventRule = new Rule(this, 'dataSourceEventRule', {
+            eventPattern: {
+                source: [DATA_ZONE_EVENT_SOURCE],
+                detailType: [DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED]
+            }
+        });
+
+        dataSourceEventRule.addTarget(
+            new LambdaFunction(hubEventProcessorLambda, {
+                deadLetterQueue: deadLetterQueue,
+                maxEventAge: Duration.minutes(5),
+                retryAttempts: 2
+            })
+        );
+
+        createFlowCompletionRule.addTarget(
+            new LambdaFunction(hubEventProcessorLambda, {
                 deadLetterQueue: deadLetterQueue,
                 maxEventAge: Duration.minutes(5),
                 retryAttempts: 2
@@ -512,7 +548,7 @@ export class DataAsset extends Construct {
         });
 
 
-        NagSuppressions.addResourceSuppressions([apiLambda, jobCompletionEventLambda],
+        NagSuppressions.addResourceSuppressions([apiLambda, hubEventProcessorLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -522,15 +558,18 @@ export class DataAsset extends Construct {
                 },
                 {
                     id: 'AwsSolutions-IAM5',
-                    appliesTo: [`Resource::<DataAssetHubTable6553B766.Arn>/index/*`],
-                    reason: 'This policy is required for the lambda to access the dataAsset table.'
-
-                },
-                {
-                    id: 'AwsSolutions-IAM5',
                     appliesTo: [
                         'Resource::*',
-                        'Resource::arn:aws:states:<AWS::Region>:<AWS::AccountId>:execution:df-data-asset:*'],
+                        'Resource::<DataAssetHubTable6553B766.Arn>/index/*',
+                        'Resource::arn:aws:states:<AWS::Region>:<AWS::AccountId>:execution:df-data-asset:*',
+                        'Resource::arn:aws:states:<AWS::Region>:<AWS::AccountId>:stateMachine:df-*',
+                        'Action::s3:Abort*',
+                        'Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfsharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*',
+                        'Action::s3:GetBucket*',
+                        'Action::s3:GetObject*',
+                        'Action::s3:List*'
+
+                    ],
                     reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments actions.'
 
                 }

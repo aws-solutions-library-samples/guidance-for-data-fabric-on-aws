@@ -25,7 +25,7 @@ describe('DataQualityProfileJobTask', () => {
 
         await task.process({
             dataAsset: {
-                requestId: "11111",
+                id: "11111",
                 execution: {
                     hubExecutionId: "341cf762-b25d-49ce-9e82-f82986337594",
                     hubStartTime: "2024-03-15T06:31:20.772Z",

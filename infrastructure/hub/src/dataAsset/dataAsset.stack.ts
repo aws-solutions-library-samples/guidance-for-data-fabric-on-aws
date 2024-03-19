@@ -5,6 +5,7 @@ import { NagSuppressions } from 'cdk-nag';
 
 import { DataAsset } from "./dataAsset.construct.js";
 import { dfEventBusName, userPoolIdParameter, OrganizationUnitPath } from '@df/cdk-common';
+import { bucketNameParameter } from '../shared/s3.construct.js';
 
 export type DataAssetStackProperties = StackProps & {
     moduleName: string;
@@ -24,12 +25,14 @@ export class DataAssetStack extends Stack {
         super(scope, id, props);
 
         const userPoolId = StringParameter.valueForStringParameter(this, userPoolIdParameter);
+        const bucketName = StringParameter.valueForStringParameter(this, bucketNameParameter);
 
         const dataAsset = new DataAsset(this, 'DataAssetHub', {
             moduleName: props.moduleName,
             eventBusName: dfEventBusName,
             cognitoUserPoolId: userPoolId,
             orgPath: props.orgPath,
+            bucketName
         });
 
         new StringParameter(this, 'dataAssetFunctionNameParameter', {

@@ -8,7 +8,8 @@ export enum TaskType {
     DataQualityProfileTask = 'df_data_quality_profile',
     RecipeTask = 'df_recipe',
     GlueCrawlerTask = 'df_glue_crawler',
-    LineageTask = 'df_data_lineage'
+    LineageTask = 'df_data_lineage',
+    CreateDataSourceTask = 'df_create_data_source',
 }
 
 export type DataAssetJob = {
@@ -17,6 +18,7 @@ export type DataAssetJob = {
     stopTime?: string,
     status?: string,
     message?: string,
+    outputPath?: string
 };
 
 export type DataAssetExecution = {
@@ -38,7 +40,7 @@ export type DataAssetExecution = {
 };
 
 export type DataAssetDetails = {
-    requestId: string,
+    id: string,
     catalog: DataAssetCatalog,
     workflow: Workflow,
     execution?: DataAssetExecution,

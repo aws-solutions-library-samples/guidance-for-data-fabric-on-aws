@@ -42,6 +42,7 @@ import { DataAssetTaskRepository } from "../api/dataAssetTask/repository.js";
 import { DynamoDBDocumentClient, TranslateConfig } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { JobEventProcessor } from "../events/spoke/job.eventProcessor.js";
+import { DataZoneEventProcessor } from '../events/hub/datazone.eventProcessor.js';
 
 const {captureAWSv3Client} = pkg;
 
@@ -57,6 +58,7 @@ declare module '@fastify/awilix' {
         glueCrawlerEventProcessor: GlueCrawlerEventProcessor;
         dataQualityProfileEventProcessor: DataQualityProfileEventProcessor;
         hubEventProcessor: HubEventProcessor;
+        dataZoneEventProcessor:DataZoneEventProcessor
         eventBridgeClient: EventBridgeClient;
         dynamoDbUtils: DynamoDbUtils;
         stepFunctionClient: SFNClient;
@@ -74,7 +76,8 @@ declare module '@fastify/awilix' {
         dataAssetService: DataAssetService;
         dataAssetTaskRepository: DataAssetTaskRepository;
         dataAssetTaskService: DataAssetTasksService;
-        s3Utils: S3Utils;
+        spokeS3Utils: S3Utils;
+        hubS3Utils: S3Utils;
         getSignedUrl: GetSignedUrl;
 
         // Hub Tasks
@@ -235,6 +238,8 @@ const registerContainer = (app?: FastifyInstance) => {
     const spokeEventBusName = process.env['SPOKE_EVENT_BUS_NAME'];
     const hubCreateStateMachineArn = process.env['HUB_CREATE_STATE_MACHINE_ARN'];
     // const spokeCreateStateMachineArn = process.env['SPOKE_CREATE_STATE_MACHINE_ARN'];
+    const hubBucketName = process.env['HUB_BUCKET_NAME'];
+    const hubBucketPrefix = process.env['HUB_BUCKET_PREFIX'];
     const jobsBucketName = process.env['JOBS_BUCKET_NAME'];
     const jobsBucketPrefix = process.env['JOBS_BUCKET_PREFIX'];
     const TableName = process.env['TABLE_NAME'];
@@ -293,10 +298,13 @@ const registerContainer = (app?: FastifyInstance) => {
 
         getSignedUrl: asValue(getSignedUrl),
 
-        s3Utils: asFunction((container: Cradle) => new S3Utils(app.log, container.s3Client, jobsBucketName, jobsBucketPrefix, container.getSignedUrl), {
+        spokeS3Utils: asFunction((container: Cradle) => new S3Utils(app.log, container.s3Client, jobsBucketName, jobsBucketPrefix, container.getSignedUrl), {
             ...commonInjectionOptions,
         }),
 
+        hubS3Utils: asFunction((container: Cradle) => new S3Utils(app.log, container.s3Client, hubBucketName , hubBucketPrefix, container.getSignedUrl), {
+            ...commonInjectionOptions,
+        }),
 
         hubEventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, hubEventBusName, DATA_ASSET_HUB_EVENT_SOURCE), {
             ...commonInjectionOptions
@@ -318,6 +326,18 @@ const registerContainer = (app?: FastifyInstance) => {
             }
         ),
 
+        dataZoneEventProcessor: asFunction(
+            (container) =>
+                new DataZoneEventProcessor(
+                    app.log,
+                    container.stepFunctionClient,
+                    container.spokeS3Utils
+                ),
+            {
+                ...commonInjectionOptions
+            }
+        ),
+
         // Event Processors spoke
         jobEventProcessor: asFunction(
             (container) =>
@@ -325,7 +345,7 @@ const registerContainer = (app?: FastifyInstance) => {
                     app.log,
                     container.dataBrewClient,
                     container.stepFunctionClient,
-                    container.s3Utils,
+                    container.spokeS3Utils,
                     container.s3Client
                 ),
             {
@@ -339,7 +359,7 @@ const registerContainer = (app?: FastifyInstance) => {
                     app.log,
                     container.glueClient,
                     container.stepFunctionClient,
-                    container.s3Utils
+                    container.spokeS3Utils
                 ),
             {
                 ...commonInjectionOptions
@@ -351,7 +371,7 @@ const registerContainer = (app?: FastifyInstance) => {
                 new DataQualityProfileEventProcessor(
                     app.log,
                     container.stepFunctionClient,
-                    container.s3Utils,
+                    container.spokeS3Utils,
                     container.glueClient
                 ),
             {
@@ -406,7 +426,7 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneClient, container.stepFunctionClient), {
+        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneClient, container.spokeS3Utils), {
             ...commonInjectionOptions
         }),
 
@@ -417,7 +437,7 @@ const registerContainer = (app?: FastifyInstance) => {
 
         // Spoke Tasks
 
-        spokeCreateStartTask: asFunction((container: Cradle) => new SpokeCreateStartTask(app.log, container.stepFunctionClient, container.s3Utils), {
+        spokeCreateStartTask: asFunction((container: Cradle) => new SpokeCreateStartTask(app.log, container.stepFunctionClient, container.spokeS3Utils), {
             ...commonInjectionOptions
         }),
 
@@ -425,35 +445,35 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.s3Utils), {
+        profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.spokeS3Utils), {
             ...commonInjectionOptions
         }),
 
-        dataSetTask: asFunction((container: Cradle) => new DataSetTask(app.log, container.stepFunctionClient, container.dataBrewClient, container.s3Utils), {
+        dataSetTask: asFunction((container: Cradle) => new DataSetTask(app.log, container.stepFunctionClient, container.dataBrewClient, container.spokeS3Utils), {
             ...commonInjectionOptions
         }),
 
-        profileDataSetTask: asFunction((container: Cradle) => new ProfileDataSetTask(app.log, container.stepFunctionClient, container.dataBrewClient, GlueDatabaseName, container.s3Utils), {
+        profileDataSetTask: asFunction((container: Cradle) => new ProfileDataSetTask(app.log, container.stepFunctionClient, container.dataBrewClient, GlueDatabaseName, container.spokeS3Utils), {
             ...commonInjectionOptions
         }),
 
-        dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.glueClient, GlueDatabaseName, container.s3Utils), {
+        dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.glueClient, GlueDatabaseName, container.spokeS3Utils), {
             ...commonInjectionOptions
         }),
 
-        recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.s3Utils, container.dataBrewClient), {
+        recipeJobTask: asFunction((container: Cradle) => new RecipeJobTask(app.log, container.spokeS3Utils, container.dataBrewClient), {
             ...commonInjectionOptions
         }),
 
         glueCrawlerTask: asFunction((container: Cradle) => new GlueCrawlerTask(app.log,
             container.glueClient,
             GlueDatabaseName,
-            container.s3Utils
+            container.spokeS3Utils
         ), {
             ...commonInjectionOptions
         }),
 
-        spokeLineageTask: asFunction((container: Cradle) => new SpokeLineageTask(app.log, container.stepFunctionClient, spokeEventBusName, container.spokeEventPublisher, container.s3Utils), {
+        spokeLineageTask: asFunction((container: Cradle) => new SpokeLineageTask(app.log, container.stepFunctionClient, spokeEventBusName, container.spokeEventPublisher, container.spokeS3Utils), {
             ...commonInjectionOptions
         }),
 

@@ -57,12 +57,22 @@ export class S3Utils {
         return url;
     }
 
+    public async getPathFromSignedUrl(signedUrl:string): Promise<string> {
+        this.log.trace(`S3Utils > getPathFromSignedUrl > signedUrl: ${signedUrl}`)
+        return signedUrl.split('?')[0].replace("https","s3");
+    }
+
     public getProfilingJobOutputLocation(id: string, domainId: string, projectId: string): { Bucket: string, Key: string } {
         return {
             Bucket: this.bucketName,
             Key: `${this.bucketPrefix}/${domainId}/${projectId}/${id}/profilingJobOutput`
         }
     }
+
+    public getProfilingJobOutputPath(id: string, domainId: string, projectId: string): string {
+        return `s3://${this.bucketName}/${this.bucketPrefix}/${domainId}/${projectId}/${id}/profilingJobOutput`;
+    }
+    
 
     public getRecipeJobOutputLocation(id: string, domainId: string, projectId: string): { Bucket: string, Key: string } {
         return {

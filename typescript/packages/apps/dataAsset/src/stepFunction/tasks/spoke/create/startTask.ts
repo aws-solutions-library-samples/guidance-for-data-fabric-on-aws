@@ -20,7 +20,7 @@ export class StartTask {
 
         const {catalog} = dataAsset;
 
-        const id = (catalog?.assetId) ? catalog.assetId : dataAsset.requestId;
+        const id = (catalog?.assetId) ? catalog.assetId : dataAsset.id;
 
         await Promise.all([
             this.s3Utils.putTaskData(TaskType.Root, id, {dataAsset, execution: event.execution}),

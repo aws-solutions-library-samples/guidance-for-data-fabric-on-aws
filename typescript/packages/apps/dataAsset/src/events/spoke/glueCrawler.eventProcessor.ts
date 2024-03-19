@@ -24,8 +24,8 @@ export class GlueCrawlerEventProcessor {
         //Get the Crawler tags
         const crawler = await this.glueClient.send(new GetTagsCommand({ResourceArn: `arn:aws:glue:${event.region}:${event.account}:crawler/${event.detail.crawlerName}`}));
 
-        // Use assetId if it exists else no asset exists so use the requestId
-        const id = (crawler.Tags?.['assetId']) ? crawler.Tags['assetId'] : crawler.Tags['requestId'];
+        // Use assetId if it exists else no asset exists so use the id
+        const id = (crawler.Tags?.['assetId']) ? crawler.Tags['assetId'] : crawler.Tags['id'];
 
         //Get the task payload
         const taskOutput: DataAssetTask = await this.s3Utils.getTaskData(TaskType.GlueCrawlerTask, id);
