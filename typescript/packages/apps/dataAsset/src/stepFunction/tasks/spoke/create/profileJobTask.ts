@@ -2,7 +2,6 @@ import type { BaseLogger } from 'pino';
 import { type DataAssetTask, TaskType } from '../../models.js';
 import { CustomDatasetInput, OpenLineageBuilder, RunEvent, EventPublisher, EventBridgeEventBuilder, DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT, DATA_LINEAGE_SPOKE_EVENT_SOURCE } from "@df/events";
 import { getConnectionType } from "../../../../common/utils.js";
-import type { StartJobRunCommandOutput } from '@aws-sdk/client-glue';
 import type { CreateProfileJobCommandInput, DataBrewClient } from "@aws-sdk/client-databrew";
 import { CreateProfileJobCommand, DescribeJobCommand, StartJobRunCommand, UpdateProfileJobCommand } from "@aws-sdk/client-databrew";
 import type { S3Utils } from "../../../../common/s3Utils.js";

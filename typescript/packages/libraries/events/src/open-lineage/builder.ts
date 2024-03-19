@@ -461,7 +461,7 @@ export class OpenLineageBuilder {
                     "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ParentRunFacet.json",
                     job:
                         {
-                            name: `${input.parent.name}_${input.parent.assetName}`,
+                            name: `${input.parent.name} - ${input.parent.assetName}`,
                             namespace: this.domainNamespace
                         },
                     run:
