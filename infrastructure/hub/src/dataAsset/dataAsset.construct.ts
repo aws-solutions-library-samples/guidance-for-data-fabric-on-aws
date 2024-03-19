@@ -16,7 +16,7 @@ import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED, DATA_ZONE_EVENT_SOURCE } from '@df/events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import { DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
+import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput, Wait, WaitTime } from 'aws-cdk-lib/aws-stepfunctions';
 import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 
@@ -152,7 +152,8 @@ export class DataAsset extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -165,13 +166,20 @@ export class DataAsset extends Construct {
                 'datazone:GetDataSource',
                 'datazone:StartDataSourceRun',
                 'datazone:GetDataSourceRun',
-                'datazone:ListDataSources',
-            ],
+                'datazone:ListDataSourceRuns',
+                'datazone:ListDataSourceRunActivities',
+                'datazone:ListDataSources'],
             resources: [`*`]
         });
 
-        const runDataSourceLambda = new NodejsFunction(this, 'RunDataSourceLambda', {
-            description: 'Create and run the datazone data source as part of the asset creation flow',
+          const DataZoneDataSourceFullPolicy = new PolicyStatement({
+            actions: [
+                'datazone:*'],
+            resources: [`*`]
+        });
+
+        const createDataSourceLambda = new NodejsFunction(this, 'CreateDataSourceLambda', {
+            description: 'Create the datazone data source as part of the asset creation flow',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/createDataSource.handler.ts'),
             functionName: `${namePrefix}-${props.moduleName}-createDataSource`,
             runtime: Runtime.NODEJS_18_X,
@@ -194,17 +202,99 @@ export class DataAsset extends Construct {
             depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
             architecture: getLambdaArchitecture(scope)
         });
-        runDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
-        runDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
+        createDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        createDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
 
-        const dataSourceTask = new LambdaInvoke(this, 'RunDataSourceTask', {
-            lambdaFunction: runDataSourceLambda,
+        const createDataSourceTask = new LambdaInvoke(this, 'CreateDataSourceTask', {
+            lambdaFunction: createDataSourceLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
                     'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        const waitForDataSourceReady = new Wait(this, 'Wait For the Data Source to be ready', {time: WaitTime.duration(Duration.seconds(10))});
+
+        const verifyDataSourceLambda = new NodejsFunction(this, 'VerifyDataSourceLambda', {
+            description: 'Verify datazone data source is ready',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/verifyDataSource.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-verifyDataSource`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                HUB_EVENT_BUS_NAME: props.eventBusName
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+        verifyDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
+
+        const verifyDataSourceTask = new LambdaInvoke(this, 'Verify Data Source is ready', {
+            lambdaFunction: verifyDataSourceLambda,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id'
+                }
+            }),
+            outputPath: '$.Payload.dataAsset'
+        });
+
+        const runDataSourceLambda = new NodejsFunction(this, 'RunDataSourceLambda', {
+            description: 'Run the datazone data source as part of the asset creation flow',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/runDataSource.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-runDataSource`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+                HUB_EVENT_BUS_NAME: props.eventBusName
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+        runDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        runDataSourceLambda.addToRolePolicy(DataZoneDataSourceFullPolicy);
+
+        const runDataSourceTask = new LambdaInvoke(this, 'RunDataSourceTask', {
+            lambdaFunction: runDataSourceLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -238,14 +328,15 @@ export class DataAsset extends Construct {
         publishLineageLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
         eventBus.grantPutEventsTo(publishLineageLambda);
 
-        const lineAgeTask = new LambdaInvoke(this, 'PublishLineageTask', {
+        const lineageTask = new LambdaInvoke(this, 'PublishLineageTask', {
             lambdaFunction: publishLineageLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -256,7 +347,15 @@ export class DataAsset extends Construct {
 
         const dataAssetCreateStateMachine = new StateMachine(this, 'DataAssetCreateStateMachine', {
             definitionBody: DefinitionBody.fromChainable(
-                startTask.next(dataSourceTask.next(lineAgeTask))
+                startTask
+                    .next(createDataSourceTask)
+                    .next(waitForDataSourceReady)
+                    .next(verifyDataSourceTask)
+                    .next(new Choice(this, 'Data Source is Ready?')
+                        .when(Condition.stringEquals('$.execution.dataSourceCreation.status', 'READY'),
+                            runDataSourceTask.next(lineageTask))
+                        .otherwise(verifyDataSourceTask)
+                    )
             ),
             logs: {destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true},
             stateMachineName: `${namePrefix}-data-asset`,
@@ -416,38 +515,6 @@ export class DataAsset extends Construct {
         bucket.grantRead(hubEventProcessorLambda);
 
 
-        // Rule for Job Start events
-        // const jobStartRule = new Rule(this, 'JobStartRule', {
-        //     eventBus: eventBus,
-        //     eventPattern: {
-        //         detailType: [DATA_ASSET_SPOKE_JOB_START_EVENT]
-        //     }
-        // });
-
-        // jobStartRule.addTarget(
-        //     new LambdaFunction(jobCompletionEventLambda, {
-        //         deadLetterQueue: deadLetterQueue,
-        //         maxEventAge: Duration.minutes(5),
-        //         retryAttempts: 2
-        //     })
-        // );
-
-        // // Rule for Job completion events
-        // const jobCompletionRule = new Rule(this, 'JobCompletionRule', {
-        //     eventBus: eventBus,
-        //     eventPattern: {
-        //         detailType: [DATA_ASSET_SPOKE_JOB_COMPLETE_EVENT]
-        //     }
-        // });
-
-        // jobCompletionRule.addTarget(
-        //     new LambdaFunction(jobCompletionEventLambda, {
-        //         deadLetterQueue: deadLetterQueue,
-        //         maxEventAge: Duration.minutes(5),
-        //         retryAttempts: 2
-        //     })
-        // );
-
         // Rule for Create Flow completion events
         const createFlowCompletionRule = new Rule(this, 'CreateFlowCompletionRule', {
             eventBus: eventBus,
@@ -597,7 +664,7 @@ export class DataAsset extends Construct {
             ],
             true);
 
-        NagSuppressions.addResourceSuppressions([startCreateFlowLambda, runDataSourceLambda, publishLineageLambda],
+        NagSuppressions.addResourceSuppressions([startCreateFlowLambda, createDataSourceLambda, verifyDataSourceLambda, runDataSourceLambda, publishLineageLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -617,14 +684,28 @@ export class DataAsset extends Construct {
             ],
             true);
 
+            NagSuppressions.addResourceSuppressions([ runDataSourceLambda],
+                [
+                    {
+                        id: 'AwsSolutions-IAM5',
+                        appliesTo: [
+                            'Action::datazone:*',
+                        ],
+                        reason: 'This policy is required for the lambda to perform profiling.'    
+                    }
+                ],
+                true);
+
         NagSuppressions.addResourceSuppressions([dataAssetCreateStateMachine],
             [
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
                         'Resource::<DataAssetHubPublishLineageLambda5C9E11C9.Arn>:*',
-                        'Resource::<DataAssetHubRunDataSourceLambdaF6EEC600.Arn>:*',
                         'Resource::<DataAssetHubStartCreateFlowLambdaEDB66652.Arn>:*',
+                        'Resource::<DataAssetHubCreateDataSourceLambda4D6946C7.Arn>:*',
+                        'Resource::<DataAssetHubVerifyDataSourceLambda07A58D99.Arn>:*',
+                        'Resource::<DataAssetHubRunDataSourceLambdaF6EEC600.Arn>:*'
                     ],
                     reason: 'this policy is required to invoke lambda specified in the state machine definition'
                 },

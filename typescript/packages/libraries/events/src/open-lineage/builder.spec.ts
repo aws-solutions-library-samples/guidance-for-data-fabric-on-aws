@@ -173,9 +173,11 @@ describe('OpenLineageBuilder', () => {
                         eventType: 'COMPLETE'
                     })
                 .setDatasetOutput({
-                    fileFormat: "csv",
+                    storage: {
+                        fileFormat: "csv",
+                        storageLayer: "s3",
+                    },
                     name: "df.stationary-combustion.77777",
-                    storageLayer: "s3",
                     version: "1.2",
                     usernames: ['testuser@admin.com'],
                     // TODO: JR & PB - Column Lineage information provided by user when transformation is performed outside of DF.
@@ -375,11 +377,12 @@ describe('OpenLineageBuilder', () => {
                         executionId: "8948df56-2116-401f-9349-95c42b646047",
                         startTime: "2024-03-08T04:46:23.275Z",
                         parent: {
-
                             // TODO: WS - Need to create lineage between StepFunction in Hub and Spoke account
                             // This will be the StateMachine execution id in the spoke account.
                             runId: '284ae082-8385-4de5-9ec6-87d6ed65b113',
-                            name: "df_create_dataset - SampleCsvAsset"
+                            producer: 'parent_step_machine',
+                            name: "df_create_dataset",
+                            assetName: "SampleCsvAsset"
                         }
                     })
                 .setDatasetInput({
@@ -399,7 +402,7 @@ describe('OpenLineageBuilder', () => {
                 })
                 .setProfilingResult({
                     result: profilingResult,
-                    runId: "8948df56-2116-401f-9349-95c42b646047"
+                    producer: 'dataBrewJobArn'
                 }).build();
             expect(actualCompleteEvent).toEqual(expectedCompleteEvent);
         });
@@ -579,7 +582,9 @@ describe('OpenLineageBuilder', () => {
                             // TODO: WS - Need to create lineage between StepFunction in Hub and Spoke account
                             // This will be the execution id of the step function in spoke account
                             runId: '284ae082-8385-4de5-9ec6-87d6ed65b113',
-                            name: "df_create_dataset - SampleCsvAsset"
+                            name: "df_create_dataset",
+                            assetName: 'SampleCsvAsset',
+                            producer: 'sample parent producer'
                         }
                     })
                 .setDatasetInput({
@@ -599,7 +604,7 @@ describe('OpenLineageBuilder', () => {
                 })
                 .setQualityResult({
                     result: qualityResult,
-                    runId: "8948df56-2116-401f-9349-95c42b646047"
+                    producer: "sampleRulesetName",
                 }).build();
 
             expect(actualCompleteEvent).toEqual(expectedCompleteEvent);

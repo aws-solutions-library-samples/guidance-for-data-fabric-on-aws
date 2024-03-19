@@ -1,15 +1,19 @@
 import type { BaseLogger } from 'pino';
 import { type DataAssetTask, TaskType } from '../../models.js';
-import { CreateProfileJobCommand, CreateProfileJobCommandInput, type DataBrewClient, DescribeJobCommand, StartJobRunCommand, UpdateProfileJobCommand } from '@aws-sdk/client-databrew';
-import { ulid } from 'ulid';
-import type { S3Utils } from '../../../../common/s3Utils.js';
+import { CustomDatasetInput, OpenLineageBuilder, RunEvent, EventPublisher, EventBridgeEventBuilder, DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT, DATA_LINEAGE_SPOKE_EVENT_SOURCE } from "@df/events";
+import { getConnectionType } from "../../../../common/utils.js";
+import type { CreateProfileJobCommandInput, DataBrewClient } from "@aws-sdk/client-databrew";
+import { CreateProfileJobCommand, DescribeJobCommand, StartJobRunCommand, UpdateProfileJobCommand } from "@aws-sdk/client-databrew";
+import type { S3Utils } from "../../../../common/s3Utils.js";
 
 export class ProfileJobTask {
 
     constructor(
         private readonly log: BaseLogger,
         private readonly dataBrewClient: DataBrewClient,
-        private readonly s3Utils: S3Utils
+        private readonly s3Utils: S3Utils,
+        private readonly hubEventBusName:string,
+        private readonly eventPublisher: EventPublisher
     ) {
     }
 
@@ -37,10 +41,25 @@ export class ProfileJobTask {
         }
 
         // Run the Job if the job is on Demand
-        await this.dataBrewClient.send(new StartJobRunCommand({Name: res.Name}));
+        const startJobRunCommandResponse = await this.dataBrewClient.send(new StartJobRunCommand({Name: res.Name}));
+
+        this.log.info(`ProfileJobTask > process > StartJobRun: ${JSON.stringify(startJobRunCommandResponse)}`);
+
+        event.dataAsset.lineage.dataProfile = this.constructLineage(event, startJobRunCommandResponse.RunId);
+
+        const openLineageEvent = new EventBridgeEventBuilder()
+            .setEventBusName(this.hubEventBusName)
+            .setSource(DATA_LINEAGE_SPOKE_EVENT_SOURCE)
+            .setDetailType(DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT)
+            .setDetail(event.dataAsset.lineage.dataProfile);
+
+        await this.eventPublisher.publish(openLineageEvent);
+
+        this.log.info(`ProfileJobTask > process > profileJobTaskStartEvent: ${JSON.stringify(event.dataAsset.lineage.dataProfile)}`);
+
+        await this.s3Utils.putTaskData(TaskType.DataProfileTask, id, event);
 
         this.log.info(`ProfileJobTask > process > exit:`);
-
     }
 
     private async createProfilingJob(event: DataAssetTask): Promise<CreateProfileJobCommandInput> {
@@ -49,11 +68,7 @@ export class ProfileJobTask {
         // Use assetId if it exists else no asset exists so use the id
         const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.id
 
-        const jobName = `${asset.workflow.name}-${id}-dataProfile`;
-
-        // Create Lineage event
-        const lineageRunId = ulid().toLowerCase();
-        // TODO @Willsia Construct the Lineage start event using the lineageRunId
+        const jobName = `df-${id}-dataProfile`;
 
         // Create default profile job
         const command: CreateProfileJobCommandInput = {
@@ -69,16 +84,54 @@ export class ProfileJobTask {
                 assetName: event.dataAsset.catalog.assetName,
                 assetId: event.dataAsset.catalog?.assetId,
                 id: event.dataAsset.id,
-                LineageRunId: lineageRunId,
-                executionArn: event.execution.executionArn
+                executionId: event.execution.executionId
             }
         }
 
         await this.s3Utils.putTaskData(TaskType.DataProfileTask, id, event);
-        // TODO Construct the Lineage COMPLETE event using the lineageRunId
+
         this.log.info(`ProfileJobTask > createProfilingJob > command:${JSON.stringify(command)}`);
 
         return command;
+    }
+
+    private constructLineage(dataAssetTask: DataAssetTask, runId: string): Partial<RunEvent> {
+        const {execution, workflow, catalog} = dataAssetTask.dataAsset;
+
+        const builder = new OpenLineageBuilder();
+
+        const customInput: CustomDatasetInput = {
+            type: 'Custom',
+            name: workflow.dataset.name,
+            dataSource: workflow?.dataset?.dataSource,
+            storage: {
+                fileFormat: workflow?.dataset?.format,
+                storageLayer: getConnectionType(workflow)
+            },
+            producer: execution.hubStateMachineArn,
+        };
+
+        const res = builder
+            .setContext(catalog.domainId, catalog.domainName, execution.hubExecutionId)
+            .setJob(
+                {
+                    jobName: TaskType.DataProfileTask,
+                    assetName: catalog.assetName
+                })
+            .setStartJob(
+                {
+                    executionId: runId,
+                    startTime: new Date().toISOString(),
+                    parent: {
+                        name: TaskType.Root,
+                        assetName: catalog.assetName,
+                        producer: execution.hubStateMachineArn,
+                        runId: execution.hubExecutionId,
+                    }
+                })
+            .setDatasetInput(customInput);
+
+        return res.build()
 
     }
 

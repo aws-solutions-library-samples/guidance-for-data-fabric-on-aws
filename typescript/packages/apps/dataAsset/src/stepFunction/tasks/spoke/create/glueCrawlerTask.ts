@@ -77,7 +77,7 @@ export class GlueCrawlerTask {
                 assetId: event.dataAsset.catalog.assetId,
                 id: event.dataAsset.id,
                 LineageRunId: lineageRunId,
-                executionArn: event.execution.executionArn
+                executionArn: event.execution.executionId
             }
         }
 

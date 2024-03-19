@@ -1,16 +1,19 @@
 import type { BaseLogger } from 'pino';
 import { CreateDataQualityRulesetCommand, GlueClient, StartDataQualityRulesetEvaluationRunCommand, UpdateDataQualityRulesetCommand } from '@aws-sdk/client-glue';
-import { OpenLineageBuilder, RunEvent } from "@df/events";
+import { CustomDatasetInput, DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT, DATA_LINEAGE_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder, EventPublisher, OpenLineageBuilder, RunEvent } from "@df/events";
 import type { S3Utils } from "../../../../common/s3Utils.js";
 import type { DataAssetTask } from '../../models.js';
 import { TaskType } from "../../models.js";
+import { getConnectionType } from "../../../../common/utils.js";
 
 export class DataQualityProfileJobTask {
 
     constructor(private readonly log: BaseLogger,
                 private readonly glueClient: GlueClient,
                 private readonly GlueDbName: string,
-                private readonly s3Utils: S3Utils) {
+                private readonly s3Utils: S3Utils,
+                private readonly hubEventBusName:string,
+                private readonly eventPublisher: EventPublisher) {
     }
 
     public async process(event: DataAssetTask): Promise<any> {
@@ -18,7 +21,7 @@ export class DataQualityProfileJobTask {
 
         const asset = event.dataAsset;
         const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.id
-        const jobName = `${asset.workflow.name}-${id}-dataQualityProfile`;
+        const jobName = `df-createDataQualityProfile-${id}`;
 
         const qualityRulesetCommandPayload = {
             Name: jobName,
@@ -36,6 +39,7 @@ export class DataQualityProfileJobTask {
                     id: event.dataAsset.id,
                 }
             }))
+
         } catch (e) {
             if (e.name === 'InvalidInputException' && e.message.includes('A resource with the same resourceName but a different internalId already exists')) {
                 this.log.debug(`DataQualityProfileJobTask > process > ${e.message}`);
@@ -60,53 +64,60 @@ export class DataQualityProfileJobTask {
             Role: asset.workflow.roleArn
         }))
 
-        const taskName = TaskType.DataQualityProfileTask;
-        if (!event.dataAsset.lineage?.[taskName]) {
-            event.dataAsset.lineage[taskName] = {}
-        }
-        event.dataAsset.lineage[taskName] = this.constructDataLineage(event, startDataQualityRulesetEvaluationResponse.RunId);
+        event.dataAsset.lineage.dataQualityProfile = this.constructDataLineage(event, startDataQualityRulesetEvaluationResponse.RunId, jobName);
 
-        await this.s3Utils.putTaskData(taskName, id, event);
+        const openLineageEvent = new EventBridgeEventBuilder()
+            .setEventBusName(this.hubEventBusName)
+            .setSource(DATA_LINEAGE_SPOKE_EVENT_SOURCE)
+            .setDetailType(DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT)
+            .setDetail(event.dataAsset.lineage.dataQualityProfile);
+
+        await this.eventPublisher.publish(openLineageEvent);
+
+        this.log.info(`DataQualityProfileJobTask > process > dataQualityProfileTaskStartEvent: ${JSON.stringify(event.dataAsset.lineage.dataQualityProfile)}`);
+
+        await this.s3Utils.putTaskData(TaskType.DataQualityProfileTask, id, event);
+
         this.log.info(`DataQualityProfileJobTask > process > exit:`);
     }
 
-    private constructDataLineage(event: DataAssetTask, runId: string): Partial<RunEvent> {
+    private constructDataLineage(event: DataAssetTask, runId: string, rulesetName: string): Partial<RunEvent> {
         this.log.info(`DataQualityProfileJobTask > constructDataLineage > in> event: ${event}, runId: ${runId}`);
 
         const {catalog, workflow, execution} = event?.dataAsset;
 
         const openlineageBuilder = new OpenLineageBuilder();
+
+        const customInput: CustomDatasetInput = {
+            type: 'Custom',
+            name: workflow.dataset.name,
+            dataSource: workflow?.dataset?.dataSource,
+            storage: {
+                fileFormat: event.dataAsset.workflow?.dataset?.format,
+                storageLayer: getConnectionType(event.dataAsset.workflow)
+            },
+            producer: event.dataAsset.execution.hubStateMachineArn,
+        };
+
         openlineageBuilder
-            .setContext(catalog.domainId, catalog.domainName, execution.hubExecutionArn)
+            .setContext(catalog.domainId, catalog.domainName, rulesetName)
             .setJob(
                 {
+                    jobName: TaskType.DataQualityProfileTask,
                     assetName: catalog.assetName,
-                    jobName: `df_quality_profile_${runId}`
                 })
             .setStartJob(
                 {
                     executionId: runId,
                     startTime: new Date().toISOString(),
-                    // TODO: where can I get the job name and runId of the parent
                     parent: {
-                        name: workflow.name,
-                        runId: execution.hubExecutionArn
+                        name: TaskType.Root,
+                        assetName: catalog.assetName,
+                        producer: execution.hubStateMachineArn,
+                        runId: execution.hubExecutionId,
                     }
                 })
-            .setDatasetInput(
-                {
-                    dataSource: {
-                        url: 'TODO: who should provide the url for the data source'
-                    },
-                    name: workflow.dataset.name,
-                    producer: 'TODO: what value should the producer be',
-                    storage: {
-                        storageLayer: workflow.dataset.format,
-                        fileFormat: workflow.dataset.format
-                    },
-                    type: 'Custom',
-                    version: "TODO is version optional?"
-                });
+            .setDatasetInput(customInput);
 
         return openlineageBuilder.build();
     }

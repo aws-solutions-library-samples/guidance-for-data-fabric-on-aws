@@ -1,5 +1,6 @@
 import type { ACCESS_CONTROL_HUB_EVENT_SOURCE } from "../hub/models.js";
 import { DATA_LINEAGE_SPOKE_EVENT_SOURCE } from "../spoke/models.js";
+import { DATA_LINEAGE_HUB_EVENT_SOURCE } from "../hub/models.js";
 
 export type EventSource = typeof ACCESS_CONTROL_HUB_EVENT_SOURCE;
 
@@ -610,7 +611,9 @@ export interface lineageIngestionEvent {
     Detail: RunEvent,
 };
 
-export const DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT = `DF>${DATA_LINEAGE_SPOKE_EVENT_SOURCE}>ingestion>request`;
+export const DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT = `DF>${DATA_LINEAGE_SPOKE_EVENT_SOURCE}>ingestion>request`;
+
+export const DATA_LINEAGE_DIRECT_HUB_INGESTION_REQUEST_EVENT = `DF>${DATA_LINEAGE_HUB_EVENT_SOURCE}>ingestion>request`;
 
 export type { lineageIngestionEvent as LineageIngestionEvent };
 
