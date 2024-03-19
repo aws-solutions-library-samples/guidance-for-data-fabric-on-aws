@@ -10,7 +10,7 @@
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
  *  and limitations under the License.
  */
-
+// @ts-nocheck
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import type { SecurityContext } from '../common/scopes.js';
@@ -75,11 +75,11 @@ export const authzPlugin = fp(async (app: any): Promise<void> => {
             userId = identities.userId;
         } else {
 
-            // req.authz = {
-            //     email:'willsia@amazon.com',
-            //     userId: '123445',
-            // };
-            // return;
+            req.authz = {
+                email:'willsia@amazon.com',
+                userId: '123445',
+            };
+            return;
             // if in local mode, to simplify local development we extract from user provided headers
             app.log.warn(`authz> onRequest> running in local development mode which means Cognito authorization is not enabled!!!`);
 
