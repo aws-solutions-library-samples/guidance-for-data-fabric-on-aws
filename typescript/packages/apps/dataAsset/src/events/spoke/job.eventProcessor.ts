@@ -54,8 +54,8 @@ export class JobEventProcessor {
                 outputPath: this.s3Utils.getProfilingJobOutputPath(id, taskInput.dataAsset.catalog.domainId, taskInput.dataAsset.catalog.projectId),
             }
 
-            const location = this.s3Utils.getProfilingJobOutputLocation(id, taskInput.dataAsset.catalog.domainId, taskInput.dataAsset.catalog.projectId)
-            const response = await this.s3Client.send(new GetObjectCommand(location))
+            const outputLocation = run.Outputs[0].Location;
+            const response = await this.s3Client.send(new GetObjectCommand({Key: outputLocation.Key, Bucket: outputLocation.Bucket}))
             const profilingResult: ProfilingResult = JSON.parse(await response.Body.transformToString());
             const profilingJobArn = `arn:aws:databrew:${event.region}:${event.account}:job/${event.detail.jobName}`
 
