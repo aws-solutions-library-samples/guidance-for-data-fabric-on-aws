@@ -67,7 +67,7 @@ export class DataQualityProfileEventProcessor {
             }
         }
 
-        const dataQualityProfileLineageEvent = dataAssetTask.dataAsset?.lineage?.[TaskType.DataQualityProfileTask];
+        const dataQualityProfileLineageEvent = dataAssetTask.dataAsset?.lineage?.dataQualityProfile;
         if (!dataQualityProfileLineageEvent) {
             throw new Error('No start lineage event for data quality.')
         }
