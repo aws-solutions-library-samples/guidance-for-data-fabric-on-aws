@@ -350,7 +350,9 @@ const registerContainer = (app?: FastifyInstance) => {
                     container.dataBrewClient,
                     container.stepFunctionClient,
                     container.spokeS3Utils,
-                    container.s3Client
+                    container.s3Client,
+                    hubEventBusName,
+                    container.hubEventPublisher
                 ),
             {
                 ...commonInjectionOptions
@@ -376,7 +378,9 @@ const registerContainer = (app?: FastifyInstance) => {
                     app.log,
                     container.stepFunctionClient,
                     container.spokeS3Utils,
-                    container.glueClient
+                    container.glueClient,
+                    hubEventBusName,
+                    container.hubEventPublisher
                 ),
             {
                 ...commonInjectionOptions
@@ -457,7 +461,8 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.spokeS3Utils), {
+        profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.spokeS3Utils,hubEventBusName,
+            container.hubEventPublisher), {
             ...commonInjectionOptions
         }),
 
@@ -469,7 +474,8 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.glueClient, GlueDatabaseName, container.spokeS3Utils), {
+        dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.glueClient, GlueDatabaseName, container.spokeS3Utils,hubEventBusName,
+            container.hubEventPublisher), {
             ...commonInjectionOptions
         }),
 

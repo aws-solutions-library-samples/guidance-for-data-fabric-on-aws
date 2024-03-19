@@ -1,26 +1,26 @@
-import { dfEventBusArn, dfSpokeEventBusArn, getLambdaArchitecture, OrganizationUnitPath, dfSpokeEventBusName } from '@df/cdk-common';
+import { dfEventBusArn, dfSpokeEventBusArn, dfSpokeEventBusName, getLambdaArchitecture, OrganizationUnitPath } from '@df/cdk-common';
 import { CfnEventBusPolicy, CfnRule, EventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { RemovalPolicy, Stack, Duration } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Construct } from 'constructs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput, Parallel, Succeed } from 'aws-cdk-lib/aws-stepfunctions';
+import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, Parallel, StateMachine, Succeed, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
 import {
     DATA_ASSET_HUB_CREATE_REQUEST_EVENT,
-    DATA_ASSET_SPOKE_EVENT_SOURCE,
     DATA_ASSET_HUB_EVENT_SOURCE,
-    DATA_BREW_JOB_STATE_CHANGE,
-    GLUE_CRAWLER_STATE_CHANGE,
     DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT,
-    DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE
+    DATA_ASSET_SPOKE_EVENT_SOURCE,
+    DATA_BREW_JOB_STATE_CHANGE,
+    DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE,
+    GLUE_CRAWLER_STATE_CHANGE
 } from '@df/events';
-import { LambdaFunction, SfnStateMachine, EventBus as EventBusTarget } from 'aws-cdk-lib/aws-events-targets';
+import { EventBus as EventBusTarget, LambdaFunction, SfnStateMachine } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Database } from '@aws-cdk/aws-glue-alpha';
@@ -51,7 +51,7 @@ export class DataAssetSpoke extends Construct {
         const spokeEventBus = EventBus.fromEventBusArn(this, 'SpokeEventBus', dfSpokeEventBusArn(accountId, region));
         const defaultEventBus = EventBus.fromEventBusName(this, 'DefaultEventBus', 'default');
         const bucket = Bucket.fromBucketName(this, 'jobsOutputBucket', props.bucketName);
-        const glueDatabase = Database.fromDatabaseArn(this, 'glueDatabase',props.glueDatabaseArn)
+        const glueDatabase = Database.fromDatabaseArn(this, 'glueDatabase', props.glueDatabaseArn)
 
 
         /* Spoke Data Asset State Machine
@@ -346,6 +346,7 @@ export class DataAssetSpoke extends Construct {
             logRetention: RetentionDays.ONE_WEEK,
             timeout: Duration.minutes(5),
             environment: {
+                HUB_EVENT_BUS_NAME: dfEventBusArn(props.hubAccountId, region),
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
                 JOBS_BUCKET_NAME: props.bucketName,
                 JOBS_BUCKET_PREFIX: 'jobs'
@@ -363,6 +364,7 @@ export class DataAssetSpoke extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
+        hubEventBus.grantPutEventsTo(profileJobLambda);
         profileJobLambda.addToRolePolicy(StateMachinePolicy);
         profileJobLambda.addToRolePolicy(DataBrewPolicy);
         profileJobLambda.addToRolePolicy(SSMPolicy);
@@ -380,6 +382,7 @@ export class DataAssetSpoke extends Construct {
             logRetention: RetentionDays.ONE_WEEK,
             timeout: Duration.minutes(5),
             environment: {
+                HUB_EVENT_BUS_NAME: dfEventBusArn(props.hubAccountId, region),
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
                 JOBS_BUCKET_NAME: props.bucketName,
                 JOBS_BUCKET_PREFIX: 'jobs',
@@ -398,6 +401,7 @@ export class DataAssetSpoke extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
+        hubEventBus.grantPutEventsTo(dqProfileJobLambda);
         dqProfileJobLambda.addToRolePolicy(StateMachinePolicy);
         dqProfileJobLambda.addToRolePolicy(DataBrewPolicy);
         dqProfileJobLambda.addToRolePolicy(CreateDataQualityPolicy);
@@ -635,7 +639,7 @@ export class DataAssetSpoke extends Construct {
             ],
             true);
 
-        const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset`, removalPolicy: RemovalPolicy.DESTROY });
+        const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', {logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset`, removalPolicy: RemovalPolicy.DESTROY});
 
         const profilingTasks = new Parallel(this, 'ProfilingTasks')
             .branch(
@@ -660,7 +664,7 @@ export class DataAssetSpoke extends Construct {
                         )
                 )
             ),
-            logs: { destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
+            logs: {destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true},
             stateMachineName: `${namePrefix}-data-asset`,
             tracingEnabled: true
         });
@@ -715,7 +719,8 @@ export class DataAssetSpoke extends Construct {
             environment: {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
                 JOBS_BUCKET_NAME: props.bucketName,
-                JOBS_BUCKET_PREFIX: 'jobs'
+                JOBS_BUCKET_PREFIX: 'jobs',
+                HUB_EVENT_BUS_NAME: dfEventBusArn(props.hubAccountId, region)
             },
             bundling: {
                 minify: true,
@@ -730,6 +735,7 @@ export class DataAssetSpoke extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
+        hubEventBus.grantPutEventsTo(eventProcessorLambda);
         spokeEventBus.grantPutEventsTo(eventProcessorLambda);
         bucket.grantRead(eventProcessorLambda);
         bucket.grantPut(eventProcessorLambda);
@@ -759,7 +765,7 @@ export class DataAssetSpoke extends Construct {
         const glueCrawlerRule = new Rule(this, 'glueCrawlerRule', {
             eventBus: defaultEventBus,
             eventPattern: {
-                source: ['aws.glue','aws.glue-dataquality'],
+                source: ['aws.glue', 'aws.glue-dataquality'],
                 detailType: [
                     GLUE_CRAWLER_STATE_CHANGE,
                     DATA_QUALITY_EVALUATION_RESULTS_AVAILABLE
@@ -774,7 +780,6 @@ export class DataAssetSpoke extends Construct {
                 retryAttempts: 2
             })
         );
-
 
 
         // Rule for Create Flow completion events
@@ -888,16 +893,16 @@ export class DataAssetSpoke extends Construct {
             true);
 
         NagSuppressions.addResourceSuppressions([
-            createStartLambda,
-            createConnectionLambda,
-            createDataSetLambda,
-            createProfileDataSetLambda,
-            profileJobLambda,
-            dqProfileJobLambda,
-            recipeJobLambda,
-            glueCrawlerLambda,
-            spokeLineageLambda
-        ],
+                createStartLambda,
+                createConnectionLambda,
+                createDataSetLambda,
+                createProfileDataSetLambda,
+                profileJobLambda,
+                dqProfileJobLambda,
+                recipeJobLambda,
+                glueCrawlerLambda,
+                spokeLineageLambda
+            ],
             [
                 {
                     id: 'AwsSolutions-IAM4',

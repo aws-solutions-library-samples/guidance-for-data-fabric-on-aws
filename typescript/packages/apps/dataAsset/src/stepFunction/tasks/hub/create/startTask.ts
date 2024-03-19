@@ -1,7 +1,17 @@
 import type { BaseLogger } from 'pino';
 import type { DataAssetTask } from '../../models.js';
 import { TaskType } from "../../models.js";
-import { CustomDatasetInput, DATA_ASSET_HUB_CREATE_REQUEST_EVENT, DATA_ASSET_HUB_EVENT_SOURCE, EventBridgeEventBuilder, EventPublisher, OpenLineageBuilder, RunEvent } from '@df/events';
+import {
+    CustomDatasetInput,
+    DATA_ASSET_HUB_CREATE_REQUEST_EVENT,
+    DATA_ASSET_HUB_EVENT_SOURCE,
+    DATA_LINEAGE_DIRECT_HUB_INGESTION_REQUEST_EVENT,
+    DATA_LINEAGE_HUB_EVENT_SOURCE,
+    EventBridgeEventBuilder,
+    EventPublisher,
+    OpenLineageBuilder,
+    RunEvent
+} from '@df/events';
 import { getConnectionType } from "../../../../common/utils.js";
 
 export class StartTask {
@@ -23,18 +33,25 @@ export class StartTask {
             hubTaskToken: event.execution.taskToken,
         }
 
-        const lineageEvent = this.constructLineage(event);
+        const lineageRunStartEventPayload = this.constructLineage(event);
 
-        this.log.info(`StartTask > process > rootStartEvent: ${JSON.stringify(lineageEvent)}`);
-
-        // Send Job Start event
-        const publishEvent = new EventBridgeEventBuilder()
+        const openLineageEvent = new EventBridgeEventBuilder()
             .setEventBusName(this.eventBusName)
             .setSource(DATA_ASSET_HUB_EVENT_SOURCE)
             .setDetailType(DATA_ASSET_HUB_CREATE_REQUEST_EVENT)
             .setDetail(event);
 
-        await this.eventPublisher.publish(publishEvent)
+        // Send Job Start event
+        const publishEvent = new EventBridgeEventBuilder()
+            .setEventBusName(this.eventBusName)
+            .setSource(DATA_LINEAGE_HUB_EVENT_SOURCE)
+            .setDetailType(DATA_LINEAGE_DIRECT_HUB_INGESTION_REQUEST_EVENT)
+            .setDetail(lineageRunStartEventPayload);
+
+        await Promise.all([
+            this.eventPublisher.publish(publishEvent),
+            this.eventPublisher.publish(openLineageEvent)
+        ])
 
         this.log.info(`StartTask > process > exit`);
     }

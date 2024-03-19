@@ -1,7 +1,7 @@
 import type { BaseLogger } from 'pino';
 import type { DataAssetTask } from '../../models.js';
 import { SendTaskSuccessCommand, SFNClient } from '@aws-sdk/client-sfn';
-import { DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT, DATA_LINEAGE_HUB_EVENT_SOURCE, EventBridgeEventBuilder, type EventPublisher, OpenLineageBuilder, RunEvent } from '@df/events';
+import { DATA_LINEAGE_DIRECT_HUB_INGESTION_REQUEST_EVENT, DATA_LINEAGE_HUB_EVENT_SOURCE, EventBridgeEventBuilder, type EventPublisher, OpenLineageBuilder, RunEvent } from '@df/events';
 
 export class LineageTask {
 
@@ -17,18 +17,15 @@ export class LineageTask {
         this.log.info(`LineageTask > process > in > event: ${JSON.stringify(event)}`);
 
         // Construct the asset lineage for all created assets
-        const rootEventComplete = this.constructLineage(event.dataAsset.lineage.root, event.dataAsset.catalog.assetName)
+        const lineageRunCompleteEventPayload = this.constructLineage(event.dataAsset.lineage.root, event.dataAsset.catalog.assetName)
 
-        this.log.info(`LineageTask > process > rootCompleteEvent: ${JSON.stringify(rootEventComplete)}`);
-
-        // Send lineage event for each asset Placeholder
-        const publishEvent = new EventBridgeEventBuilder()
+        const openLineageEvent = new EventBridgeEventBuilder()
             .setEventBusName(this.eventBusName)
             .setSource(DATA_LINEAGE_HUB_EVENT_SOURCE)
-            .setDetailType(DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT)
-            .setDetail(event); // 'event' needs to be replaced with proper lineage
+            .setDetailType(DATA_LINEAGE_DIRECT_HUB_INGESTION_REQUEST_EVENT)
+            .setDetail(lineageRunCompleteEventPayload);
 
-        await this.eventPublisher.publish(publishEvent)
+        await this.eventPublisher.publish(openLineageEvent);
 
         this.log.info(`LineageTask > process > exit`);
 

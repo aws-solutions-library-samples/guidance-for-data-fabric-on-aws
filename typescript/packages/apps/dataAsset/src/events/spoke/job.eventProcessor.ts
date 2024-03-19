@@ -1,4 +1,4 @@
-import { type JobStateChangeEvent, OpenLineageBuilder, ProfilingResult, type RunEvent } from '@df/events';
+import {  DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT, EventBridgeEventBuilder, EventPublisher, type JobStateChangeEvent, OpenLineageBuilder, ProfilingResult, type RunEvent, DATA_LINEAGE_SPOKE_EVENT_SOURCE } from '@df/events';
 import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 import { DataBrewClient, DescribeJobCommand, DescribeJobRunCommand, JobType } from '@aws-sdk/client-databrew';
@@ -14,7 +14,9 @@ export class JobEventProcessor {
         private dataBrewClient: DataBrewClient,
         private sfnClient: SFNClient,
         private s3Utils: S3Utils,
-        private s3Client: S3Client
+        private s3Client: S3Client,
+        private hubEventBusName: string,
+        private eventPublisher: EventPublisher
     ) {
     }
 
@@ -61,12 +63,18 @@ export class JobEventProcessor {
 
             taskInput.dataAsset.lineage.dataProfile = this.constructLineage(taskInput.dataAsset.lineage.dataProfile, profilingJobArn, profilingResult);
 
-            this.log.info(`JobEventProcessor > processJobCompletionEvent > jobProfileTaskCompleteEvent: ${JSON.stringify(taskInput.dataAsset.lineage.dataProfile)}`);
+            const openLineageEvent = new EventBridgeEventBuilder()
+                .setEventBusName(this.hubEventBusName)
+                .setSource(DATA_LINEAGE_SPOKE_EVENT_SOURCE)
+                .setDetailType(DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT)
+                .setDetail(taskInput.dataAsset.lineage.dataProfile);
 
+            await this.eventPublisher.publish(openLineageEvent);
+
+            this.log.info(`JobEventProcessor > processJobCompletionEvent > jobProfileTaskCompleteEvent: ${JSON.stringify(taskInput.dataAsset.lineage.dataProfile)}`);
 
             await this.s3Utils.putTaskData(TaskType.DataProfileTask, id, taskInput);
         }
-
 
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken}));
 

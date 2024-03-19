@@ -8,9 +8,9 @@ const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
 export const handler: Handler = async (event, _context, _callback) => {
-	app.log.debug(`RunDataSourceRunHandler > handler > event: ${JSON.stringify(event)}`);
-	const task = di.resolve<RunDataSourceTask>('runDataSource');
-	const output = await task.process(event);
-	app.log.debug(`RunDataSourceRunHandler > handler > exit:`);
-	return output;
+    app.log.debug(`RunDataSourceRunHandler > handler > event: ${JSON.stringify(event)}`);
+    const task = di.resolve<RunDataSourceTask>('runDataSourceTask');
+    const output = await task.process(event);
+    app.log.debug(`RunDataSourceRunHandler > handler > exit:`);
+    return output;
 };

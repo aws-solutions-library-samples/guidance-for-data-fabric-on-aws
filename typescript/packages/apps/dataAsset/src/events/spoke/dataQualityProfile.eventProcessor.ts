@@ -1,5 +1,5 @@
 import type { DataQualityResultsAvailableEvent, RuleResult, RunEvent } from "@df/events";
-import { OpenLineageBuilder } from "@df/events";
+import {  DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT, DATA_LINEAGE_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder, EventPublisher, OpenLineageBuilder } from "@df/events";
 import type { BaseLogger } from "pino";
 import type { SFNClient } from "@aws-sdk/client-sfn";
 import { SendTaskSuccessCommand } from "@aws-sdk/client-sfn";
@@ -13,7 +13,9 @@ export class DataQualityProfileEventProcessor {
     constructor(private readonly log: BaseLogger,
                 private readonly sfnClient: SFNClient,
                 private readonly s3Utils: S3Utils,
-                private readonly glueClient: GlueClient) {
+                private readonly glueClient: GlueClient,
+                private readonly hubEventBusName:string,
+                private readonly eventPublisher: EventPublisher) {
     }
 
     public async dataQualityProfileCompletionEvent(event: DataQualityResultsAvailableEvent) {
@@ -72,6 +74,14 @@ export class DataQualityProfileEventProcessor {
             throw new Error('No start lineage event for data quality.')
         }
         dataAssetTask.dataAsset.lineage.dataQualityProfile = this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, rulesetArn);
+
+        const openLineageEvent = new EventBridgeEventBuilder()
+            .setEventBusName(this.hubEventBusName)
+            .setSource(DATA_LINEAGE_SPOKE_EVENT_SOURCE)
+            .setDetailType(DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT)
+            .setDetail(dataAssetTask.dataAsset.lineage.dataQualityProfile);
+
+        await this.eventPublisher.publish(openLineageEvent);
 
         this.log.info(`DataQualityProfileEventProcessor > dataQualityProfileCompletionEvent > dataQualityProfileTaskCompleteEvent: ${JSON.stringify(dataAssetTask.dataAsset.lineage.dataQualityProfile)}`);
 
