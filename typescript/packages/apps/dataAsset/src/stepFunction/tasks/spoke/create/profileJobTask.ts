@@ -44,7 +44,7 @@ export class ProfileJobTask {
 
         event.dataAsset.lineage.dataProfile = this.constructLineage(event, startJobRunCommandResponse);
 
-        this.log.info(`ProfileJobTask > process > profileJobTaskStartEvent: ${event.dataAsset.lineage.dataProfile}`);
+        this.log.info(`ProfileJobTask > process > profileJobTaskStartEvent: ${JSON.stringify(event.dataAsset.lineage.dataProfile)}`);
 
         await this.s3Utils.putTaskData(TaskType.DataProfileTask, id, event);
 

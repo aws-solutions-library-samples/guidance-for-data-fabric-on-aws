@@ -25,7 +25,7 @@ export class StartTask {
 
         const lineageEvent = this.constructLineage(event);
 
-        this.log.info(`StartTask > process > rootStartEvent: ${lineageEvent}`);
+        this.log.info(`StartTask > process > rootStartEvent: ${JSON.stringify(lineageEvent)}`);
 
         // Send Job Start event
         const publishEvent = new EventBridgeEventBuilder()
