@@ -47,7 +47,7 @@ export class LineageTask {
 		if ( profile.dataAsset.workflow?.transforms) {
 			// Remove the recipe job
 			await this.dataBrewClient.send( new DeleteJobCommand({
-				Name:`df-${id}`
+				Name:`${profile.dataAsset.workflow.name}-${id}-transform`
 			}));
 			// Remove the recipe data set
 			await this.dataBrewClient.send( new DeleteDatasetCommand({
