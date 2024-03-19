@@ -109,6 +109,7 @@ export class DataAssetSpoke extends Construct {
                 'states:SendTaskSuccess',
                 'databrew:CreateDataset',
                 'databrew:DescribeDataset',
+                'databrew:DeleteDataset',
                 'databrew:TagResource',
                 'databrew:CreateProfileJob',
                 'databrew:CreateRecipe',
@@ -469,6 +470,7 @@ export class DataAssetSpoke extends Construct {
         });
 
         spokeLineageLambda.addToRolePolicy(StateMachinePolicy);
+        spokeLineageLambda.addToRolePolicy(DataBrewPolicy);
         spokeEventBus.grantPutEventsTo(spokeLineageLambda);
         bucket.grantPut(spokeLineageLambda);
         bucket.grantRead(spokeLineageLambda);
