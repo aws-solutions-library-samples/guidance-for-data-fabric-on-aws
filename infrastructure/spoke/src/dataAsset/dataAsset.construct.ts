@@ -492,7 +492,7 @@ export class DataAssetSpoke extends Construct {
             lambdaFunction: createConnectionLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
-                'dataAssetEvent.$': '$',
+                'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
                     'executionId.$': '$$.Execution.Id',
