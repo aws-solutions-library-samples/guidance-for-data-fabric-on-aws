@@ -58,7 +58,7 @@ export class RecipeJobTask {
                             assetId: event.dataAsset.catalog.assetId,
                             id: event.dataAsset.id,
                             LineageRunId: lineageRunId,
-                            executionArn: event.execution.executionArn,
+                            executionId: event.execution.executionId,
                         },
                     })
                 );
@@ -78,8 +78,8 @@ export class RecipeJobTask {
                                 assetName: event.dataAsset.catalog.assetName,
                                 assetId: event.dataAsset.catalog.assetId,
                                 id: event.dataAsset.id,
-                                LineageRunId: lineageRunId,
-                                executionArn: event.execution.executionArn,
+                                lineageRunId: lineageRunId,
+                                executionId: event.execution.executionId,
                             },
                         })
                     );
@@ -136,8 +136,8 @@ export class RecipeJobTask {
                     assetName: event.dataAsset.catalog.assetName,
                     assetId: event.dataAsset.catalog.assetId,
                     id: event.dataAsset.id,
-                    LineageRunId: lineageRunId,
-                    executionArn: event.execution.executionArn,
+                    lineageRunId: lineageRunId,
+                    executionId: event.execution.executionId,
                 },
             })
         );

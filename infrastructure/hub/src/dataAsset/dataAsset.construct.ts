@@ -152,7 +152,8 @@ export class DataAsset extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -204,7 +205,8 @@ export class DataAsset extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -245,7 +247,8 @@ export class DataAsset extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),

@@ -13,12 +13,18 @@ import type {
 } from "./model.js";
 
 export interface QualityResultInput {
-    runId: string,
+    /**
+     * This will be the run id of Data Quality Job
+     */
+    producer: string,
     result: QualityResult,
 }
 
 export interface ProfilingResultInput {
-    runId: string,
+    /**
+     * This will be the run id of Data Brew Profile Job
+     */
+    producer: string
     result: ProfilingResult,
 }
 
@@ -110,7 +116,9 @@ export interface StartJobInput {
      */
     parent?: {
         name: string,
+        assetName: string,
         runId: string
+        producer: string
     };
 }
 
@@ -140,18 +148,13 @@ export type DatasetOutput = {
     name: string;
     version?: string;
     /**
-     * Storage layer provider with allowed values: s3, glue, etc.
+     * Storage and FileFormat description can be found in here, https://openlineage.io/docs/spec/facets/dataset-facets/storage.
      */
-    storageLayer: string;
-    /**
-     * File format with allowed values: parquet, orc, avro, json, csv, text, xml.
-     */
-    fileFormat?: string;
+    storage?: Pick<StorageDatasetFacet, 'storageLayer' | 'fileFormat'>
     /**
      * File format with allowed values: parquet, orc, avro, json, csv, text, xml.
      */
     customTransformerMetadata?: Pick<ColumnLineageDatasetFacet, 'fields' | '_producer'>,
-
     usernames?: string[];
 }
 
@@ -162,11 +165,11 @@ export type CustomDatasetInput = {
     /**
      * Name and Url description can be found in here https://openlineage.io/docs/spec/facets/dataset-facets/data_source
      */
-    dataSource: Pick<DatasourceDatasetFacet, 'name' | 'url'>
+    dataSource?: Pick<DatasourceDatasetFacet, 'name' | 'url'>
     /**
      * Storage and FileFormat description can be found in here, https://openlineage.io/docs/spec/facets/dataset-facets/storage.
      */
-    storage: Pick<StorageDatasetFacet, 'storageLayer' | 'fileFormat'>
+    storage?: Pick<StorageDatasetFacet, 'storageLayer' | 'fileFormat'>
     /**
      * Version of the input dataset
      */
@@ -208,12 +211,12 @@ export class OpenLineageBuilder {
 
     public setContext(domainId: string, domainName: string, stateMachineArn: string): OpenLineageBuilder {
         this.stateMachineArn = stateMachineArn;
-        this.domainNamespace = `${domainName} - df.${domainId}`;
+        // Marquez API only accepts letters (a-z, A-Z), numbers (0-9), underscores (_), at (@), plus (+), dashes (-), colons (:), equals (=), semicolons (;), slashes (/) or dots (.) with a maximum length of 1024 characters for namespace.
+        this.domainNamespace = `df-${domainName.replace(' ', '_')}-${domainId}`;
         this.openLineageEvent = {
             producer: stateMachineArn,
             schemaURL: "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"
         };
-        // this.owners = usernames.map(u => ({"name": `user:${u}`}))
         return this;
     }
 
@@ -223,7 +226,6 @@ export class OpenLineageBuilder {
         }
         this.stateMachineArn = event.producer;
         this.domainNamespace = event.job.namespace;
-        // this.owners = event.inputs[0]?.facets?.ownership?.owners ?? [];
         this.openLineageEvent = event;
         return this;
     }
@@ -233,7 +235,7 @@ export class OpenLineageBuilder {
         const {result} = payload
 
         const dataQualityMetrics: DataQualityMetricsInputDatasetFacet = {
-            _producer: payload.runId,
+            _producer: payload.producer,
             _schemaURL: "https://openlineage.io/spec/facets/1-0-0/DataQualityMetricsInputDatasetFacet.json",
             rowCount: result.sampleSize,
             columnMetrics: {}
@@ -270,12 +272,10 @@ export class OpenLineageBuilder {
     }
 
     public setQualityResult(payload: QualityResultInput): OpenLineageBuilder {
-        const {result, runId} = payload
-        // TODO: Will there be more than one input and how can we differentiate them
+        const {result, producer} = payload
         const datasetInput = this.openLineageEvent.inputs[0];
-
         datasetInput.facets.dataQualityAssertions = {
-            _producer: runId,
+            _producer: producer,
             "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DataQualityAssertionsDatasetFacet.json",
             assertions: []
         }
@@ -290,10 +290,7 @@ export class OpenLineageBuilder {
     }
 
     public setJob(input: JobInput): OpenLineageBuilder {
-        const owners = [];
-        if (input?.usernames) {
-            owners.push(...input.usernames.map(u => ({"name": `user:${u}`})));
-        }
+
         this.openLineageEvent.job = {
             namespace: this.domainNamespace,
             name: `${input.jobName} - ${input.assetName}`,
@@ -307,7 +304,7 @@ export class OpenLineageBuilder {
                     "_producer": this.stateMachineArn,
                     "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipJobFacet.json",
                     "owners": [
-                        ...owners,
+                        ...this.convertUsernameToOwners(input.usernames),
                         {"name": "application:df.DataAssetModule"}
                     ]
                 }
@@ -332,14 +329,10 @@ export class OpenLineageBuilder {
     }
 
 
-    public setDatasetOutput(payload: DatasetOutput): OpenLineageBuilder {
-        const owners = [];
-        if (payload?.usernames) {
-            owners.push(...payload.usernames.map(u => ({"name": `user:${u}`})));
-        }
+    public setDatasetOutput(datasetOutput: DatasetOutput): OpenLineageBuilder {
         const output: OutputDataset = {
             namespace: this.domainNamespace,
-            name: payload.name,
+            name: datasetOutput.name,
             outputFacets: {},
             facets: {
                 "lifecycleStateChange": {
@@ -351,30 +344,36 @@ export class OpenLineageBuilder {
                     "_producer": this.stateMachineArn,
                     "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipDatasetFacet.json",
                     "owners": [
-                        ...owners,
+                        ...this.convertUsernameToOwners(datasetOutput.usernames),
                         {"name": "application:df.DataAssetModule"}
                     ]
-                },
-                "storage": {
-                    "_producer": this.stateMachineArn,
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/StorageDatasetFacet.json",
-                    fileFormat: payload.fileFormat,
-                    storageLayer: payload.storageLayer
-
-                },
-                "version": {
-                    "_producer": this.stateMachineArn,
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasetVersionDatasetFacet.json",
-                    datasetVersion: payload.version
                 }
             }
         }
 
-        if (payload.customTransformerMetadata) {
+        if (datasetOutput.storage) {
+            output.facets.storage = {
+                "_producer": this.stateMachineArn,
+                "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/StorageDatasetFacet.json",
+                fileFormat: datasetOutput.storage.fileFormat,
+                storageLayer: datasetOutput.storage.fileFormat
+
+            }
+        }
+
+        if (datasetOutput.version) {
+            output.facets.version = {
+                "_producer": this.stateMachineArn,
+                "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasetVersionDatasetFacet.json",
+                datasetVersion: datasetOutput.version
+            }
+        }
+
+        if (datasetOutput.customTransformerMetadata) {
             output.facets.columnLineage = {
-                "_producer": payload.customTransformerMetadata._producer,
+                "_producer": datasetOutput.customTransformerMetadata._producer,
                 "_schemaURL": "https://openlineage.io/spec/facets/1-0-1/ColumnLineageDatasetFacet.json",
-                fields: payload.customTransformerMetadata.fields
+                fields: datasetOutput.customTransformerMetadata.fields
             }
         }
 
@@ -395,29 +394,41 @@ export class OpenLineageBuilder {
                     namespace: this.domainNamespace,
                     name: (payload as CustomDatasetInput).name,
                     inputFacets: {},
-                    facets: {
-                        "dataSource": {
-                            ...customDatasetInput.dataSource,
-                            "_producer": customDatasetInput.producer,
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasourceDatasetFacet.json",
-                        },
-                        "ownership": {
-                            "owners": owners,
-                            "_producer": customDatasetInput.producer,
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipDatasetFacet.json",
-                        },
-                        "storage": {
-                            ...customDatasetInput.storage,
-                            "_producer": customDatasetInput.producer,
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/StorageDatasetFacet.json",
-                        },
-                        "version": {
-                            "_producer": customDatasetInput.producer,
-                            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasetVersionDatasetFacet.json",
-                            "datasetVersion": customDatasetInput.version
-                        }
+                    facets: {}
+                }
+
+                if (customDatasetInput.storage) {
+                    dataset.facets.storage = {
+                        ...customDatasetInput.storage,
+                        "_producer": customDatasetInput.producer,
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/StorageDatasetFacet.json",
                     }
                 }
+
+                if (customDatasetInput.version) {
+                    dataset.facets.version = {
+                        "_producer": customDatasetInput.producer,
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasetVersionDatasetFacet.json",
+                        "datasetVersion": customDatasetInput.version
+                    }
+                }
+
+                if (customDatasetInput.dataSource) {
+                    dataset.facets.dataSource = {
+                        ...customDatasetInput.dataSource,
+                        "_producer": customDatasetInput.producer,
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasourceDatasetFacet.json",
+                    }
+                }
+
+                if (customDatasetInput.usernames) {
+                    dataset.facets.ownership = {
+                        "owners": owners,
+                        "_producer": customDatasetInput.producer,
+                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipDatasetFacet.json",
+                    }
+                }
+
                 break;
             case "DataFabric":
                 dataset = {
@@ -446,11 +457,11 @@ export class OpenLineageBuilder {
                     "nominalStartTime": input.startTime
                 },
                 parent: input.parent ? {
-                    _producer: this.stateMachineArn,
+                    "_producer": input.parent.producer,
                     "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ParentRunFacet.json",
                     job:
                         {
-                            name: input.parent.name,
+                            name: `${input.parent.name}_${input.parent.assetName}`,
                             namespace: this.domainNamespace
                         },
                     run:
@@ -487,6 +498,12 @@ export class OpenLineageBuilder {
         }
 
         return this.openLineageEvent;
+    }
+
+    private convertUsernameToOwners(usernames?: string[]): { name: string }[] {
+        const owners = [];
+        owners.push(...usernames ?? [].map(u => ({"name": `user:${u}`})))
+        return owners;
     }
 
 }

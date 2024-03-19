@@ -1,7 +1,6 @@
 import type { BaseLogger } from 'pino';
 import type { DataAssetTask } from '../../models.js';
 import { CreateRecipeCommand, CreateRecipeJobCommand, type DataBrewClient, StartJobRunCommand } from '@aws-sdk/client-databrew';
-import { ulid } from 'ulid';
 
 export class TransformJobTask {
 
@@ -23,9 +22,6 @@ export class TransformJobTask {
 
         const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
 
-        // TODO @Willsia Construct the Lineage start event using the lineageRunId
-        const lineageRunId = ulid().toLowerCase();
-
         // TODO add if condition to check for recipeId s exists before creating
 
         // Create the recipe if none exist
@@ -40,8 +36,7 @@ export class TransformJobTask {
                 assetName: event.dataAsset.catalog.assetName,
                 assetId: event.dataAsset.catalog.assetId,
                 id: event.dataAsset.id,
-                LineageRunId: lineageRunId,
-                executionArn: event.execution.executionArn,
+                executionId: event.execution.executionId,
                 executionToken: event.execution.taskToken
             }
         }));
@@ -72,9 +67,7 @@ export class TransformJobTask {
                 projectId: event.dataAsset.catalog.projectId,
                 assetName: event.dataAsset.catalog.assetName,
                 assetId: event.dataAsset.catalog.assetId,
-                id: event.dataAsset.id,
-                LineageRunId: lineageRunId,
-                executionArn: event.execution.executionArn,
+                executionId: event.execution.executionId,
                 executionToken: event.execution.taskToken
             }
 
