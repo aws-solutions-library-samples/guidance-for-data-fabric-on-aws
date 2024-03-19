@@ -109,7 +109,33 @@ export interface createResponseEvent {
     detail: createResponseEventDetails,
 };
 
+export interface dataSourceRunStateChangeDetail {
+    version: number,
+    metadata: {
+        id: string,
+        version:number,
+        typeName:string,
+        domain:string,
+        awsAccountId:string
+    },
+    data: {
+        dataSourceId:string,
+        dataSourceRunType :string
+    }
+};
+
+export interface dataSourceRunStateChangeEvent {
+    id: string,
+    account: string,
+    region: string,
+    source: string,
+    'detail-type': string,
+    time: string,
+    detail: dataSourceRunStateChangeDetail,
+};
+
 export type { jobStateChangeEvent as JobStateChangeEvent };
 export type { crawlerStateChangeEvent as CrawlerStateChangeEvent };
 export type { createResponseEventDetails as CreateResponseEventDetails };
 export type { createResponseEvent as CreateResponseEvent };
+export type { dataSourceRunStateChangeEvent as DataSourceRunStateChangeEvent };

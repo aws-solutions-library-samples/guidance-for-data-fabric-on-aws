@@ -2,7 +2,7 @@ import type { Callback, Context, EventBridgeHandler } from 'aws-lambda';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from './app.light';
-import { CreateResponseEvent, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT,  DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED, DATA_ZONE_EVENT_SOURCE } from '@df/events';
+import { CreateResponseEvent, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT,  DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED, DATA_ZONE_EVENT_SOURCE, DataSourceRunStateChangeEvent } from '@df/events';
 import type { EventProcessor } from './events/hub/eventProcessor.js';
 import type { DataZoneEventProcessor } from './events/hub/datazone.eventProcessor';
 
@@ -22,7 +22,7 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 		await hubEventProcessor.processSpokeCompletionEvent(event as unknown as CreateResponseEvent);
 
 	} else if ([DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED].includes((event['detail-type'] as string)) && event['source'] === DATA_ZONE_EVENT_SOURCE) {
-		await dataZoneEventProcessor.dataSourceRunCompletionEvent(event as unknown as CreateResponseEvent);
+		await dataZoneEventProcessor.dataSourceRunCompletionEvent(event as unknown as DataSourceRunStateChangeEvent);
 
 	}else {
 		app.log.error(`EventBridgeLambda > handler > Unimplemented event: ${JSON.stringify(event)}`);
@@ -31,4 +31,4 @@ export const handler: EventBridgeHandler<string, EventDetails, void> = async (ev
 
 };
 
-type EventDetails =  CreateResponseEvent
+type EventDetails =  CreateResponseEvent | DataSourceRunStateChangeEvent

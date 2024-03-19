@@ -22,17 +22,18 @@ export class RunDataSourceTask {
 		const run = await this.dzClient.send(new StartDataSourceRunCommand({
 			dataSourceIdentifier: dataSourceId,
 			domainIdentifier: event.dataAsset.catalog.domainId,
-		}))
+		}));
+
 
 		event.dataAsset.execution['dataSourceRun'] = {
 			id: run.id,
-			startTime: run.startedAt.toDateString(),
 			status: run.status
 		}
+		
 
 		// We are not able to use tags with data zone resources so we will use the runId instead to store the data
-		this.s3Utils.putTaskData(TaskType.RunDataSourceTask, run.id, event);
-		this.log.info(`CreateStartTask > process > exit`);
+		await this.s3Utils.putTaskData(TaskType.RunDataSourceTask, run.id, event);
+		this.log.info(`RunDataSourceTask > process > exit`);
 
 	}
 
