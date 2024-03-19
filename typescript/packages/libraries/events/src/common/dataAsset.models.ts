@@ -69,13 +69,13 @@ export type DataAssetWorkflow = {
 };
 
 export type DataAssetExecution = {
-    hubExecutionArn: string ,
+    hubExecutionId: string ,
     hubTaskToken: string ,
-    spokeExecutionArn?: string,
+    spokeExecutionId?: string,
     id?: string,
     status?: string,
-    startTime?: string 
-    stopTime?: string 
+    startTime?: string
+    stopTime?: string
     message?:string;
 };
 
@@ -92,8 +92,8 @@ export type JobExecution = {
     id?:string,
     jobRunId?: string,
     jobRunStatus?: string,
-    jobStartTime?: string, 
-    jobStopTime?: string, 
+    jobStartTime?: string,
+    jobStopTime?: string,
     message?:string,
     profileLocation?: string,
     profileSignedUrl?: string

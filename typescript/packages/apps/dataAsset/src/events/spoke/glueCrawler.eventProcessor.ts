@@ -1,11 +1,9 @@
-import type { CrawlerStateChangeEvent, CustomDatasetInput, RunEvent } from '@df/events';
-import { OpenLineageBuilder } from '@df/events';
+import type { CrawlerStateChangeEvent } from '@df/events';
 import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 import { GetTagsCommand, GlueClient, ListCrawlsCommand } from '@aws-sdk/client-glue';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
 import { type DataAssetTask, TaskType } from '../../stepFunction/tasks/models.js';
-import { getConnectionType } from '../../common/utils.js';
 import type { S3Utils } from '../../common/s3Utils.js';
 
 export class GlueCrawlerEventProcessor {
@@ -47,7 +45,6 @@ export class GlueCrawlerEventProcessor {
             }
 
             const tableName = await this.getTableName(event.detail.crawlerName);
-            taskOutput.dataAsset.lineage[`${TaskType.GlueCrawlerTask}-${id}`] = this.constructLineage(id, taskOutput, event, tableName);
             // Update the tableName
             taskOutput.dataAsset.execution.glueTableName = tableName;
         }
@@ -80,51 +77,6 @@ export class GlueCrawlerEventProcessor {
 
         this.log.debug(`GlueCrawlerEventProcessor > getTableName >exit TableName:${details['Details']['names'][0]}`);
         return details['Details']['names'][0];
-    }
-
-    private constructLineage(id: string, dataAssetTask: DataAssetTask, event: CrawlerStateChangeEvent, tableName: string): Partial<RunEvent> {
-        const asset = dataAssetTask.dataAsset;
-
-        const customInput: CustomDatasetInput = {
-            type: 'Custom',
-            dataSource: {
-                url: asset.catalog.assetName,
-                name: asset.catalog.assetName
-            },
-            storage: {
-                fileFormat: asset.workflow?.dataset?.format,
-                storageLayer: getConnectionType(asset.workflow)
-            },
-            name: asset.catalog.assetName,
-            producer: 'TODO User info'
-        };
-
-        const builder = new OpenLineageBuilder();
-        return builder
-            .setContext(asset.catalog.domainId, asset.catalog.domainName, asset.execution.hubExecutionArn)
-            .setJob(
-                {
-                    // Supplied by StateMachine task
-                    jobName: `df_glue_crawler_${id}`,
-                    // Supplied by user
-                    assetName: asset.catalog.assetName
-                })
-            .setStartJob(
-                {
-                    executionId: event.detail.crawlerName,
-                    startTime: new Date(new Date().getTime() - (event.detail['runningTime (sec)'] * 1000)).toISOString()
-                })
-            .setDatasetInput(customInput)
-            .setDatasetOutput({
-                name: tableName,
-                storageLayer: 'glue'
-            })
-            .setEndJob({
-                endTime: new Date().toISOString(),
-                eventType: 'COMPLETE'
-            })
-            .build();
-
     }
 
 }
