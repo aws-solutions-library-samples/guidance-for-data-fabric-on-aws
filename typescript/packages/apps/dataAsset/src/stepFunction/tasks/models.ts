@@ -8,6 +8,7 @@ export enum TaskType {
     RecipeTask = 'df_recipe',
     GlueCrawlerTask = 'df_glue_crawler',
     CreateDataSourceTask = 'df_create_data_source',
+    RunDataSourceTask = 'df_run_data_source',
     lineageTask = 'lineageTask'
 
 }
@@ -28,6 +29,7 @@ export type DataAssetExecution = {
     dataProfileJob?: DataAssetJob,
     dataQualityProfileJob?: DataAssetJob,
     recipeJob?: DataAssetJob,
+    dataSourceCreation?: DataAssetJob,
     dataSourceRun?: DataAssetJob,
     crawlerRun?: DataAssetJob,
     glueDeltaDetected?: boolean,

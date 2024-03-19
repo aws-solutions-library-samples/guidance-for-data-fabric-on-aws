@@ -43,6 +43,8 @@ import { DynamoDBDocumentClient, TranslateConfig } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { JobEventProcessor } from "../events/spoke/job.eventProcessor.js";
 import { DataZoneEventProcessor } from '../events/hub/datazone.eventProcessor.js';
+import { VerifyDataSourceTask } from '../stepFunction/tasks/hub/create/verifyDataSourceTask.js';
+import { RunDataSourceTask } from '../stepFunction/tasks/hub/create/runDataSourceTask.js';
 
 const {captureAWSv3Client} = pkg;
 
@@ -84,6 +86,8 @@ declare module '@fastify/awilix' {
         hubCreateStartTask: HubCreateStartTask;
         spokeResponseTask: SpokeResponseTask;
         createDataSourceTask: CreateDataSourceTask,
+        verifyDataSourceTask: VerifyDataSourceTask,
+        runDataSourceTask: RunDataSourceTask,
         hubLineageTask: HubLineageTask
 
         //Spoke Tasks
@@ -425,7 +429,15 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneClient, container.spokeS3Utils), {
+        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneClient, container.stepFunctionClient), {
+            ...commonInjectionOptions
+        }),
+
+        verifyDataSourceTask: asFunction((container: Cradle) => new VerifyDataSourceTask(app.log, container.dataZoneClient), {
+            ...commonInjectionOptions
+        }),
+
+        runDataSourceTask: asFunction((container: Cradle) => new RunDataSourceTask(app.log, container.dataZoneClient, container.hubS3Utils), {
             ...commonInjectionOptions
         }),
 

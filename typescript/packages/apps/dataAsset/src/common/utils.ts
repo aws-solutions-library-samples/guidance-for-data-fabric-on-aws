@@ -47,7 +47,7 @@ export function getResourceArn(workflow: Workflow): string {
             arn = `arn:aws:glue:${workflow.dataset.connection.glue.region}:${workflow.dataset.connection.glue.region}:table/${workflow.dataset.connection.glue.databaseName}/${workflow.dataset.connection.glue.tableName}`;
             break;
         case 'redshift':
-            arn = `TODO`;
+            arn = `${workflow.name}`;
             break;
     }
 

@@ -1,16 +1,18 @@
 import type { BaseLogger } from 'pino';
 // import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
-import { TaskType, type DataAssetTask } from '../../models.js';
-import { type DataZoneClient, ListDataSourcesCommand, CreateDataSourceCommand, StartDataSourceRunCommand, CreateDataSourceCommandInput, DataSourceConfigurationInput } from '@aws-sdk/client-datazone';
+import type { DataAssetTask } from '../../models.js';
+import { type DataZoneClient, ListDataSourcesCommand, CreateDataSourceCommand, CreateDataSourceCommandInput, DataSourceConfigurationInput } from '@aws-sdk/client-datazone';
 import { getConnectionType, getResourceArn } from '../../../../common/utils.js';
-import type { S3Utils } from '../../../../common/s3Utils.js';
+// import type { S3Utils } from '../../../../common/s3Utils.js';
+import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
 
 export class CreateDataSourceTask {
 
 	constructor(
 		private log: BaseLogger,
 		private dzClient: DataZoneClient,
-		private readonly s3Utils: S3Utils
+		// private readonly s3Utils: S3Utils,
+		private readonly sfnClient: SFNClient
 	) {
 	}
 
@@ -27,27 +29,39 @@ export class CreateDataSourceTask {
 			name: getResourceArn(event.dataAsset.workflow) //use the arn of the resource as the data source name in order to reuse the same data source for different assets
 		}));
 
+		this.log.info(`CreateDataSourceTask > process > in > dataSources: ${JSON.stringify(dataSources)}`);
+
 		// Create Data source if it does not exists
 		if (!dataSources?.items[0]) {
 			const params  = await this.constructDataSourceCommand(event);
 			const dataSource = await this.dzClient.send(new CreateDataSourceCommand(params));
 			dataSourceId = dataSource.id;
+		} else {
+			dataSourceId = dataSources.items[0].dataSourceId
 		}
+
+		// We set the datasource id for future lookup 
+		event.dataAsset.execution.dataSourceCreation = {
+			id: dataSourceId
+		}
+
+
+		await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken: event.execution.taskToken }));
 
 		// Run data source
 
-		const run = await this.dzClient.send(new StartDataSourceRunCommand({
-			dataSourceIdentifier: dataSourceId,
-			domainIdentifier: event.dataAsset.catalog.domainId,
-		}))
-		event.dataAsset['execution']['dataSourceRun'] = {
-			id: run.id,
-			startTime: run.startedAt.toDateString(),
-			status: run.status
-		}
+		// const run = await this.dzClient.send(new StartDataSourceRunCommand({
+		// 	dataSourceIdentifier: dataSourceId,
+		// 	domainIdentifier: event.dataAsset.catalog.domainId,
+		// }))
+		// event.dataAsset['execution']['dataSourceRun'] = {
+		// 	id: run.id,
+		// 	startTime: run.startedAt.toDateString(),
+		// 	status: run.status
+		// }
 
 		// We are not able tto use tags with data zone resources so we will use the runId instead
-		this.s3Utils.putTaskData(TaskType.CreateDataSourceTask,run.id, event);
+		// this.s3Utils.putTaskData(TaskType.CreateDataSourceTask,run.id, event);
 		this.log.info(`CreateStartTask > process > exit`);
 		// await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken: event.execution.taskToken }));
 
@@ -91,7 +105,8 @@ export class CreateDataSourceTask {
 						relationalFilterConfigurations: [
 							{
 								databaseName: (connection.redshift.path).split('/')[0], // We use the first element of the path as the DB name
-								filterExpressions: [{ type: 'INCLUDE', expression: connection.redshift.path }]
+								schemaName: (connection.redshift.path).split('/')[1], // We use the second element of the path as the schema name
+								filterExpressions: [{ type: 'INCLUDE', expression: (connection.redshift.path).split('/')[2] }]
 							}
 						]
 					}
