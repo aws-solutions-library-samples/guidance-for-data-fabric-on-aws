@@ -1,7 +1,6 @@
 import type { BaseLogger } from "pino";
 import { CreateRecipeCommand, CreateRecipeJobCommand, type DataBrewClient, DeleteJobCommand, DescribeRecipeCommand, PublishRecipeCommand, StartJobRunCommand, TagResourceCommand, UpdateRecipeCommand, OutputFormat } from '@aws-sdk/client-databrew';
 import { type DataAssetTask, TaskType } from "../../models.js";
-import { ulid } from 'ulid';
 import type { S3Utils } from '../../../../common/s3Utils.js';
 
 export class RecipeJobTask {
@@ -16,9 +15,6 @@ export class RecipeJobTask {
         this.log.info(`RecipeJobTask > process > in > event: ${JSON.stringify(event)}`);
 
         const id = event.dataAsset?.catalog?.assetId ? event.dataAsset.catalog.assetId : event.dataAsset.id;
-
-        // TODO @Willsia Construct the Lineage start event using the lineageRunId
-        const lineageRunId = ulid().toLowerCase();
 
         let recipeName = `df-${id}`;
         let recipeVersion = '1.0'; // default published version is 1.0 (string)
@@ -57,7 +53,6 @@ export class RecipeJobTask {
                             assetName: event.dataAsset.catalog.assetName,
                             assetId: event.dataAsset.catalog.assetId,
                             id: event.dataAsset.id,
-                            LineageRunId: lineageRunId,
                             executionId: event.execution.executionId,
                         },
                     })
@@ -78,7 +73,6 @@ export class RecipeJobTask {
                                 assetName: event.dataAsset.catalog.assetName,
                                 assetId: event.dataAsset.catalog.assetId,
                                 id: event.dataAsset.id,
-                                lineageRunId: lineageRunId,
                                 executionId: event.execution.executionId,
                             },
                         })
@@ -136,7 +130,6 @@ export class RecipeJobTask {
                     assetName: event.dataAsset.catalog.assetName,
                     assetId: event.dataAsset.catalog.assetId,
                     id: event.dataAsset.id,
-                    lineageRunId: lineageRunId,
                     executionId: event.execution.executionId,
                 },
             })

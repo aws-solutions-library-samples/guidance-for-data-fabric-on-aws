@@ -5,7 +5,7 @@ import type { CreateResponseEventDetails, EventPublisher } from '@df/events';
 import { DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder } from '@df/events';
 import merge from 'merge';
 import type { S3Utils } from '../../../../common/s3Utils.js';
-import { DeleteDatasetCommand, type DataBrewClient} from '@aws-sdk/client-databrew';
+import { DeleteDatasetCommand, type DataBrewClient, DeleteJobCommand} from '@aws-sdk/client-databrew';
 
 
 export class LineageTask {
@@ -45,11 +45,21 @@ export class LineageTask {
 		// Start Cleanup stage
 
 		if ( profile.dataAsset.workflow?.transforms) {
+			// Remove the recipe job
+			await this.dataBrewClient.send( new DeleteJobCommand({
+				Name:`df-${id}`
+			}));
 			// Remove the recipe data set
 			await this.dataBrewClient.send( new DeleteDatasetCommand({
 				Name:`${id}-recipeDataSet`
 			}));
 		}
+
+		
+		// Remove the profile job
+		await this.dataBrewClient.send( new DeleteJobCommand({
+			Name:`df-${id}-dataProfile`
+		}));
 		// Remove the profile data set
 		await this.dataBrewClient.send( new DeleteDatasetCommand({
 			Name: `${id}-profileDataSet`

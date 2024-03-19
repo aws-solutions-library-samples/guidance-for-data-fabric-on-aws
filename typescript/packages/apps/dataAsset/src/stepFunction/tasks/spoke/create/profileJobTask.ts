@@ -57,7 +57,7 @@ export class ProfileJobTask {
         // Use assetId if it exists else no asset exists so use the id
         const id = (asset.catalog?.assetId) ? asset.catalog.assetId : asset.id
 
-        const jobName = `${asset.workflow.name}-${id}-dataProfile`;
+        const jobName = `df-${id}-dataProfile`;
 
         // Create default profile job
         const command: CreateProfileJobCommandInput = {
