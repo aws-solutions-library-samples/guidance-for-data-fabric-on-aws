@@ -28,13 +28,14 @@ export class DataQualityProfileEventProcessor {
          * There will only one ruleset configured by Data Fabric
          */
         const rulesetName = rulesetNames[0];
+        const rulesetArn = `arn:aws:glue:${event.region}:${event.account}:dataQualityRuleset/${rulesetName}`;
 
         const [getTagsResponse, getEvaluationResponse, getResultResponse] = await Promise.all([
             /**
              * Request Id needed to query the SSM parameters is stored in the tag
              */
             this.glueClient.send(new GetTagsCommand({
-                ResourceArn: `arn:aws:glue:${event.region}:${event.account}:dataQualityRuleset/${rulesetName}`
+                ResourceArn: rulesetArn
             })),
             /**
              * Evaluation Run contains the run start and end time
@@ -70,22 +71,29 @@ export class DataQualityProfileEventProcessor {
         if (!dataQualityProfileLineageEvent) {
             throw new Error('No start lineage event for data quality.')
         }
-        dataAssetTask.dataAsset.lineage[TaskType.DataQualityProfileTask] = this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, context.runId)
+        dataAssetTask.dataAsset.lineage.dataQualityProfile= this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, rulesetArn);
+
+        this.log.info(`DataQualityProfileEventProcessor > dataQualityProfileCompletionEvent > dataQualityProfileTaskCompleteEvent: ${dataAssetTask.dataAsset.lineage.dataQualityProfile}`);
+
         this.log.info(`DataQualityProfileEventProcessor > dataQualityProfileCompletionEvent > before sfnClient.send`);
         // Signal back to the state machine
         await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(dataAssetTask), taskToken: dataAssetTask.execution.taskToken}));
     }
 
-    private constructDataLineage(lineageEvent: Partial<RunEvent>, ruleResults: RuleResult[], runId: string): Partial<RunEvent> {
+    private constructDataLineage(lineageEvent: Partial<RunEvent>, ruleResults: RuleResult[], rulesetName: string): Partial<RunEvent> {
         this.log.info(`JobEventProcessor > constructDataLineage > in> lineageEvent: ${lineageEvent}, ruleResults: ${ruleResults}`);
         const openLineageBuilder = new OpenLineageBuilder();
         openLineageBuilder
             .setOpenLineageEvent(lineageEvent)
             .setQualityResult({
-                runId,
+                producer: rulesetName,
                 result: {
                     ruleResults
-                },
+                }
+            }).setEndJob(
+            {
+                endTime: new Date().toISOString(),
+                eventType: "COMPLETE"
             });
         return openLineageBuilder.build();
     }

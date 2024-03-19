@@ -476,7 +476,8 @@ export class DataAssetSpoke extends Construct {
                 'dataAsset.$': '$.detail.dataAsset',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -490,7 +491,8 @@ export class DataAssetSpoke extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -504,7 +506,8 @@ export class DataAssetSpoke extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -518,7 +521,8 @@ export class DataAssetSpoke extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -532,7 +536,8 @@ export class DataAssetSpoke extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -546,7 +551,8 @@ export class DataAssetSpoke extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -560,7 +566,8 @@ export class DataAssetSpoke extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -574,7 +581,8 @@ export class DataAssetSpoke extends Construct {
                 'dataAsset.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -589,7 +597,8 @@ export class DataAssetSpoke extends Construct {
                 'dataAssets.$': '$',
                 'execution': {
                     'executionStartTime.$': '$$.Execution.StartTime',
-                    'executionArn.$': '$$.Execution.Id',
+                    'executionId.$': '$$.Execution.Id',
+                    'stateMachineArn.$': '$$.StateMachine.Id',
                     'taskToken': JsonPath.taskToken
                 }
             }),
@@ -759,7 +768,7 @@ export class DataAssetSpoke extends Construct {
                 retryAttempts: 2
             })
         );
-        
+
 
 
         // Rule for Create Flow completion events

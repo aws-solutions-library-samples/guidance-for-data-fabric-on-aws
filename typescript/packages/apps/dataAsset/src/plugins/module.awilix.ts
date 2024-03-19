@@ -325,7 +325,8 @@ const registerContainer = (app?: FastifyInstance) => {
                     app.log,
                     container.dataBrewClient,
                     container.stepFunctionClient,
-                    container.s3Utils
+                    container.s3Utils,
+                    container.s3Client
                 ),
             {
                 ...commonInjectionOptions
@@ -416,7 +417,7 @@ const registerContainer = (app?: FastifyInstance) => {
 
         // Spoke Tasks
 
-        spokeCreateStartTask: asFunction((container: Cradle) => new SpokeCreateStartTask(app.log, container.stepFunctionClient), {
+        spokeCreateStartTask: asFunction((container: Cradle) => new SpokeCreateStartTask(app.log, container.stepFunctionClient, container.s3Utils), {
             ...commonInjectionOptions
         }),
 

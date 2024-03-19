@@ -51,20 +51,20 @@ export type Tags = Static<typeof tags>;
  * API specific resources
  */
 export const catalog = Type.Object({
-    domainId: Type.String({ description: 'Data Zone domain id' }),
-    domainName: Type.Optional(Type.String({ description: 'Data Zone domain name' })),
-    environmentId: Type.String({ description: 'Data Zone environment id' }),
-    projectId: Type.Optional(Type.String({ description: 'Data Zone project id' })),
-    region: Type.Optional(Type.String({ description: 'Data Zone environment region' })),
-    dataSourceId: Type.Optional(Type.String({ description: 'Data Zone asset data source id' })),
-    assetName: Type.String({ description: 'Data Zone asset name' }),
-    assetId: Type.Optional(Type.String({ description: 'Data Zone asset id' })),
-    accountId: Type.String({ description: 'The account id here the asset resides' }),
+    domainId: Type.String({description: 'Data Zone domain id'}),
+    domainName: Type.Optional(Type.String({description: 'Data Zone domain name'})),
+    environmentId: Type.String({description: 'Data Zone environment id'}),
+    projectId: Type.Optional(Type.String({description: 'Data Zone project id'})),
+    region: Type.Optional(Type.String({description: 'Data Zone environment region'})),
+    dataSourceId: Type.Optional(Type.String({description: 'Data Zone asset data source id'})),
+    assetName: Type.String({description: 'Data Zone asset name'}),
+    assetId: Type.Optional(Type.String({description: 'Data Zone asset id'})),
+    accountId: Type.String({description: 'The account id here the asset resides'}),
     autoPublish: Type.Boolean({
         description: 'Publish the asset automatically.',
         default: true,
     }),
-    revision: Type.Optional(Type.Number({ description: 'specify the version number of the datazone asset' })),
+    revision: Type.Optional(Type.Number({description: 'specify the version number of the datazone asset'})),
 
 });
 
@@ -103,9 +103,13 @@ export const connection = Type.Optional(Type.Object({
 export const dataset = Type.Object({
     name: Type.String({description: 'The name of the workflow'}),
     format,
-    connectionId: Type.Optional(Type.String({description: 'Glue connection name'})),
     connection,
-
+    connectionId: Type.Optional(Type.String({description: 'Glue connection name'})),
+    version: Type.Optional(Type.String({description: 'The version of the dataset.'})),
+    dataSource: Type.Optional(Type.Object({
+        name: Type.String({description: 'Name of 3rd party source.'}),
+        url: Type.String({description: 'Url of 3rd party source.'}),
+    }))
 });
 
 export const sampling = Type.Optional(Type.Object({
@@ -173,8 +177,8 @@ export const crawlerRun = Type.Object({
 });
 
 export const execution = Type.Object({
-    hubExecutionArn: Type.Optional(Type.String({description: 'The hub execution id of the state machine'})),
-    spokeExecutionArn: Type.Optional(Type.String({description: 'The Spoke execution id of the state machine'})),
+    hubExecutionId: Type.Optional(Type.String({description: 'The Hub execution id of the state machine'})),
+    spokeExecutionId: Type.Optional(Type.String({description: 'The Spoke execution id of the state machine'})),
     profileJob: Type.Optional(job),
     transformJob: Type.Optional(job),
     dataSourceRun: Type.Optional(job),

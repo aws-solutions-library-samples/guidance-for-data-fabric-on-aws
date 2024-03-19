@@ -3,12 +3,12 @@ import type { DataAssetCatalog, RunEvent } from '@df/events';
 import type { Workflow } from "../../api/dataAssetTask/schemas.js";
 
 export enum TaskType {
+    Root = 'df_data_asset',
     DataProfileTask = 'df_data_profile',
-    DataQualityProfileTask = 'DataQualityProfileTask',
+    DataQualityProfileTask = 'df_data_quality_profile',
     RecipeTask = 'df_recipe',
     GlueCrawlerTask = 'df_glue_crawler',
-    lineageTask = 'lineageTask'
-
+    LineageTask = 'df_data_lineage'
 }
 
 export type DataAssetJob = {
@@ -20,9 +20,13 @@ export type DataAssetJob = {
 };
 
 export type DataAssetExecution = {
-    hubExecutionArn: string,
+    // Hub State Machine
+    hubExecutionId: string,
+    hubStartTime: string;
+    hubStateMachineArn: string;
     hubTaskToken: string,
-    spokeExecutionArn?: string,
+    // Spoke State Machine
+    spokeExecutionId?: string,
     dataProfileJob?: DataAssetJob,
     dataQualityProfileJob?: DataAssetJob,
     recipeJob?: DataAssetJob,
@@ -38,12 +42,17 @@ export type DataAssetDetails = {
     catalog: DataAssetCatalog,
     workflow: Workflow,
     execution?: DataAssetExecution,
-    lineage?: Record<string, Partial<RunEvent>>
+    lineage: {
+        root?: Partial<RunEvent>,
+        dataProfile?: Partial<RunEvent>,
+        dataQualityProfile?: Partial<RunEvent>
+    }
 }
 
 export type DataAssetTaskExecutionDetails = {
-    executionArn: string,
+    executionId: string,
     executionStartTime: string,
+    stateMachineArn: string,
     taskToken?: string
 }
 

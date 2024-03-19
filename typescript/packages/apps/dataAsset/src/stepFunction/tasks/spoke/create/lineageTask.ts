@@ -32,8 +32,8 @@ export class LineageTask {
 
 		// Use assetId if it exists else no asset exists so use the requestId
         const id = (asset.dataAsset.catalog?.assetId) ? asset.dataAsset.catalog.assetId : asset.dataAsset.requestId;
-		await this.s3Utils.putTaskData(TaskType.lineageTask, id, asset);
-		const signedUrl = await this.s3Utils.getTaskDataSignedUrl(TaskType.lineageTask, id, 3600);
+		await this.s3Utils.putTaskData(TaskType.LineageTask, id, asset);
+		const signedUrl = await this.s3Utils.getTaskDataSignedUrl(TaskType.LineageTask, id, 3600);
 
 		const response: CreateResponseEventDetails = {
 			requestId: assets[0].requestId,
