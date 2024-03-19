@@ -33,7 +33,7 @@ export class S3Utils {
             Key: `${this.bucketPrefix}/${id}/${taskName}.json`,
             Body: JSON.stringify(content)
         }))
-        this.log.trace(`S3Utils > putTaskData > exit:`)
+        this.log.trace(`S3Utils > putTaskData > exit`)
     }
 
     public async getTaskData(taskName: string, id: string): Promise<DataAssetTask> {

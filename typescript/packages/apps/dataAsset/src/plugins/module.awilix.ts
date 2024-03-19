@@ -335,7 +335,8 @@ const registerContainer = (app?: FastifyInstance) => {
                 new DataZoneEventProcessor(
                     app.log,
                     container.stepFunctionClient,
-                    container.spokeS3Utils
+                    container.hubS3Utils,
+                    container.dataZoneClient
                 ),
             {
                 ...commonInjectionOptions

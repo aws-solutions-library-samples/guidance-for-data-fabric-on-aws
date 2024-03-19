@@ -168,7 +168,8 @@ export class DataAsset extends Construct {
                 'datazone:GetDataSourceRun',
                 'datazone:ListDataSourceRuns',
                 'datazone:ListDataSourceRunActivities',
-                'datazone:ListDataSources'],
+                'datazone:ListDataSources'
+            ],
             resources: [`*`]
         });
 
@@ -269,7 +270,9 @@ export class DataAsset extends Construct {
             logRetention: RetentionDays.ONE_WEEK,
             timeout: Duration.minutes(5),
             environment: {
-                HUB_EVENT_BUS_NAME: props.eventBusName
+                HUB_EVENT_BUS_NAME: props.eventBusName,
+                HUB_BUCKET_NAME: props.bucketName,
+                HUB_BUCKET_PREFIX: 'workflows'
             },
             bundling: {
                 minify: true,
@@ -285,6 +288,7 @@ export class DataAsset extends Construct {
         });
         runDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
         runDataSourceLambda.addToRolePolicy(DataZoneDataSourceFullPolicy);
+        bucket.grantPut(runDataSourceLambda);
 
         const runDataSourceTask = new LambdaInvoke(this, 'RunDataSourceTask', {
             lambdaFunction: runDataSourceLambda,
@@ -675,8 +679,10 @@ export class DataAsset extends Construct {
                 {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: [
+                        'Action::s3:Abort*',
                         'Resource::*',
-                        `Resource::arn:aws:states:<AWS::Region>:<AWS::AccountId>:stateMachine:df-*`
+                        `Resource::arn:aws:states:<AWS::Region>:<AWS::AccountId>:stateMachine:df-*`,
+                        `Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfsharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*`
                     ],
                     reason: 'This policy is required for the lambda to perform profiling.'
 
