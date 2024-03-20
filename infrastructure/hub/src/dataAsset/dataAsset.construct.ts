@@ -13,7 +13,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, ArnPrincipal, CompositePrincipal, Effect, ManagedPolicy, PolicyStatement, Role } from 'aws-cdk-lib/aws-iam';
-import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED, DATA_ZONE_EVENT_SOURCE } from '@df/events';
+import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED, DATA_ZONE_EVENT_SOURCE } from '@df/events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput, Wait, WaitTime } from 'aws-cdk-lib/aws-stepfunctions';
@@ -91,7 +91,8 @@ export class DataAsset extends Construct {
         const DataZoneAssetReadPolicy = new PolicyStatement({
             actions: [
                 'datazone:GetAsset',
-                'datazone:ListAssetRevisions'
+                'datazone:ListAssetRevisions',
+                'datazone:GetDomain',
             ],
             resources: [`*`]
         });
@@ -117,6 +118,20 @@ export class DataAsset extends Construct {
             resources: [
                 `arn:aws:states:${region}:${accountId}:stateMachine:df-*`,
             ]
+        });
+
+        const DataZoneDataSourcePolicy = new PolicyStatement({
+            actions: [
+                'datazone:CreateDataSource',
+                'datazone:GetDataSource',
+                'datazone:StartDataSourceRun',
+                'datazone:GetDataSourceRun',
+                'datazone:ListDataSourceRuns',
+                'datazone:ListDataSourceRunActivities',
+                'datazone:ListDataSources',
+                'datazone:GetListing'
+            ],
+            resources: [`*`]
         });
 
         const startCreateFlowLambda = new NodejsFunction(this, 'StartCreateFlowLambda', {
@@ -145,6 +160,7 @@ export class DataAsset extends Construct {
         });
         startCreateFlowLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
         eventBus.grantPutEventsTo(startCreateFlowLambda);
+        startCreateFlowLambda.addToRolePolicy(DataZoneDataSourcePolicy);
 
         const startTask = new LambdaInvoke(this, 'StartCreateFlowTask', {
             lambdaFunction: startCreateFlowLambda,
@@ -161,24 +177,6 @@ export class DataAsset extends Construct {
             outputPath: '$.dataAsset'
         });
 
-        const DataZoneDataSourcePolicy = new PolicyStatement({
-            actions: [
-                'datazone:CreateDataSource',
-                'datazone:GetDataSource',
-                'datazone:StartDataSourceRun',
-                'datazone:GetDataSourceRun',
-                'datazone:ListDataSourceRuns',
-                'datazone:ListDataSourceRunActivities',
-                'datazone:ListDataSources'
-            ],
-            resources: [`*`]
-        });
-
-          const DataZoneDataSourceFullPolicy = new PolicyStatement({
-            actions: [
-                'datazone:*'],
-            resources: [`*`]
-        });
 
         const createDataSourceLambda = new NodejsFunction(this, 'CreateDataSourceLambda', {
             description: 'Create the datazone data source as part of the asset creation flow',
@@ -221,7 +219,7 @@ export class DataAsset extends Construct {
             outputPath: '$.dataAsset'
         });
 
-        const waitForDataSourceReady = new Wait(this, 'Wait For the Data Source to be ready', {time: WaitTime.duration(Duration.seconds(10))});
+        const waitForDataSourceReady = new Wait(this, 'Wait For the Data Source to be ready', { time: WaitTime.duration(Duration.seconds(10)) });
 
         const verifyDataSourceLambda = new NodejsFunction(this, 'VerifyDataSourceLambda', {
             description: 'Verify datazone data source is ready',
@@ -288,7 +286,7 @@ export class DataAsset extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
         runDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
-        runDataSourceLambda.addToRolePolicy(DataZoneDataSourceFullPolicy);
+        runDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
         bucket.grantPut(runDataSourceLambda);
 
         const runDataSourceTask = new LambdaInvoke(this, 'RunDataSourceTask', {
@@ -348,7 +346,7 @@ export class DataAsset extends Construct {
             outputPath: '$.dataAsset'
         });
 
-        const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', {logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset-create`, removalPolicy: RemovalPolicy.DESTROY});
+        const dataAssetStateMachineLogGroup = new LogGroup(this, 'DataAssetLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataAsset-create`, removalPolicy: RemovalPolicy.DESTROY });
 
         const dataAssetCreateStateMachine = new StateMachine(this, 'DataAssetCreateStateMachine', {
             definitionBody: DefinitionBody.fromChainable(
@@ -362,7 +360,7 @@ export class DataAsset extends Construct {
                         .otherwise(verifyDataSourceTask)
                     )
             ),
-            logs: {destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true},
+            logs: { destination: dataAssetStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
             stateMachineName: `${namePrefix}-data-asset`,
             tracingEnabled: true
         });
@@ -533,9 +531,12 @@ export class DataAsset extends Construct {
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
             environment: {
-                TABLE_NAME: table.tableName,
                 HUB_BUCKET_NAME: props.bucketName,
-                HUB_BUCKET_PREFIX: 'workflows'
+                HUB_BUCKET_PREFIX: 'workflows',
+                EVENT_BUS_NAME: props.eventBusName,
+                TABLE_NAME: table.tableName,
+                WORKER_QUEUE_URL: 'not used',
+                HUB_CREATE_STATE_MACHINE_ARN: dataAssetCreateStateMachine.stateMachineArn
             },
             bundling: {
                 minify: true,
@@ -557,7 +558,8 @@ export class DataAsset extends Construct {
         hubEventProcessorLambda.addToRolePolicy(DataZoneDataSourcePolicy);
         bucket.grantPut(hubEventProcessorLambda);
         bucket.grantRead(hubEventProcessorLambda);
-
+        hubEventProcessorLambda.node.addDependency(table);
+        dataAssetCreateStateMachine.grantStartExecution(hubEventProcessorLambda)
 
         // Rule for Create Flow completion events
         const createFlowCompletionRule = new Rule(this, 'CreateFlowCompletionRule', {
@@ -568,6 +570,23 @@ export class DataAsset extends Construct {
         });
 
         createFlowCompletionRule.addTarget(
+            new LambdaFunction(hubEventProcessorLambda, {
+                deadLetterQueue: deadLetterQueue,
+                maxEventAge: Duration.minutes(5),
+                retryAttempts: 2
+            })
+        );
+
+
+        // Rule for Create Flow completion events
+        const startCreateDataAssetJobRule = new Rule(this, 'StartCreateDataAssetJobRule', {
+            eventBus: eventBus,
+            eventPattern: {
+                detailType: [DATA_ASSET_SPOKE_JOB_START_EVENT]
+            }
+        });
+
+        startCreateDataAssetJobRule.addTarget(
             new LambdaFunction(hubEventProcessorLambda, {
                 deadLetterQueue: deadLetterQueue,
                 maxEventAge: Duration.minutes(5),
@@ -612,7 +631,7 @@ export class DataAsset extends Construct {
                 Condition: {
                     'StringEquals': {
                         'events:source': [DATA_ASSET_SPOKE_EVENT_SOURCE],
-                        'events:detail-type': [DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT]
+                        'events:detail-type': [DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_JOB_START_EVENT]
                     },
                     'ForAnyValue:StringEquals': {
                         'aws:PrincipalOrgPaths': `${props.orgPath.orgId}/${props.orgPath.rootId}/${props.orgPath.ouId}/`
@@ -730,17 +749,17 @@ export class DataAsset extends Construct {
             ],
             true);
 
-            NagSuppressions.addResourceSuppressions([ runDataSourceLambda],
-                [
-                    {
-                        id: 'AwsSolutions-IAM5',
-                        appliesTo: [
-                            'Action::datazone:*',
-                        ],
-                        reason: 'This policy is required for the lambda to perform profiling.'    
-                    }
-                ],
-                true);
+        NagSuppressions.addResourceSuppressions([runDataSourceLambda],
+            [
+                {
+                    id: 'AwsSolutions-IAM5',
+                    appliesTo: [
+                        'Action::datazone:*',
+                    ],
+                    reason: 'This policy is required for the lambda to perform profiling.'
+                }
+            ],
+            true);
 
         NagSuppressions.addResourceSuppressions([dataAssetCreateStateMachine],
             [

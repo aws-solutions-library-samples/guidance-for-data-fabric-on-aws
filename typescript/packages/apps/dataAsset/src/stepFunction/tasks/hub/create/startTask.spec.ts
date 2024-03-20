@@ -3,6 +3,7 @@ import { StartTask } from "./startTask";
 import pino from "pino";
 import { EventPublisher } from "@df/events";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
+import { DataZoneClient } from "@aws-sdk/client-datazone";
 
 describe('StartTask', () => {
     let task: StartTask;
@@ -14,7 +15,7 @@ describe('StartTask', () => {
             })
         );
 
-        task = new StartTask(logger, '', new EventPublisher(logger, new EventBridgeClient({}), '', ''));
+        task = new StartTask(logger, '', new EventPublisher(logger, new EventBridgeClient({}), '', ''), new DataZoneClient({}));
 
         await task.process({
             dataAsset: {

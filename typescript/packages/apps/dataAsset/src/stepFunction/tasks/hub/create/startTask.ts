@@ -7,19 +7,23 @@ import {
     DATA_ASSET_HUB_EVENT_SOURCE,
     DATA_LINEAGE_DIRECT_HUB_INGESTION_REQUEST_EVENT,
     DATA_LINEAGE_HUB_EVENT_SOURCE,
+    DataFabricInput,
     EventBridgeEventBuilder,
     EventPublisher,
     OpenLineageBuilder,
     RunEvent
 } from '@df/events';
 import { getConnectionType } from "../../../../common/utils.js";
+import { GetListingCommand, type DataZoneClient } from '@aws-sdk/client-datazone';
+import type { ExternalInput } from '../../../../api/dataAssetTask/schemas.js';
 
 export class StartTask {
 
     constructor(
         private log: BaseLogger,
         private eventBusName: string,
-        private eventPublisher: EventPublisher
+        private eventPublisher: EventPublisher,
+        private dzClient: DataZoneClient
     ) {
     }
 
@@ -33,7 +37,18 @@ export class StartTask {
             hubTaskToken: event.execution.taskToken,
         }
 
-        const lineageRunStartEventPayload = this.constructLineage(event);
+        const externalInputs = await this.assembleExternalInputs(event.dataAsset.workflow.externalInputs);
+        const lineageRunStartEventPayload = this.constructLineage(event, externalInputs);
+        if (!event.dataAsset.lineage) {
+            event.dataAsset.lineage = {
+                root: lineageRunStartEventPayload,
+                /**
+                 * The other lineages will be populated by the state machine in the spoke accounts
+                 */
+                dataProfile: {},
+                dataQualityProfile: {}
+            }
+        }
 
         const openLineageEvent = new EventBridgeEventBuilder()
             .setEventBusName(this.eventBusName)
@@ -56,9 +71,43 @@ export class StartTask {
         this.log.info(`StartTask > process > exit`);
     }
 
-    private constructLineage(dataAssetTask: DataAssetTask): Partial<RunEvent> {
+
+    private async assembleExternalInputs(inputs: ExternalInput[]): Promise<DataFabricInput[]> {
+        this.log.info(`StartTask > assembleExternalInputs > in > inputs: ${JSON.stringify(inputs)}`);
+
+        const externalInputs: DataFabricInput[] = []
+        if (inputs) {
+            const getListingFutures = inputs.map(o => {
+                return this.dzClient.send(new GetListingCommand({ domainIdentifier: o.domainId, identifier: o.assetListingId, listingRevision: o.revision }))
+            })
+
+            // TODO: add pLimit
+            const results = await Promise.all(getListingFutures);
+            results.forEach(r => {
+                if (r.item?.assetListing?.forms) {
+                    const form = JSON.parse(r.item?.assetListing?.forms);
+                    // The lineage asset name and namespace is stored inside df_profile_form
+                    if (form['df_profile_form']['lineage_asset_name'] && form['df_profile_form']['lineage_asset_namespace']) {
+                        externalInputs.push({
+                            type: 'DataFabric',
+                            assetName: form['df_profile_form']['lineage_asset_name'],
+                            assetNamespace: form['df_profile_form']['lineage_asset_namespace']
+                        })
+                    }
+                }
+
+            })
+        }
+        this.log.info(`StartTask > assembleExternalInputs > exit > externalInputs: ${JSON.stringify(externalInputs)}`);
+        return externalInputs;
+    }
+
+
+    private constructLineage(dataAssetTask: DataAssetTask, externalInputs: DataFabricInput[]): Partial<RunEvent> {
+        this.log.info(`StartTask > constructLineage > in > dataAssetTask: ${JSON.stringify(dataAssetTask)}, externalInputs: ${JSON.stringify(externalInputs)}`);
+
         const asset = dataAssetTask.dataAsset;
-        const {workflow} = asset
+        const { workflow } = asset
 
         const customInput: CustomDatasetInput = {
             type: 'Custom',
@@ -73,7 +122,7 @@ export class StartTask {
 
         const builder = new OpenLineageBuilder();
 
-        return builder
+        builder
             .setContext(asset.catalog.domainId, asset.catalog.domainName, asset.execution.hubStateMachineArn)
             .setJob(
                 {
@@ -86,7 +135,14 @@ export class StartTask {
                     executionId: asset.execution.hubExecutionId,
                     startTime: asset.execution.hubStartTime
                 })
-            .build();
+
+        for (const externalInput of externalInputs) {
+            builder.setDatasetInput(externalInput);
+        }
+
+        this.log.info(`StartTask > constructLineage > exit >`);
+
+        return builder.build();
     }
 
 }

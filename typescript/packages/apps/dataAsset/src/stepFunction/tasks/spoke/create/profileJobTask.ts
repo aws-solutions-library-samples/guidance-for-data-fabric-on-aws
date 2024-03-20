@@ -12,7 +12,7 @@ export class ProfileJobTask {
         private readonly log: BaseLogger,
         private readonly dataBrewClient: DataBrewClient,
         private readonly s3Utils: S3Utils,
-        private readonly hubEventBusName:string,
+        private readonly hubEventBusName: string,
         private readonly eventPublisher: EventPublisher
     ) {
     }
@@ -29,7 +29,7 @@ export class ProfileJobTask {
         let res = undefined;
 
         try {
-            await this.dataBrewClient.send(new DescribeJobCommand({Name: jobName}));
+            await this.dataBrewClient.send(new DescribeJobCommand({ Name: jobName }));
             res = await this.dataBrewClient.send(new UpdateProfileJobCommand(profileCommand));
         } catch (error) {
             this.log.debug(`ProfileJobTask > process > in > event: ${JSON.stringify(error)}`);
@@ -40,12 +40,15 @@ export class ProfileJobTask {
             }
         }
 
+        const executionMetadata = event.execution.executionId.split(':');
+        const jobArn = `arn:aws:databrew:${executionMetadata[3]}:${executionMetadata[4]}:job/${res.Name}`;
+
         // Run the Job if the job is on Demand
-        const startJobRunCommandResponse = await this.dataBrewClient.send(new StartJobRunCommand({Name: res.Name}));
+        const startJobRunCommandResponse = await this.dataBrewClient.send(new StartJobRunCommand({ Name: res.Name }));
 
         this.log.info(`ProfileJobTask > process > StartJobRun: ${JSON.stringify(startJobRunCommandResponse)}`);
 
-        event.dataAsset.lineage.dataProfile = this.constructLineage(event, startJobRunCommandResponse.RunId);
+        event.dataAsset.lineage.dataProfile = this.constructLineage(event, jobArn, startJobRunCommandResponse.RunId);
 
         const openLineageEvent = new EventBridgeEventBuilder()
             .setEventBusName(this.hubEventBusName)
@@ -95,8 +98,11 @@ export class ProfileJobTask {
         return command;
     }
 
-    private constructLineage(dataAssetTask: DataAssetTask, runId: string): Partial<RunEvent> {
-        const {execution, workflow, catalog} = dataAssetTask.dataAsset;
+    private constructLineage(dataAssetTask: DataAssetTask, jobArn: string, runId: string): Partial<RunEvent> {
+
+        this.log.info(`ProfileJobTask > constructLineage > in> dataAssetTask: ${dataAssetTask}, runId: ${runId}, jobArn: ${jobArn}`);
+
+        const { execution, workflow, catalog } = dataAssetTask.dataAsset;
 
         const builder = new OpenLineageBuilder();
 
@@ -111,8 +117,9 @@ export class ProfileJobTask {
             producer: execution.hubStateMachineArn,
         };
 
+
         const res = builder
-            .setContext(catalog.domainId, catalog.domainName, execution.hubExecutionId)
+            .setContext(catalog.domainId, catalog.domainName, jobArn)
             .setJob(
                 {
                     jobName: TaskType.DataProfileTask,
