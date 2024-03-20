@@ -40,8 +40,9 @@ export function getResourceArn(workflow: Workflow): string {
     const connectionType = getConnectionType(workflow);
     let arn = undefined;
     switch (connectionType) {
-        case 'datalake':
-            arn = `arn:aws:s3:::${S3Utils.extractObjectDetailsFromUri(workflow.dataset.connection.dataLake.s3.path)}`
+        case 'dataLake':
+            const { Bucket, Key } = S3Utils.extractObjectDetailsFromUri(workflow.dataset.connection.dataLake.s3.path);
+            arn = `arn:aws:s3:::${Bucket}/${Key}`
             break;
         case 'glue':
             arn = `arn:aws:glue:${workflow.dataset.connection.glue.region}:${workflow.dataset.connection.glue.region}:table/${workflow.dataset.connection.glue.databaseName}/${workflow.dataset.connection.glue.tableName}`;

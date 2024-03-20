@@ -29,12 +29,12 @@ export class RunDataSourceTask {
 			id: run.id,
 			status: run.status
 		}
-		
+
 
 		// We are not able to use tags with data zone resources so we will use the runId instead to store the data
 		await this.s3Utils.putTaskData(TaskType.RunDataSourceTask, run.id, event);
-		this.log.info(`RunDataSourceTask > process > exit`);
 
+		this.log.info(`RunDataSourceTask > process > exit`);
 	}
 
 }

@@ -11,7 +11,8 @@ export class GlueCrawlerEventProcessor {
         private log: BaseLogger,
         private glueClient: GlueClient,
         private sfnClient: SFNClient,
-        private s3Utils: S3Utils
+        private s3Utils: S3Utils,
+        private databaseName: string
     ) {
     }
 
@@ -22,7 +23,7 @@ export class GlueCrawlerEventProcessor {
         validateNotEmpty(event, 'Crawler completion event');
 
         //Get the Crawler tags
-        const crawler = await this.glueClient.send(new GetTagsCommand({ResourceArn: `arn:aws:glue:${event.region}:${event.account}:crawler/${event.detail.crawlerName}`}));
+        const crawler = await this.glueClient.send(new GetTagsCommand({ ResourceArn: `arn:aws:glue:${event.region}:${event.account}:crawler/${event.detail.crawlerName}` }));
 
         // Use assetId if it exists else no asset exists so use the id
         const id = (crawler.Tags?.['assetId']) ? crawler.Tags['assetId'] : crawler.Tags['id'];
@@ -46,6 +47,7 @@ export class GlueCrawlerEventProcessor {
 
             const tableName = await this.getTableName(event.detail.crawlerName);
             // Update the tableName
+            taskOutput.dataAsset.execution.glueDatabaseName = this.databaseName;
             taskOutput.dataAsset.execution.glueTableName = tableName;
         }
 
@@ -58,7 +60,7 @@ export class GlueCrawlerEventProcessor {
 
         await this.s3Utils.putTaskData(TaskType.GlueCrawlerTask, id, taskOutput)
 
-        await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(taskOutput), taskToken: taskOutput.execution.taskToken}));
+        await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(taskOutput), taskToken: taskOutput.execution.taskToken }));
 
         this.log.info(`GlueCrawlerEventProcessor > completionEvent >exit taskOutput:${JSON.stringify(taskOutput)}`);
         return;

@@ -366,7 +366,8 @@ const registerContainer = (app?: FastifyInstance) => {
                     app.log,
                     container.glueClient,
                     container.stepFunctionClient,
-                    container.spokeS3Utils
+                    container.spokeS3Utils,
+                    GlueDatabaseName
                 ),
             {
                 ...commonInjectionOptions
@@ -427,7 +428,7 @@ const registerContainer = (app?: FastifyInstance) => {
         ),
 
         // Hub Tasks
-        hubCreateStartTask: asFunction((container: Cradle) => new HubCreateStartTask(app.log, hubEventBusName, container.hubEventPublisher), {
+        hubCreateStartTask: asFunction((container: Cradle) => new HubCreateStartTask(app.log, hubEventBusName, container.hubEventPublisher, container.dataZoneClient), {
             ...commonInjectionOptions
         }),
 
