@@ -10,6 +10,7 @@ import { bucketNameParameter } from '../shared/s3.construct.js';
 export type DataAssetStackProperties = StackProps & {
     moduleName: string;
     orgPath: OrganizationUnitPath
+    identityStoreId: string;
 };
 
 
@@ -32,7 +33,8 @@ export class DataAssetStack extends Stack {
             eventBusName: dfEventBusName,
             cognitoUserPoolId: userPoolId,
             orgPath: props.orgPath,
-            bucketName
+            bucketName,
+            identityStoreId: props.identityStoreId
         });
 
         new StringParameter(this, 'dataAssetFunctionNameParameter', {

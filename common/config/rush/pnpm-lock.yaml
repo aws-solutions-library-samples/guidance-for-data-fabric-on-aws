@@ -16,6 +16,9 @@ importers:
       '@aws-sdk/client-cognito-identity-provider':
         specifier: 3.496.0
         version: 3.496.0
+      '@aws-sdk/client-datazone':
+        specifier: 3.515.0
+        version: 3.515.0
       '@aws-sdk/client-iam':
         specifier: 3.496.0
         version: 3.496.0

@@ -12,7 +12,7 @@ import { Construct } from 'constructs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
-import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { AnyPrincipal, ArnPrincipal, CompositePrincipal, Effect, ManagedPolicy, PolicyStatement, Role } from 'aws-cdk-lib/aws-iam';
 import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED, DATA_ZONE_EVENT_SOURCE } from '@df/events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
@@ -29,6 +29,7 @@ export type DataAssetConstructProperties = {
     cognitoUserPoolId: string;
     orgPath: OrganizationUnitPath;
     bucketName: string;
+    identityStoreId: string;
 };
 
 
@@ -367,10 +368,15 @@ export class DataAsset extends Construct {
         });
 
         this.createStateMachineArn = dataAssetCreateStateMachine.stateMachineArn;
-
+        
+        
         /**
          * Define the API Lambda
-         */
+        */
+       const customDataZoneRole = new Role(this, 'CustomDataZoneRole', {
+           assumedBy: new CompositePrincipal(), // Empty placeholder to allow this to be created before the apiLambda
+           description: 'Custom Data Zone Role',
+       });
         const apiLambda = new NodejsFunction(this, 'Apilambda', {
             functionName: `${namePrefix}-${props.moduleName}-api`,
             description: `Data Asset API`,
@@ -383,7 +389,8 @@ export class DataAsset extends Construct {
                 EVENT_BUS_NAME: props.eventBusName,
                 TABLE_NAME: table.tableName,
                 WORKER_QUEUE_URL: 'not used',
-                HUB_CREATE_STATE_MACHINE_ARN: dataAssetCreateStateMachine.stateMachineArn
+                HUB_CREATE_STATE_MACHINE_ARN: dataAssetCreateStateMachine.stateMachineArn,
+                CUSTOM_DATAZONE_USER_EXECUTION_ROLE_ARN: customDataZoneRole.roleArn
             },
 
             bundling: {
@@ -408,6 +415,39 @@ export class DataAsset extends Construct {
 
 
         this.functionName = apiLambda.functionName;
+
+        const DataZoneAssumeCustomRolePolicy = new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: [
+                'sts:AssumeRole',
+                'sts:TagSession'
+            ],
+            resources: [`${customDataZoneRole.roleArn}`]
+        });
+        apiLambda.addToRolePolicy(DataZoneAssumeCustomRolePolicy);
+
+        customDataZoneRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this, 'DZDomainExecutionPolicy', 'arn:aws:iam::aws:policy/service-role/AmazonDataZoneDomainExecutionRolePolicy'))
+        customDataZoneRole.addToPrincipalPolicy(new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: [ "iam:GetRole",
+                       "iam:GetUser"],
+            resources: [ '*' ]
+        }));
+        customDataZoneRole.grantAssumeRole(new ArnPrincipal(apiLambda.role?.roleArn!));
+
+        apiLambda.addToRolePolicy(
+            new PolicyStatement({
+              effect: Effect.ALLOW,
+              actions: ["identitystore:IsMemberInGroups", "identitystore:GetUserId"],
+              resources: [
+                `arn:aws:identitystore::${accountId}:identitystore/${props.identityStoreId}`,
+                `arn:aws:identitystore:::user/*`,
+                `arn:aws:identitystore:::group/*`,
+                `arn:aws:identitystore:::membership/*`,
+              ],
+            })
+          );
+      
 
         /**
          * Define the API Gateway
