@@ -175,6 +175,11 @@ export type CustomDatasetInput = {
      */
     version?: string;
     /**
+     * If no namespace specified, default to the context namespace
+     */
+
+    namespace?: string;
+    /**
      * Name of the input dataset
      */
     name: string;
@@ -209,10 +214,19 @@ export class OpenLineageBuilder {
     constructor() {
     }
 
+
+    public static getDomainNamespace(domain: { name: string, id: string }) {
+        return `df.${domain.name.replace(' ', '_')}-${domain.id}`;
+    }
+
+    public static getJobName(taskType: string, assetName: string) {
+        return `${taskType}-${assetName}`;
+    }
+
     public setContext(domainId: string, domainName: string, stateMachineArn: string): OpenLineageBuilder {
         this.stateMachineArn = stateMachineArn;
         // Marquez API only accepts letters (a-z, A-Z), numbers (0-9), underscores (_), at (@), plus (+), dashes (-), colons (:), equals (=), semicolons (;), slashes (/) or dots (.) with a maximum length of 1024 characters for namespace.
-        this.domainNamespace = `df-${domainName.replace(' ', '_')}-${domainId}`;
+        this.domainNamespace = OpenLineageBuilder.getDomainNamespace({ id: domainId, name: domainName });
         this.openLineageEvent = {
             producer: stateMachineArn,
             schemaURL: "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"
@@ -232,7 +246,7 @@ export class OpenLineageBuilder {
 
 
     public setProfilingResult(payload: ProfilingResultInput): OpenLineageBuilder {
-        const {result} = payload
+        const { result } = payload
 
         const dataQualityMetrics: DataQualityMetricsInputDatasetFacet = {
             _producer: payload.producer,
@@ -272,7 +286,7 @@ export class OpenLineageBuilder {
     }
 
     public setQualityResult(payload: QualityResultInput): OpenLineageBuilder {
-        const {result, producer} = payload
+        const { result, producer } = payload
         const datasetInput = this.openLineageEvent.inputs[0];
         datasetInput.facets.dataQualityAssertions = {
             _producer: producer,
@@ -293,7 +307,7 @@ export class OpenLineageBuilder {
 
         this.openLineageEvent.job = {
             namespace: this.domainNamespace,
-            name: `${input.jobName} - ${input.assetName}`,
+            name: OpenLineageBuilder.getJobName(input.jobName, input.assetName),
             facets: {
                 "documentation": {
                     "_producer": this.stateMachineArn,
@@ -305,7 +319,7 @@ export class OpenLineageBuilder {
                     "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipJobFacet.json",
                     "owners": [
                         ...this.convertUsernameToOwners(input.usernames),
-                        {"name": "application:df.DataAssetModule"}
+                        { "name": "application:df.DataAssetModule" }
                     ]
                 }
             },
@@ -345,7 +359,7 @@ export class OpenLineageBuilder {
                     "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipDatasetFacet.json",
                     "owners": [
                         ...this.convertUsernameToOwners(datasetOutput.usernames),
-                        {"name": "application:df.DataAssetModule"}
+                        { "name": "application:df.DataAssetModule" }
                     ]
                 }
             }
@@ -384,7 +398,7 @@ export class OpenLineageBuilder {
     public setDatasetInput(payload: CustomDatasetInput | DataFabricInput): OpenLineageBuilder {
         const owners = [];
         if (payload?.usernames) {
-            owners.push(...payload.usernames.map(u => ({"name": `user:${u}`})));
+            owners.push(...payload.usernames.map(u => ({ "name": `user:${u}` })));
         }
         let dataset: InputDataset
         switch (payload.type) {
@@ -460,14 +474,14 @@ export class OpenLineageBuilder {
                     "_producer": input.parent.producer,
                     "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ParentRunFacet.json",
                     job:
-                        {
-                            name: `${input.parent.name} - ${input.parent.assetName}`,
-                            namespace: this.domainNamespace
-                        },
+                    {
+                        name: OpenLineageBuilder.getJobName(input.parent.name, input.parent.assetName),
+                        namespace: this.domainNamespace
+                    },
                     run:
-                        {
-                            runId: input.parent.runId
-                        }
+                    {
+                        runId: input.parent.runId
+                    }
                 } : undefined
             }
         }
@@ -502,7 +516,7 @@ export class OpenLineageBuilder {
 
     private convertUsernameToOwners(usernames?: string[]): { name: string }[] {
         const owners = [];
-        owners.push(...usernames ?? [].map(u => ({"name": `user:${u}`})))
+        owners.push(...usernames ?? [].map(u => ({ "name": `user:${u}` })))
         return owners;
     }
 

@@ -11,16 +11,16 @@ export class DataZoneEventProcessor {
         private log: BaseLogger,
         private sfnClient: SFNClient,
         private s3Utils: S3Utils,
-        private dzClient:DataZoneClient
+        private dzClient: DataZoneClient
     ) {
     }
 
     public async dataSourceRunCompletionEvent(event: DataSourceRunStateChangeEvent): Promise<void> {
         this.log.info(`DataZoneEventProcessor > dataSourceRunCompletionEvent >in  event: ${JSON.stringify(event)}`);
 
-        validateNotEmpty(event.detail, 'eventDetails is not empty');
+        validateNotEmpty(event.detail, 'event.detail');
 
-        const runId =event.detail.metadata.id;
+        const runId = event.detail.metadata.id;
 
         // Get the relevant run info using the run id
         const taskInput = await this.s3Utils.getTaskData(TaskType.RunDataSourceTask, runId);
@@ -32,27 +32,12 @@ export class DataZoneEventProcessor {
         }));
 
         this.log.info(`DataZoneEventProcessor > dataSourceRunCompletionEvent >activities: ${JSON.stringify(activities)}`);
-        
+
         //update the taskEvent with the new assetId
         const assets = activities.items[0];
         taskInput.dataAsset.catalog['assetId'] = assets.dataAssetId;
 
-
-            // TODO publish lineage
-            //     for ( const lineage of payload.dataAsset.lineage){
-            //         // Send lineage event for each asset Placeholder
-            // const publishEvent = new EventBridgeEventBuilder()
-            // .setEventBusName(this.eventBusName)
-            // .setSource(DATA_LINEAGE_HUB_EVENT_SOURCE)
-            // .setDetailType(DATA_LINEAGE_DIRECT_INGESTION_REQUEST_EVENT)
-            // .setDetail(event); // 'event' needs to be replaced with proper lineage
-
-            // await this.eventPublisher.publish(publishEvent)
-
-        // }
-
-
-        await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken}));
+        await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(taskInput), taskToken: taskInput.execution.taskToken }));
 
         this.log.info(`DataZoneEventProcessor > dataSourceRunCompletionEvent >exit`);
         return;

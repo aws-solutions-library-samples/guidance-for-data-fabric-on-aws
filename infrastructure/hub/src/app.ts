@@ -103,7 +103,7 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
         const openlineageApiCpu = (app.node.tryGetContext('openlineageApiCpu') as number) ?? 2048;
         const openlineageWebMemory = (app.node.tryGetContext('openlineageApiMemory') as number) ?? 2048;
         const openlineageWebCpu = (app.node.tryGetContext('openlineageApiCpu') as number) ?? 512;
-        const marquezVersionTag = app.node.tryGetContext('marquezVersionTag') ?? '0.43.1';
+        const marquezVersionTag = app.node.tryGetContext('marquezVersionTag') ?? '0.32.0';
         const loadBalancerCertificateArn = getOrThrow(app, 'loadBalancerCertificateArn');
 
         const dataLineage = new DataLineageStack(app, 'DataLineageStack', {

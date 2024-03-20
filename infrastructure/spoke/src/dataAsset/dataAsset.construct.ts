@@ -768,7 +768,8 @@ export class DataAssetSpoke extends Construct {
                 SPOKE_EVENT_BUS_NAME: props.spokeEventBusName,
                 JOBS_BUCKET_NAME: props.bucketName,
                 JOBS_BUCKET_PREFIX: 'jobs',
-                HUB_EVENT_BUS_NAME: dfEventBusArn(props.hubAccountId, region)
+                HUB_EVENT_BUS_NAME: dfEventBusArn(props.hubAccountId, region),
+                SPOKE_GLUE_DATABASE_NAME: glueDatabase.databaseName
             },
             bundling: {
                 minify: true,

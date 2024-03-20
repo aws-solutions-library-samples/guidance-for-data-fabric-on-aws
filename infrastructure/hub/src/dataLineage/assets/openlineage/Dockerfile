@@ -1,4 +1,4 @@
-ARG MARQUEZ_VERSION_TAG=0.43.1
+ARG MARQUEZ_VERSION_TAG=0.32.0
 FROM --platform=linux/amd64 marquezproject/marquez:${MARQUEZ_VERSION_TAG}
 
 WORKDIR /usr/src/app

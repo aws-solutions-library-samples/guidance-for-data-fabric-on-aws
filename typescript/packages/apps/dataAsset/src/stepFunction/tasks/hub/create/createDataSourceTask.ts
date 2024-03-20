@@ -5,6 +5,7 @@ import { type DataZoneClient, ListDataSourcesCommand, CreateDataSourceCommand, C
 import { getConnectionType, getResourceArn } from '../../../../common/utils.js';
 // import type { S3Utils } from '../../../../common/s3Utils.js';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
+import { OpenLineageBuilder } from '@df/events';
 
 export class CreateDataSourceTask {
 
@@ -22,6 +23,9 @@ export class CreateDataSourceTask {
 
 		let dataSourceId = undefined;
 		// Check to see if data source exists
+
+		const resourceName = getResourceArn(event.dataAsset.workflow);
+
 		const dataSources = await this.dzClient.send(new ListDataSourcesCommand({
 			domainIdentifier: event.dataAsset.catalog.domainId,
 			environmentIdentifier: event.dataAsset.catalog.environmentId,
@@ -29,15 +33,18 @@ export class CreateDataSourceTask {
 			name: getResourceArn(event.dataAsset.workflow) //use the arn of the resource as the data source name in order to reuse the same data source for different assets
 		}));
 
+		// At the moment the ListDataSources API sometimes return a result eventhough the data source name is different.
+		const existingDataSource = dataSources.items.find(o => o.name === resourceName);
+
 		this.log.info(`CreateDataSourceTask > process > in > dataSources: ${JSON.stringify(dataSources)}`);
 
 		// Create Data source if it does not exists
-		if (!dataSources?.items[0]) {
-			const params  = await this.constructDataSourceCommand(event);
+		if (!existingDataSource) {
+			const params = await this.constructDataSourceCommand(event);
 			const dataSource = await this.dzClient.send(new CreateDataSourceCommand(params));
 			dataSourceId = dataSource.id;
 		} else {
-			dataSourceId = dataSources.items[0].dataSourceId
+			dataSourceId = existingDataSource.dataSourceId
 		}
 
 		// We set the datasource id for future lookup 
@@ -48,23 +55,10 @@ export class CreateDataSourceTask {
 
 		await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken: event.execution.taskToken }));
 
-		// Run data source
-
-		// const run = await this.dzClient.send(new StartDataSourceRunCommand({
-		// 	dataSourceIdentifier: dataSourceId,
-		// 	domainIdentifier: event.dataAsset.catalog.domainId,
-		// }))
-		// event.dataAsset['execution']['dataSourceRun'] = {
-		// 	id: run.id,
-		// 	startTime: run.startedAt.toDateString(),
-		// 	status: run.status
-		// }
-
 		// We are not able tto use tags with data zone resources so we will use the runId instead
 		// this.s3Utils.putTaskData(TaskType.CreateDataSourceTask,run.id, event);
-		this.log.info(`CreateStartTask > process > exit`);
-		// await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken: event.execution.taskToken }));
 
+		this.log.info(`CreateStartTask > process > exit`);
 	}
 
 	private async constructDataSourceCommand(event: DataAssetTask): Promise<CreateDataSourceCommandInput> {
@@ -131,25 +125,21 @@ export class CreateDataSourceTask {
 								}]
 							}
 
-						],
-						dataAccessRole: event.dataAsset.workflow.roleArn
-
+						]
 					}
 				}
 
 				break;
 		}
 
-
-
 		// Construct the Data Source based on the connection type
-
 		const dataSource: CreateDataSourceCommandInput = {
 			domainIdentifier: event.dataAsset.catalog.domainId,
 			environmentIdentifier: event.dataAsset.catalog.environmentId,
 			projectIdentifier: event.dataAsset.catalog.projectId,
 			name: getResourceArn(event.dataAsset.workflow),
-			type: connectionType,
+			// TODO: has to see what is the valid option
+			type: connectionType === 'dataLake' ? 'GLUE' : connectionType,
 			configuration,
 			enableSetting: 'ENABLED',
 			publishOnImport: event.dataAsset.catalog.autoPublish,
@@ -157,14 +147,16 @@ export class CreateDataSourceTask {
 			assetFormsInput: [
 				{
 					formName: 'df_profile_form',
-					typeIdentifier:'df_profile_form',
+					typeIdentifier: 'df_profile_form',
 					content: JSON.stringify({
-						task_id : event.dataAsset.id,
+						task_id: event.dataAsset.id,
 						data_profile_location: event.dataAsset.execution.dataProfileJob.outputPath,
-						data_quality_profile_location: event.dataAsset.execution?.dataQualityProfileJob?.outputPath
+						data_quality_profile_location: event.dataAsset.execution?.dataQualityProfileJob?.outputPath,
+						lineage_asset_name: event.dataAsset.catalog.assetName,
+						lineage_asset_namespace: OpenLineageBuilder.getDomainNamespace({ name: event.dataAsset.catalog.domainName, id: event.dataAsset.catalog.domainId })
 					})
 				}
-			]	
+			]
 		};
 		this.log.info(`CreateDataSourceTask > constructDataSourceCommand > exit > dataSource: ${JSON.stringify(dataSource)}`);
 
