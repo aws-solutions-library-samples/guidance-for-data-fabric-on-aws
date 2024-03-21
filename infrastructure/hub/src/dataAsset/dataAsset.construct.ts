@@ -142,6 +142,16 @@ export class DataAsset extends Construct {
             resources: [`*`]
         });
 
+        const DataZoneProjectPolicy = new PolicyStatement({
+            actions: [
+                'datazone:CreateProject',
+                'datazone:ListProjects',
+                'datazone:CreateFormType',
+                'datazone:GetFormType'
+            ],
+            resources: [`*`]
+        });
+
         const startCreateFlowLambda = new NodejsFunction(this, 'StartCreateFlowLambda', {
             description: 'Asset Manager Handler for Start Asset Creation flow',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/start.handler.ts'),
@@ -185,11 +195,52 @@ export class DataAsset extends Construct {
             outputPath: '$.dataAsset'
         });
 
-
         const createDataSourceLambda = new NodejsFunction(this, 'CreateDataSourceLambda', {
             description: 'Create the datazone data source as part of the asset creation flow',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/createDataSource.handler.ts'),
             functionName: `${namePrefix}-${props.moduleName}-createDataSource`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+        createDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        createDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
+
+        const createDataSourceTask = new LambdaInvoke(this, 'CreateDataSourceTask', {
+            lambdaFunction: createDataSourceLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        DataZoneProjectPolicy
+
+        const createProjectLambda = new NodejsFunction(this, 'CreateProjectLambda', {
+            description: 'Create the default datazone project and metadata forms if necessary',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/createProject.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-createProject`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             memorySize: 512,
@@ -210,11 +261,11 @@ export class DataAsset extends Construct {
             depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
             architecture: getLambdaArchitecture(scope)
         });
-        createDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
-        createDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
+        createProjectLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        createProjectLambda.addToRolePolicy(DataZoneProjectPolicy);
 
-        const createDataSourceTask = new LambdaInvoke(this, 'CreateDataSourceTask', {
-            lambdaFunction: createDataSourceLambda,
+        const createProjectTask = new LambdaInvoke(this, 'CreateProjectTask', {
+            lambdaFunction: createProjectLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
@@ -359,6 +410,7 @@ export class DataAsset extends Construct {
         const dataAssetCreateStateMachine = new StateMachine(this, 'DataAssetCreateStateMachine', {
             definitionBody: DefinitionBody.fromChainable(
                 startTask
+                    .next(createProjectTask)
                     .next(createDataSourceTask)
                     .next(waitForDataSourceReady)
                     .next(verifyDataSourceTask)
@@ -753,7 +805,7 @@ export class DataAsset extends Construct {
             ],
             true);
 
-        NagSuppressions.addResourceSuppressions([startCreateFlowLambda, createDataSourceLambda, verifyDataSourceLambda, runDataSourceLambda, publishLineageLambda],
+        NagSuppressions.addResourceSuppressions([startCreateFlowLambda, createDataSourceLambda, verifyDataSourceLambda, runDataSourceLambda, publishLineageLambda, createProjectLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -794,6 +846,7 @@ export class DataAsset extends Construct {
                     appliesTo: [
                         'Resource::<DataAssetHubPublishLineageLambda5C9E11C9.Arn>:*',
                         'Resource::<DataAssetHubStartCreateFlowLambdaEDB66652.Arn>:*',
+                        'Resource::<DataAssetHubCreateProjectLambda4A8F9CB6.Arn>:*',
                         'Resource::<DataAssetHubCreateDataSourceLambda4D6946C7.Arn>:*',
                         'Resource::<DataAssetHubVerifyDataSourceLambda07A58D99.Arn>:*',
                         'Resource::<DataAssetHubRunDataSourceLambdaF6EEC600.Arn>:*'
