@@ -205,6 +205,7 @@ export const execution = Type.Object({
 
 export const dataAssetTaskResource = Type.Object({
     id,
+    idcUserId: Type.String({description: "The user's IAM Identity Center User ID."}),
     catalog,
     workflow,
 }, {$id: 'dataAssetTaskResource'});

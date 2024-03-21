@@ -111,6 +111,7 @@ export class DataAssetTaskRepository {
 
         return {
             id: item['id'],
+            idcUserId: item['idcUserId'],
             catalog: item['catalog'],
             workflow: item['workflow'],
         };

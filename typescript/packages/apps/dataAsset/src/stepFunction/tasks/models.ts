@@ -43,6 +43,7 @@ export type DataAssetExecution = {
 
 export type DataAssetDetails = {
     id: string,
+    idcUserId: string,
     catalog: DataAssetCatalog,
     workflow: Workflow,
     execution?: DataAssetExecution,

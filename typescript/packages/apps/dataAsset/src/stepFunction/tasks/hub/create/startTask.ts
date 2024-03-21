@@ -16,6 +16,7 @@ import {
 import { getConnectionType } from "../../../../common/utils.js";
 import { type DataZoneClient, GetListingCommand } from '@aws-sdk/client-datazone';
 import type { DataZoneInput, OpenLineageInput } from '../../../../api/dataAssetTask/schemas.js';
+import type { DataZoneUserAuthClientFactory } from '../../../../plugins/module.awilix.js';
 
 export class StartTask {
 
@@ -23,12 +24,14 @@ export class StartTask {
         private log: BaseLogger,
         private eventBusName: string,
         private eventPublisher: EventPublisher,
-        private dzClient: DataZoneClient
+        private dataZoneUserAuthClientFactory: DataZoneUserAuthClientFactory
     ) {
     }
 
     public async process(event: DataAssetTask): Promise<any> {
         this.log.info(`StartTask > process > in > event: ${JSON.stringify(event)}`);
+
+        const userAuthDzClient: DataZoneClient = await this.dataZoneUserAuthClientFactory.create(event.dataAsset.idcUserId, event.dataAsset.catalog.domainId);
 
         event.dataAsset.execution = {
             hubExecutionId: event.execution.executionId,
@@ -37,7 +40,7 @@ export class StartTask {
             hubTaskToken: event.execution.taskToken,
         }
 
-        const externalInputs = await this.assembleExternalInputs(event.dataAsset.workflow.externalInputs);
+        const externalInputs = await this.assembleExternalInputs(event.dataAsset.workflow.externalInputs, userAuthDzClient);
         const lineageRunStartEventPayload = this.constructLineage(event, externalInputs);
         if (!event.dataAsset.lineage) {
             event.dataAsset.lineage = {
@@ -72,7 +75,7 @@ export class StartTask {
     }
 
 
-    private async assembleExternalInputs(inputs: DataZoneInput[] | OpenLineageInput[]): Promise<DataFabricInput[]> {
+    private async assembleExternalInputs(inputs: DataZoneInput[] | OpenLineageInput[], dzClient: DataZoneClient): Promise<DataFabricInput[]> {
         this.log.info(`StartTask > assembleExternalInputs > in > inputs: ${JSON.stringify(inputs)}`);
 
         const externalInputs: DataFabricInput[] = []
@@ -81,7 +84,7 @@ export class StartTask {
                 return inputs.map(o => ({type: 'DataFabric', ...o}))
             } else {
                 const getListingFutures = inputs.map(o => {
-                    return this.dzClient.send(new GetListingCommand({domainIdentifier: o.domainId, identifier: o.assetListingId, listingRevision: o.revision}))
+                    return dzClient.send(new GetListingCommand({domainIdentifier: o.domainId, identifier: o.assetListingId, listingRevision: o.revision}))
                 })
 
                 // TODO: add pLimit

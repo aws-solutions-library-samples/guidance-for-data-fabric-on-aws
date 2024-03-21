@@ -8,6 +8,7 @@ import type { DataAssetTaskRepository } from "./repository.js";
 import { NotFoundError } from "@df/resource-api-base";
 import type { DataZoneClient } from "@aws-sdk/client-datazone";
 import { GetDomainCommand } from "@aws-sdk/client-datazone";
+import {IdentitystoreClient, GetUserIdCommand} from "@aws-sdk/client-identitystore";
 
 export class DataAssetTasksService {
 
@@ -16,7 +17,9 @@ export class DataAssetTasksService {
         private readonly sfnClient: SFNClient,
         private readonly createAssetStateMachineArn: string,
         private readonly dataAssetTaskRepository: DataAssetTaskRepository,
-        private readonly dzClient: DataZoneClient
+        private readonly dzClient: DataZoneClient,
+        private readonly identityStoreClient: IdentitystoreClient,
+        private readonly identityStoreId: string,
     ) {
     }
 
@@ -29,8 +32,22 @@ export class DataAssetTasksService {
         this.validateCatalog(asset.catalog);
         this.validateWorkflow(asset.workflow);
 
+        const cognitoUserId = securityContext.userId;
+        const identityStoreUserId = await this.identityStoreClient.send(
+            new GetUserIdCommand({
+              IdentityStoreId: this.identityStoreId,
+              AlternateIdentifier: {
+                UniqueAttribute: {
+                  AttributePath: "Username",
+                  AttributeValue: cognitoUserId,
+                },
+              },
+            })
+          );
+    
         const fullAsset: DataAssetTaskResource = {
             id: ulid().toLowerCase(),
+            idcUserId: identityStoreUserId.UserId,
             catalog: asset.catalog,
             workflow: asset.workflow
         }

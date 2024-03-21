@@ -27,6 +27,7 @@
 		"@aws-sdk/client-sts": "3.370.0",
 		"@aws-sdk/client-ssm": "3.370.0",
 		"@aws-sdk/client-secrets-manager": "3.370.0",
+		"@aws-sdk/client-identitystore": "3.515.0",
 		"@aws-sdk/client-datazone": "3.515.0",
 		"@aws-sdk/client-glue": "3.370.0",
 		"@aws-sdk/client-databrew": "3.370.0",

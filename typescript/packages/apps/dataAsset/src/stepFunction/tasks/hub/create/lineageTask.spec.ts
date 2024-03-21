@@ -19,6 +19,7 @@ describe('LineageTask', () => {
         await task.process({
             dataAsset: {
                 id: "",
+                idcUserId: "",
                 catalog: {
                     domainId: "1111",
                     domainName: "sample_domain_name",

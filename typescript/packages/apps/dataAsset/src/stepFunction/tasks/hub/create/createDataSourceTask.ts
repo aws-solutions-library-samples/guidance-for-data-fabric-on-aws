@@ -6,12 +6,13 @@ import { getConnectionType, getResourceArn } from '../../../../common/utils.js';
 // import type { S3Utils } from '../../../../common/s3Utils.js';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
 import { OpenLineageBuilder } from '@df/events';
+import type { DataZoneUserAuthClientFactory } from '../../../../plugins/module.awilix.js';
 
 export class CreateDataSourceTask {
 
 	constructor(
 		private log: BaseLogger,
-		private dzClient: DataZoneClient,
+        private dataZoneUserAuthClientFactory: DataZoneUserAuthClientFactory,
 		// private readonly s3Utils: S3Utils,
 		private readonly sfnClient: SFNClient
 	) {
@@ -21,12 +22,14 @@ export class CreateDataSourceTask {
 	public async process(event: DataAssetTask): Promise<any> {
 		this.log.info(`CreateDataSourceTask > process > in > event: ${JSON.stringify(event)}`);
 
+		const userAuthDzClient: DataZoneClient = await this.dataZoneUserAuthClientFactory.create(event.dataAsset.idcUserId, event.dataAsset.catalog.domainId);
+
 		let dataSourceId = undefined;
 		// Check to see if data source exists
 
 		const resourceName = getResourceArn(event.dataAsset.workflow);
 
-		const dataSources = await this.dzClient.send(new ListDataSourcesCommand({
+		const dataSources = await userAuthDzClient.send(new ListDataSourcesCommand({
 			domainIdentifier: event.dataAsset.catalog.domainId,
 			environmentIdentifier: event.dataAsset.catalog.environmentId,
 			projectIdentifier: event.dataAsset.catalog.projectId,
@@ -41,7 +44,7 @@ export class CreateDataSourceTask {
 		// Create Data source if it does not exists
 		if (!existingDataSource) {
 			const params = await this.constructDataSourceCommand(event);
-			const dataSource = await this.dzClient.send(new CreateDataSourceCommand(params));
+			const dataSource = await userAuthDzClient.send(new CreateDataSourceCommand(params));
 			dataSourceId = dataSource.id;
 		} else {
 			dataSourceId = existingDataSource.dataSourceId

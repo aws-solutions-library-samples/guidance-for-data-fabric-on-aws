@@ -41,6 +41,7 @@ import { DataAssetTasksService } from "../api/dataAssetTask/service.js";
 import { DataAssetTaskRepository } from "../api/dataAssetTask/repository.js";
 import { DynamoDBDocumentClient, TranslateConfig } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { IdentitystoreClient } from "@aws-sdk/client-identitystore";
 import { JobEventProcessor } from "../events/spoke/job.eventProcessor.js";
 import { DataZoneEventProcessor } from '../events/hub/datazone.eventProcessor.js';
 import { VerifyDataSourceTask } from '../stepFunction/tasks/hub/create/verifyDataSourceTask.js';
@@ -63,6 +64,7 @@ declare module '@fastify/awilix' {
         hubEventProcessor: HubEventProcessor;
         dataZoneEventProcessor:DataZoneEventProcessor
         eventBridgeClient: EventBridgeClient;
+        identityStoreClient: IdentitystoreClient;
         dynamoDbUtils: DynamoDbUtils;
         stepFunctionClient: SFNClient;
         stsClient: STSClient;
@@ -127,6 +129,13 @@ class EventBridgeClientFactory {
     public static create(region: string | undefined): EventBridgeClient {
         const eb = captureAWSv3Client(new EventBridgeClient({region}));
         return eb;
+    }
+}
+
+class IdentityStoreClientFactory {
+    public static create(region: string | undefined): IdentitystoreClient {
+        const is = captureAWSv3Client(new IdentitystoreClient({region}));
+        return is;
     }
 }
 
@@ -251,6 +260,7 @@ const registerContainer = (app?: FastifyInstance) => {
     const TableName = process.env['TABLE_NAME'];
     const customDataZoneUserExecutionRoleArn = process.env['CUSTOM_DATAZONE_USER_EXECUTION_ROLE_ARN'];
     const GlueDatabaseName = process.env['SPOKE_GLUE_DATABASE_NAME'];
+    const identityStoreId = process.env['IDENTITY_STORE_ID'];
 
     diContainer.register({
 
@@ -258,6 +268,11 @@ const registerContainer = (app?: FastifyInstance) => {
         eventBridgeClient: asFunction(() => EventBridgeClientFactory.create(awsRegion), {
             ...commonInjectionOptions
         }),
+
+        identityStoreClient: asFunction(() => IdentityStoreClientFactory.create(awsRegion), {
+            ...commonInjectionOptions
+        }),
+
         stepFunctionClient: asFunction(() => StepFunctionClientFactory.create(awsRegion), {
             ...commonInjectionOptions
         }),
@@ -411,7 +426,9 @@ const registerContainer = (app?: FastifyInstance) => {
                     container.stepFunctionClient,
                     hubCreateStateMachineArn,
                     container.dataAssetTaskRepository,
-                    container.dataZoneClient
+                    container.dataZoneClient,
+                    container.identityStoreClient,
+                    identityStoreId
                 ),
             {
                 ...commonInjectionOptions,
@@ -430,7 +447,7 @@ const registerContainer = (app?: FastifyInstance) => {
         ),
 
         // Hub Tasks
-        hubCreateStartTask: asFunction((container: Cradle) => new HubCreateStartTask(app.log, hubEventBusName, container.hubEventPublisher, container.dataZoneClient), {
+        hubCreateStartTask: asFunction((container: Cradle) => new HubCreateStartTask(app.log, hubEventBusName, container.hubEventPublisher, container.dataZoneUserAuthClientFactory), {
             ...commonInjectionOptions
         }),
 
@@ -442,15 +459,15 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneClient, container.stepFunctionClient), {
+        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneUserAuthClientFactory, container.stepFunctionClient), {
             ...commonInjectionOptions
         }),
 
-        verifyDataSourceTask: asFunction((container: Cradle) => new VerifyDataSourceTask(app.log, container.dataZoneClient), {
+        verifyDataSourceTask: asFunction((container: Cradle) => new VerifyDataSourceTask(app.log, container.dataZoneUserAuthClientFactory), {
             ...commonInjectionOptions
         }),
 
-        runDataSourceTask: asFunction((container: Cradle) => new RunDataSourceTask(app.log, container.dataZoneClient, container.hubS3Utils), {
+        runDataSourceTask: asFunction((container: Cradle) => new RunDataSourceTask(app.log, container.dataZoneUserAuthClientFactory, container.hubS3Utils), {
             ...commonInjectionOptions
         }),
 
