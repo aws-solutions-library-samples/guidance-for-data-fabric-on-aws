@@ -75,11 +75,6 @@ export const authzPlugin = fp(async (app: any): Promise<void> => {
             userId = identities.userId;
         } else {
 
-            req.authz = {
-                email:'willsia@amazon.com',
-                userId: '123445',
-            };
-            return;
             // if in local mode, to simplify local development we extract from user provided headers
             app.log.warn(`authz> onRequest> running in local development mode which means Cognito authorization is not enabled!!!`);
 
