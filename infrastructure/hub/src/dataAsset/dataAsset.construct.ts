@@ -454,7 +454,8 @@ export class DataAsset extends Construct {
                 TABLE_NAME: table.tableName,
                 WORKER_QUEUE_URL: 'not used',
                 HUB_CREATE_STATE_MACHINE_ARN: dataAssetCreateStateMachine.stateMachineArn,
-                CUSTOM_DATAZONE_USER_EXECUTION_ROLE_ARN: customDataZoneRole.roleArn
+                CUSTOM_DATAZONE_USER_EXECUTION_ROLE_ARN: customDataZoneRole.roleArn,
+                IDENTITY_STORE_ID: props.identityStoreId
             },
 
             bundling: {
