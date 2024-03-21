@@ -113,7 +113,7 @@ export class CreateDataSourceTask {
 				break;
 
 			default:
-				// we run the data source against our default glue table
+				// we run the data source against our default glue database
 				configuration = {
 					glueRunConfiguration: {
 						relationalFilterConfigurations: [

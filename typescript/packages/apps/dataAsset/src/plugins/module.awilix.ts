@@ -45,6 +45,7 @@ import { JobEventProcessor } from "../events/spoke/job.eventProcessor.js";
 import { DataZoneEventProcessor } from '../events/hub/datazone.eventProcessor.js';
 import { VerifyDataSourceTask } from '../stepFunction/tasks/hub/create/verifyDataSourceTask.js';
 import { RunDataSourceTask } from '../stepFunction/tasks/hub/create/runDataSourceTask.js';
+import { CreateProjectTask } from '../stepFunction/tasks/hub/create/createProjectTask.js';
 
 const {captureAWSv3Client} = pkg;
 
@@ -89,6 +90,7 @@ declare module '@fastify/awilix' {
         verifyDataSourceTask: VerifyDataSourceTask,
         runDataSourceTask: RunDataSourceTask,
         hubLineageTask: HubLineageTask
+        createProjectTask: CreateProjectTask,
 
         //Spoke Tasks
         spokeCreateStartTask: SpokeCreateStartTask
@@ -433,6 +435,10 @@ const registerContainer = (app?: FastifyInstance) => {
         }),
 
         spokeResponseTask: asFunction((container: Cradle) => new SpokeResponseTask(app.log, container.stepFunctionClient), {
+            ...commonInjectionOptions
+        }),
+
+        createProjectTask: asFunction((container: Cradle) => new CreateProjectTask(app.log, container.dataZoneClient, container.stepFunctionClient), {
             ...commonInjectionOptions
         }),
 

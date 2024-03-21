@@ -123,7 +123,8 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             stackName: stackName('dataAsset'),
             description: stackDescription('DataAsset'),
             moduleName: 'dataAsset',
-            orgPath: orgPath
+            orgPath: orgPath,
+            identityStoreId: identityStoreId
         });
         dataAsset.node.addDependency(sharedStack);
     }

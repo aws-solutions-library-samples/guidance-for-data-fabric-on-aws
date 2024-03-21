@@ -12,7 +12,7 @@ import { Construct } from 'constructs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
-import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { AnyPrincipal, ArnPrincipal, Effect, ManagedPolicy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ASSET_SPOKE_JOB_START_EVENT, DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED, DATA_ZONE_EVENT_SOURCE } from '@df/events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
@@ -29,6 +29,7 @@ export type DataAssetConstructProperties = {
     cognitoUserPoolId: string;
     orgPath: OrganizationUnitPath;
     bucketName: string;
+    identityStoreId: string;
 };
 
 
@@ -87,6 +88,14 @@ export class DataAsset extends Construct {
         this.tableArn = table.tableArn;
 
 
+        const XRayPutTelemetryPolicy = new PolicyStatement({
+            actions: [
+                "xray:PutTelemetryRecords",
+                "xray:PutTraceSegments"
+            ],
+            resources: [`*`]
+        });
+
         const DataZoneAssetReadPolicy = new PolicyStatement({
             actions: [
                 'datazone:GetAsset',
@@ -129,6 +138,16 @@ export class DataAsset extends Construct {
                 'datazone:ListDataSourceRunActivities',
                 'datazone:ListDataSources',
                 'datazone:GetListing'
+            ],
+            resources: [`*`]
+        });
+
+        const DataZoneProjectPolicy = new PolicyStatement({
+            actions: [
+                'datazone:CreateProject',
+                'datazone:ListProjects',
+                'datazone:CreateFormType',
+                'datazone:GetFormType'
             ],
             resources: [`*`]
         });
@@ -176,11 +195,52 @@ export class DataAsset extends Construct {
             outputPath: '$.dataAsset'
         });
 
-
         const createDataSourceLambda = new NodejsFunction(this, 'CreateDataSourceLambda', {
             description: 'Create the datazone data source as part of the asset creation flow',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/createDataSource.handler.ts'),
             functionName: `${namePrefix}-${props.moduleName}-createDataSource`,
+            runtime: Runtime.NODEJS_18_X,
+            tracing: Tracing.ACTIVE,
+            memorySize: 512,
+            logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.minutes(5),
+            environment: {
+            },
+            bundling: {
+                minify: true,
+                format: OutputFormat.ESM,
+                target: 'node18.16',
+                sourceMap: false,
+                sourcesContent: false,
+                banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+                externalModules: ['aws-sdk', 'pg-native']
+            },
+            depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+            architecture: getLambdaArchitecture(scope)
+        });
+        createDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        createDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
+
+        const createDataSourceTask = new LambdaInvoke(this, 'CreateDataSourceTask', {
+            lambdaFunction: createDataSourceLambda,
+            integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            payload: TaskInput.fromObject({
+                'dataAsset.$': '$',
+                'execution': {
+                    'executionStartTime.$': '$$.Execution.StartTime',
+                    'executionArn.$': '$$.Execution.Id',
+                    'taskToken': JsonPath.taskToken
+                }
+            }),
+            outputPath: '$.dataAsset'
+        });
+
+        DataZoneProjectPolicy
+
+        const createProjectLambda = new NodejsFunction(this, 'CreateProjectLambda', {
+            description: 'Create the default datazone project and metadata forms if necessary',
+            entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/createProject.handler.ts'),
+            functionName: `${namePrefix}-${props.moduleName}-createProject`,
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
             memorySize: 512,
@@ -201,11 +261,11 @@ export class DataAsset extends Construct {
             depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
             architecture: getLambdaArchitecture(scope)
         });
-        createDataSourceLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
-        createDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
+        createProjectLambda.addToRolePolicy(SFNSendTaskSuccessPolicy);
+        createProjectLambda.addToRolePolicy(DataZoneProjectPolicy);
 
-        const createDataSourceTask = new LambdaInvoke(this, 'CreateDataSourceTask', {
-            lambdaFunction: createDataSourceLambda,
+        const createProjectTask = new LambdaInvoke(this, 'CreateProjectTask', {
+            lambdaFunction: createProjectLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
@@ -350,6 +410,7 @@ export class DataAsset extends Construct {
         const dataAssetCreateStateMachine = new StateMachine(this, 'DataAssetCreateStateMachine', {
             definitionBody: DefinitionBody.fromChainable(
                 startTask
+                    .next(createProjectTask)
                     .next(createDataSourceTask)
                     .next(waitForDataSourceReady)
                     .next(verifyDataSourceTask)
@@ -365,13 +426,24 @@ export class DataAsset extends Construct {
         });
 
         this.createStateMachineArn = dataAssetCreateStateMachine.stateMachineArn;
-
+        
+        
         /**
          * Define the API Lambda
-         */
+        */
+        const apiLambdaExecutionRole = new Role(this, 'ApiLambdaRole', {
+            assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+        });
+        apiLambdaExecutionRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this, 'AWSLambdaBasicExecutionRole', 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'))
+        apiLambdaExecutionRole.addToPrincipalPolicy(XRayPutTelemetryPolicy);
+       const customDataZoneRole = new Role(this, 'CustomDataZoneRole', {
+           assumedBy: new ArnPrincipal(apiLambdaExecutionRole.roleArn), // Empty placeholder to allow this to be created before the apiLambda
+           description: 'Custom Data Zone Role',
+       });
         const apiLambda = new NodejsFunction(this, 'Apilambda', {
             functionName: `${namePrefix}-${props.moduleName}-api`,
             description: `Data Asset API`,
+            role: apiLambdaExecutionRole,
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/lambda_apiGateway.ts'),
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
@@ -381,7 +453,8 @@ export class DataAsset extends Construct {
                 EVENT_BUS_NAME: props.eventBusName,
                 TABLE_NAME: table.tableName,
                 WORKER_QUEUE_URL: 'not used',
-                HUB_CREATE_STATE_MACHINE_ARN: dataAssetCreateStateMachine.stateMachineArn
+                HUB_CREATE_STATE_MACHINE_ARN: dataAssetCreateStateMachine.stateMachineArn,
+                CUSTOM_DATAZONE_USER_EXECUTION_ROLE_ARN: customDataZoneRole.roleArn
             },
 
             bundling: {
@@ -406,6 +479,47 @@ export class DataAsset extends Construct {
 
 
         this.functionName = apiLambda.functionName;
+
+        const DataZoneAssumeCustomRolePolicy = new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: [
+                'sts:AssumeRole',
+                'sts:TagSession'
+            ],
+            resources: [`${customDataZoneRole.roleArn}`]
+        });
+        apiLambda.addToRolePolicy(DataZoneAssumeCustomRolePolicy);
+
+        customDataZoneRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this, 'DZDomainExecutionPolicy', 'arn:aws:iam::aws:policy/service-role/AmazonDataZoneDomainExecutionRolePolicy'))
+        customDataZoneRole.addToPrincipalPolicy(new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: [ "iam:GetRole",
+                       "iam:GetUser"],
+            resources: [ '*' ]
+        }));
+        customDataZoneRole.assumeRolePolicy?.addStatements(
+            new PolicyStatement({
+                actions: [
+                    'sts:AssumeRole',
+                    'sts:TagSession'
+                ],
+                principals: [new ArnPrincipal(apiLambda.role?.roleArn!)]
+            })
+        )
+
+        apiLambda.addToRolePolicy(
+            new PolicyStatement({
+              effect: Effect.ALLOW,
+              actions: ["identitystore:IsMemberInGroups", "identitystore:GetUserId"],
+              resources: [
+                `arn:aws:identitystore::${accountId}:identitystore/${props.identityStoreId}`,
+                `arn:aws:identitystore:::user/*`,
+                `arn:aws:identitystore:::group/*`,
+                `arn:aws:identitystore:::membership/*`,
+              ],
+            })
+          );
+      
 
         /**
          * Define the API Gateway
@@ -635,11 +749,11 @@ export class DataAsset extends Construct {
         });
 
 
-        NagSuppressions.addResourceSuppressions([apiLambda, hubEventProcessorLambda],
+        NagSuppressions.addResourceSuppressions([apiLambdaExecutionRole, customDataZoneRole, hubEventProcessorLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
-                    appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+                    appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole', 'Policy::arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole', 'Policy::arn:aws:iam::aws:policy/service-role/AmazonDataZoneDomainExecutionRolePolicy'],
                     reason: 'This policy is the one generated by CDK.'
 
                 },
@@ -654,7 +768,11 @@ export class DataAsset extends Construct {
                         'Resource::arn:<AWS::Partition>:s3:::<SsmParameterValuedfsharedbucketNameC96584B6F00A464EAD1953AFF4B05118Parameter>/*',
                         'Action::s3:GetBucket*',
                         'Action::s3:GetObject*',
-                        'Action::s3:List*'
+                        'Action::s3:List*',
+                        'Resource::arn:aws:identitystore:::group/*',
+                        'Resource::arn:aws:identitystore:::membership/*',
+                        'Resource::arn:aws:identitystore:::user/*',
+
 
                     ],
                     reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments actions.'
@@ -687,7 +805,7 @@ export class DataAsset extends Construct {
             ],
             true);
 
-        NagSuppressions.addResourceSuppressions([startCreateFlowLambda, createDataSourceLambda, verifyDataSourceLambda, runDataSourceLambda, publishLineageLambda],
+        NagSuppressions.addResourceSuppressions([startCreateFlowLambda, createDataSourceLambda, verifyDataSourceLambda, runDataSourceLambda, publishLineageLambda, createProjectLambda],
             [
                 {
                     id: 'AwsSolutions-IAM4',
@@ -728,6 +846,7 @@ export class DataAsset extends Construct {
                     appliesTo: [
                         'Resource::<DataAssetHubPublishLineageLambda5C9E11C9.Arn>:*',
                         'Resource::<DataAssetHubStartCreateFlowLambdaEDB66652.Arn>:*',
+                        'Resource::<DataAssetHubCreateProjectLambda4A8F9CB6.Arn>:*',
                         'Resource::<DataAssetHubCreateDataSourceLambda4D6946C7.Arn>:*',
                         'Resource::<DataAssetHubVerifyDataSourceLambda07A58D99.Arn>:*',
                         'Resource::<DataAssetHubRunDataSourceLambdaF6EEC600.Arn>:*'

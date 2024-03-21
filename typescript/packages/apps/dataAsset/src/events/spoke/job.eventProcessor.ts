@@ -1,4 +1,4 @@
-import {  DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT, EventBridgeEventBuilder, EventPublisher, type JobStateChangeEvent, OpenLineageBuilder, ProfilingResult, type RunEvent, DATA_LINEAGE_SPOKE_EVENT_SOURCE } from '@df/events';
+import { DATA_LINEAGE_DIRECT_SPOKE_INGESTION_REQUEST_EVENT, DATA_LINEAGE_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder, EventPublisher, type JobStateChangeEvent, OpenLineageBuilder, ProfilingResult, type RunEvent } from '@df/events';
 import { validateNotEmpty } from '@df/validators';
 import type { BaseLogger } from 'pino';
 import { DataBrewClient, DescribeJobCommand, DescribeJobRunCommand, JobType } from '@aws-sdk/client-databrew';
@@ -47,18 +47,25 @@ export class JobEventProcessor {
         } else if (job.Type === JobType.PROFILE) {
 
             taskInput = await this.s3Utils.getTaskData(TaskType.DataProfileTask, id);
+
+            let outputPath: string, profilingResult: ProfilingResult;
+
+            if (event.detail.state === 'SUCCEEDED') {
+                outputPath = this.s3Utils.getProfilingJobOutputPath(id, taskInput.dataAsset.catalog.domainId, taskInput.dataAsset.catalog.projectId);
+                const outputLocation = run.Outputs[0].Location;
+                const response = await this.s3Client.send(new GetObjectCommand({Key: outputLocation.Key, Bucket: outputLocation.Bucket}))
+                profilingResult = JSON.parse(await response.Body.transformToString());
+            }
+
             taskInput.dataAsset.execution.dataProfileJob = {
                 id: event.detail.jobRunId,
                 status: event.detail.state,
                 stopTime: run.CompletedOn.toString(),
                 startTime: run.ExecutionTime.toString(),
                 message: event.detail.message,
-                outputPath: this.s3Utils.getProfilingJobOutputPath(id, taskInput.dataAsset.catalog.domainId, taskInput.dataAsset.catalog.projectId),
+                outputPath
             }
 
-            const outputLocation = run.Outputs[0].Location;
-            const response = await this.s3Client.send(new GetObjectCommand({Key: outputLocation.Key, Bucket: outputLocation.Bucket}))
-            const profilingResult: ProfilingResult = JSON.parse(await response.Body.transformToString());
             const profilingJobArn = `arn:aws:databrew:${event.region}:${event.account}:job/${event.detail.jobName}`
 
             taskInput.dataAsset.lineage.dataProfile = this.constructLineage(taskInput.dataAsset.lineage.dataProfile, profilingJobArn, profilingResult);
@@ -84,22 +91,22 @@ export class JobEventProcessor {
 
     private constructLineage(lineageEvent: Partial<RunEvent>, dataBrewJobArn: string, profilingResult: ProfilingResult): Partial<RunEvent> {
         this.log.info(`JobEventProcessor > constructLineage > in > event: ${JSON.stringify(lineageEvent)}, dataBrewJobArn: ${dataBrewJobArn},  profilingResult: ${JSON.stringify(profilingResult)}`);
-
-        const builder = new OpenLineageBuilder();
-
-        const res = builder
-            .setOpenLineageEvent(lineageEvent)
-            .setProfilingResult({
+        let builder = new OpenLineageBuilder().setOpenLineageEvent(lineageEvent);
+        if (profilingResult === undefined) {
+            builder.setEndJob({
+                endTime: new Date().toISOString(),
+                eventType: 'FAIL'
+            });
+        } else {
+            builder.setProfilingResult({
                 producer: dataBrewJobArn,
                 result: profilingResult
-            })
-            .setEndJob({
+            }).setEndJob({
                 endTime: new Date().toISOString(),
                 eventType: 'COMPLETE'
             });
-
+        }
         this.log.info(`JobEventProcessor > constructLineage > exit>`);
-
-        return res.build()
+        return builder.build()
     }
 }
