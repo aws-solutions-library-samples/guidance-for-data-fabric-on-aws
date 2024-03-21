@@ -1,5 +1,6 @@
 import { AwsLogDriverMode, Cluster, ContainerImage, FargateService, FargateTaskDefinition, LogDriver, Protocol, Secret } from 'aws-cdk-lib/aws-ecs';
 import { Construct } from 'constructs';
+import type { IBucket } from "aws-cdk-lib/aws-s3";
 import type { ISecurityGroup, IVpc } from "aws-cdk-lib/aws-ec2";
 import { Peer, Port } from "aws-cdk-lib/aws-ec2";
 import type { IDatabaseCluster } from "aws-cdk-lib/aws-rds";
@@ -11,7 +12,7 @@ import { DnsRecordType, PrivateDnsNamespace } from 'aws-cdk-lib/aws-servicedisco
 import { ApplicationLoadBalancedFargateService } from 'aws-cdk-lib/aws-ecs-patterns';
 import { AuthenticateCognitoAction } from "aws-cdk-lib/aws-elasticloadbalancingv2-actions";
 import { CfnUserPoolClient, OAuthScope, UserPool, UserPoolClient, UserPoolDomain } from "aws-cdk-lib/aws-cognito";
-import { ApplicationProtocol, ListenerAction } from "aws-cdk-lib/aws-elasticloadbalancingv2";
+import { ApplicationProtocol, ListenerAction, SslPolicy } from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import { Certificate } from "aws-cdk-lib/aws-certificatemanager";
 import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import * as cr from 'aws-cdk-lib/custom-resources';
@@ -21,7 +22,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export interface OpenLineageConstructProperties {
-    vpc: IVpc,
+    accessLogBucket: IBucket;
+    vpc: IVpc;
     openlineageApiCpu: number;
     openlineageApiMemory: number;
     openlineageWebCpu: number;
@@ -135,8 +137,11 @@ export class OpenLineage extends Construct {
                 },
             },
             publicLoadBalancer: true,
-            protocol: ApplicationProtocol.HTTPS
+            protocol: ApplicationProtocol.HTTPS,
+            sslPolicy: SslPolicy.RECOMMENDED_TLS
         });
+
+        openlineageWebService.loadBalancer.logAccessLogs(props.accessLogBucket, 'open-lineage-alb-access-logs');
 
         this.openLineageWebUrl = `https://${openlineageWebService.loadBalancer.loadBalancerDnsName}`;
 

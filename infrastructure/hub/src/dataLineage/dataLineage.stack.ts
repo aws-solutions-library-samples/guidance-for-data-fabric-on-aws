@@ -2,8 +2,9 @@ import * as cdk from 'aws-cdk-lib';
 import { Fn, Stack, StackProps } from 'aws-cdk-lib';
 import type { Construct } from 'constructs';
 import { AuroraDatabase } from './aurora.construct.js';
-import { isolatedSubnetIdListParameter, privateSubnetIdListParameter, publicSubnetIdListParameter, vpcIdParameter } from '../shared/network.construct.js';
+import { accessLogBucketNameParameter, isolatedSubnetIdListParameter, privateSubnetIdListParameter, publicSubnetIdListParameter, vpcIdParameter } from '../shared/network.construct.js';
 import { Vpc } from 'aws-cdk-lib/aws-ec2';
+import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { StringListParameter, StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
 import { clusterNameParameter } from "../shared/compute.construct.js";
@@ -32,6 +33,8 @@ export class DataLineageStack extends Stack {
     constructor(scope: Construct, id: string, props: DataLineageStackProperties) {
         super(scope, id, props);
 
+        const accessLogBucketName = StringParameter.valueForStringParameter(this, accessLogBucketNameParameter);
+
         const vpcId = StringParameter.valueForStringParameter(this, vpcIdParameter);
 
         const isolatedSubnetIds = StringListParameter.valueForTypedListParameter(this, isolatedSubnetIdListParameter);
@@ -45,6 +48,8 @@ export class DataLineageStack extends Stack {
         const userPoolId = StringParameter.valueForStringParameter(this, userPoolIdParameter);
 
         const availabilityZones = cdk.Stack.of(this).availabilityZones;
+
+        const accessLogBucket = Bucket.fromBucketName(this, 'AccessLogBucket', accessLogBucketName);
 
         const vpc = Vpc.fromVpcAttributes(this, 'Vpc', {
             vpcId,
@@ -69,6 +74,7 @@ export class DataLineageStack extends Stack {
         const clusterName = StringParameter.valueForStringParameter(this, clusterNameParameter);
 
         const openLineage = new OpenLineage(this, 'OpenLineage', {
+            accessLogBucket,
             vpc,
             clusterName,
             userPoolDomainName,
