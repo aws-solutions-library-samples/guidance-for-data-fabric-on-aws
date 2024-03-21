@@ -21,7 +21,7 @@ export const updatedAt = Type.String({
 export const state = Type.String({description: 'State of the Data asset.'});
 
 export const format = stringEnum(
-    ['avro', 'csv', 'json', 'parquet', 'orc', 'grok', 'xlsx'],
+    ['avro', 'csv', 'json', 'parquet', 'orc', 'grok', 'excel'],
     'The format of the data set.'
 );
 
