@@ -54,6 +54,7 @@ export class Network extends Construct {
         },
       ],
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      
       enforceSSL: true,
       autoDeleteObjects: props.deleteBucket,
       versioned: !props.deleteBucket,
@@ -61,6 +62,33 @@ export class Network extends Construct {
         ? RemovalPolicy.DESTROY
         : RemovalPolicy.RETAIN,
     });
+
+    const accountId = cdk.Stack.of(this).account;
+
+    accessLogBucket.addToResourcePolicy( new iam.PolicyStatement(
+      {
+        effect: iam.Effect.ALLOW,
+            actions: [
+                's3:PutObject'
+            ],
+            principals: [ 
+              new iam.ArnPrincipal(`arn:aws:iam::${accountId}:root`) // Used for regions available prior 2022
+              // new iam.ServicePrincipal('logdelivery.elasticloadbalancing.amazonaws.com') // Used for regions available after 2022, leaving this here commented out so we can implement if needed
+            ],
+            resources: [`arn:aws:s3:::${accessLogBucketName}/open-lineage-alb-access-logs/AWSLogs/${accountId}/*`]
+        }
+    ));
+
+    // accessLogBucket.addToResourcePolicy( new iam.PolicyStatement(
+    //   {
+    //     effect: iam.Effect.DENY,
+    //     notPrincipals: [
+    //       new iam.ServicePrincipal('logdelivery.elasticloadbalancing.amazonaws.com'),
+    //       new iam.ArnPrincipal(`arn:aws:iam::${accountId}:root`)
+    //     ]
+    //   }
+    // ));
+
 
     new ssm.StringParameter(this, "accessLogBucketNameParameter", {
       parameterName: accessLogBucketNameParameter,
@@ -73,10 +101,16 @@ export class Network extends Construct {
         reason:
           "This is only the access log not the log that contains the vpc traffic information.",
       },
+      {
+        id: "AwsSolutions-S2",
+        reason:
+          "This only contains the ALBs access logs",
+      }
     ]);
 
     if (props.userVpcConfig === undefined) {
       const vpc = new ec2.Vpc(this, "Vpc", {
+        maxAzs: 10,
         subnetConfiguration: [
           {
             name: "isolated-subnet",

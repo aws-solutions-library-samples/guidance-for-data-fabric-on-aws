@@ -141,7 +141,7 @@ export class OpenLineage extends Construct {
             sslPolicy: SslPolicy.RECOMMENDED_TLS
         });
 
-        openlineageWebService.loadBalancer.logAccessLogs(props.accessLogBucket, 'open-lineage-alb-access-logs');
+        // openlineageWebService.loadBalancer.logAccessLogs(props.accessLogBucket, 'open-lineage-alb-access-logs');
 
         this.openLineageWebUrl = `https://${openlineageWebService.loadBalancer.loadBalancerDnsName}`;
 

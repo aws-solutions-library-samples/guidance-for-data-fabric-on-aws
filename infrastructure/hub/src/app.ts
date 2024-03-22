@@ -115,7 +115,12 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             openlineageWebMemory,
             marquezVersionTag,
             loadBalancerCertificateArn,
-            orgPath: orgPath
+            orgPath: orgPath,
+            env: {
+                // The DF_REGION domain variable
+                region: process.env?.['DF_REGION'] || callerEnvironment?.region,
+                account: callerEnvironment?.accountId
+            }
         });
         dataLineage.node.addDependency(sharedStack);
 
