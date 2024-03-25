@@ -1,13 +1,13 @@
 import type { BaseLogger } from 'pino';
 import type { DataAssetTask } from '../../models.js';
-import { type DataZoneClient, CreateProjectCommand, ListProjectsCommand, CreateFormTypeCommand , GetFormTypeCommand  } from '@aws-sdk/client-datazone';
+import { CreateProjectCommand, ListProjectsCommand, CreateFormTypeCommand , GetFormTypeCommand, DataZoneClient  } from '@aws-sdk/client-datazone';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
 
 export class CreateProjectTask {
 
 	constructor(
 		private log: BaseLogger,
-		private dzClient: DataZoneClient,
+		private dataZoneClient: DataZoneClient,
 		private readonly sfnClient: SFNClient
 	) {
 	}
@@ -19,7 +19,7 @@ export class CreateProjectTask {
 		let projectId = undefined;
 
 		// Check to see if project exists
-		const projects = await this.dzClient.send(new ListProjectsCommand({
+		const projects = await this.dataZoneClient.send(new ListProjectsCommand({
 			domainIdentifier: event.dataAsset.catalog.domainId,
 			name: projectName
 		}));
@@ -31,7 +31,7 @@ export class CreateProjectTask {
 		// Create project if it does not exists
 		if (!existingProject) {
 			this.log.info(`CreateProjectsTask > process > creating project ${projectName} !!!`);
-			const project = await this.dzClient.send(new CreateProjectCommand({
+			const project = await this.dataZoneClient.send(new CreateProjectCommand({
 				domainIdentifier: event.dataAsset.catalog.domainId,
 				name: projectName,
 				description: "default project created to store metadata forms"
@@ -45,14 +45,14 @@ export class CreateProjectTask {
 
 		// We set create the meta data forms if they dont exist 
 		try {
-			await this.dzClient.send(new GetFormTypeCommand({
+			await this.dataZoneClient.send(new GetFormTypeCommand({
 				domainIdentifier: event.dataAsset.catalog.domainId,
 				formTypeIdentifier: `df_profile_form`
 			}))
 		} catch( error) {
 			this.log.info(`CreateProjectsTask > process >error ${JSON.stringify(error)} !!!`);
 			//if for type not found then create it
-			await this.dzClient.send(new CreateFormTypeCommand({
+			await this.dataZoneClient.send(new CreateFormTypeCommand({
 				domainIdentifier: event.dataAsset.catalog.domainId,
 				name: 'df_profile_form',
 				owningProjectIdentifier: projectId,

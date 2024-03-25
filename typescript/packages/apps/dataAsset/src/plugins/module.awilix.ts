@@ -23,6 +23,7 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { MetadataBearer, RequestPresigningArguments } from '@aws-sdk/types';
 import type { Client, Command } from '@aws-sdk/smithy-client';
+import { ulid } from 'ulid';
 import { StartTask as HubCreateStartTask } from '../stepFunction/tasks/hub/create/startTask.js';
 import { StartTask as SpokeCreateStartTask } from '../stepFunction/tasks/spoke/create/startTask.js';
 import { SpokeResponseTask } from '../stepFunction/tasks/hub/create/spokeResponseTask.js';
@@ -64,7 +65,7 @@ declare module '@fastify/awilix' {
         hubEventProcessor: HubEventProcessor;
         dataZoneEventProcessor:DataZoneEventProcessor
         eventBridgeClient: EventBridgeClient;
-        identityStoreClient: IdentitystoreClient;
+        identityStoreClientFactory: IdentityStoreClientFactory;
         dynamoDbUtils: DynamoDbUtils;
         stepFunctionClient: SFNClient;
         stsClient: STSClient;
@@ -132,13 +133,6 @@ class EventBridgeClientFactory {
     }
 }
 
-class IdentityStoreClientFactory {
-    public static create(region: string | undefined): IdentitystoreClient {
-        const is = captureAWSv3Client(new IdentitystoreClient({region}));
-        return is;
-    }
-}
-
 class StepFunctionClientFactory {
     public static create(region: string | undefined): SFNClient {
         const sfn = captureAWSv3Client(new SFNClient({region}));
@@ -153,16 +147,57 @@ class STSClientFactory {
     }
 }
 
-class DataZoneClientFactory {
-    public static create(region: string | undefined): DataZoneClient {
-        const dz = captureAWSv3Client(new DataZoneClient({region}));
-        return dz;
-    }
-}
+
 
 class SecretsManagerClientFactory {
     public static create(region: string | undefined): SecretsManagerClient {
         const dz = captureAWSv3Client(new SecretsManagerClient({region}));
+        return dz;
+    }
+}
+
+export class IdentityStoreClientFactory {
+
+    private readonly log: BaseLogger;
+    private readonly region: string | undefined;
+    private readonly stsClient: STSClient;
+    private readonly IdentityStoreTargetRoleArn: string;
+
+    public constructor(log: BaseLogger, region: string | undefined, stsClient: STSClient, IdentityStoreTargetRoleArn: string) {
+        this.log = log;
+        this.region = region
+        this.stsClient = stsClient;
+        this.IdentityStoreTargetRoleArn = IdentityStoreTargetRoleArn;
+    }
+
+    public async create(): Promise <IdentitystoreClient> {
+        this.log.debug(`IdentityStoreClientFactory> create> in:`);
+        const id = ulid().toLowerCase();
+        const assumeRoleCommand = new AssumeRoleCommand({
+            RoleArn: this.IdentityStoreTargetRoleArn,
+            RoleSessionName: `datazone-${id}`
+        });
+        const assumeRoleResponse = await this.stsClient.send(assumeRoleCommand);
+        if (!assumeRoleResponse.Credentials) {
+            const error = new Error("Expected to get credentials back from AssumeRoleCommand");
+            this.log.error(error)
+            throw error;
+        }
+        const credentials = {
+            accessKeyId: assumeRoleResponse.Credentials.AccessKeyId,
+            secretAccessKey: assumeRoleResponse.Credentials.SecretAccessKey,
+            sessionToken: assumeRoleResponse.Credentials.SessionToken,
+            expiration: assumeRoleResponse.Credentials.Expiration
+        };
+        const idc = captureAWSv3Client(new IdentitystoreClient({region: this.region, credentials}));
+        this.log.debug(`IdentityStoreClientFactory> create> out:`);
+        return idc;
+    }
+}
+
+class DataZoneClientFactory {
+    public static create(region: string | undefined): DataZoneClient {
+        const dz = captureAWSv3Client(new DataZoneClient({region}));
         return dz;
     }
 }
@@ -261,6 +296,10 @@ const registerContainer = (app?: FastifyInstance) => {
     const customDataZoneUserExecutionRoleArn = process.env['CUSTOM_DATAZONE_USER_EXECUTION_ROLE_ARN'];
     const GlueDatabaseName = process.env['SPOKE_GLUE_DATABASE_NAME'];
     const identityStoreId = process.env['IDENTITY_STORE_ID'];
+    const identityStoreRoleArn = process.env['IDENTITY_STORE_ROLE_ARN'];
+    const identityStoreRegion = process.env['IDENTITY_STORE_REGION'];
+    
+    
 
     diContainer.register({
 
@@ -269,7 +308,11 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        identityStoreClient: asFunction(() => IdentityStoreClientFactory.create(awsRegion), {
+        identityStoreClientFactory: asFunction((container: Cradle) => new IdentityStoreClientFactory(app.log, identityStoreRegion, container.stsClient, identityStoreRoleArn), {
+            ...commonInjectionOptions
+        }),
+
+        dataZoneClient: asFunction(() => DataZoneClientFactory.create(awsRegion), {
             ...commonInjectionOptions
         }),
 
@@ -285,9 +328,6 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions,
         }),
 
-        dataZoneClient: asFunction(() => DataZoneClientFactory.create(awsRegion), {
-            ...commonInjectionOptions
-        }),
 
         dataZoneUserAuthClientFactory: asFunction((container: Cradle) => new DataZoneUserAuthClientFactory(app.log, awsRegion, container.stsClient, customDataZoneUserExecutionRoleArn), {
             ...commonInjectionOptions
@@ -427,7 +467,7 @@ const registerContainer = (app?: FastifyInstance) => {
                     hubCreateStateMachineArn,
                     container.dataAssetTaskRepository,
                     container.dataZoneClient,
-                    container.identityStoreClient,
+                    container.identityStoreClientFactory,
                     identityStoreId
                 ),
             {

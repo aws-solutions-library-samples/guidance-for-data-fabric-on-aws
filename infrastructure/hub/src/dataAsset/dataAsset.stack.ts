@@ -11,6 +11,8 @@ export type DataAssetStackProperties = StackProps & {
     moduleName: string;
     orgPath: OrganizationUnitPath
     identityStoreId: string;
+    identityStoreRoleArn: string,
+    identityStoreRegion: string
 };
 
 
@@ -34,7 +36,9 @@ export class DataAssetStack extends Stack {
             cognitoUserPoolId: userPoolId,
             orgPath: props.orgPath,
             bucketName,
-            identityStoreId: props.identityStoreId
+            identityStoreId: props.identityStoreId,
+            identityStoreRoleArn: props.identityStoreRoleArn,
+            identityStoreRegion: props.identityStoreRegion
         });
 
         new StringParameter(this, 'dataAssetFunctionNameParameter', {

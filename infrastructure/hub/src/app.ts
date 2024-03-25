@@ -37,6 +37,8 @@ const useExistingVpc = tryGetBooleanContext(app, 'useExistingVpc', false);
 // Optional requirements to specify the cognito SAML provider
 const ssoInstanceArn = app.node.tryGetContext('ssoInstanceArn');
 const identityStoreId = app.node.tryGetContext('identityStoreId');
+const identityStoreRoleArn = app.node.tryGetContext('identityStoreRoleArn');
+const identityStoreRegion = app.node.tryGetContext('identityStoreRegion');
 const ssoRegion = app.node.tryGetContext('ssoRegion');
 const adminEmail = app.node.tryGetContext('adminEmail');
 const samlMetaDataUrl = app.node.tryGetContext('samlMetaDataUrl');
@@ -129,7 +131,9 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             description: stackDescription('DataAsset'),
             moduleName: 'dataAsset',
             orgPath: orgPath,
-            identityStoreId: identityStoreId
+            identityStoreId: identityStoreId,
+            identityStoreRoleArn,
+            identityStoreRegion
         });
         dataAsset.node.addDependency(sharedStack);
     }

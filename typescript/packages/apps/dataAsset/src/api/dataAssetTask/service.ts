@@ -6,9 +6,9 @@ import { type SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import type { SecurityContext } from "../../common/scopes.js";
 import type { DataAssetTaskRepository } from "./repository.js";
 import { NotFoundError } from "@df/resource-api-base";
-import type { DataZoneClient } from "@aws-sdk/client-datazone";
-import { GetDomainCommand } from "@aws-sdk/client-datazone";
-import {IdentitystoreClient, GetUserIdCommand} from "@aws-sdk/client-identitystore";
+import { DataZoneClient, GetDomainCommand } from "@aws-sdk/client-datazone";
+import {GetUserIdCommand} from "@aws-sdk/client-identitystore";
+import type { IdentityStoreClientFactory } from '../../plugins/module.awilix.js';
 
 export class DataAssetTasksService {
 
@@ -17,8 +17,8 @@ export class DataAssetTasksService {
         private readonly sfnClient: SFNClient,
         private readonly createAssetStateMachineArn: string,
         private readonly dataAssetTaskRepository: DataAssetTaskRepository,
-        private readonly dzClient: DataZoneClient,
-        private readonly identityStoreClient: IdentitystoreClient,
+        private readonly dataZoneClient: DataZoneClient,
+        private readonly identityStoreClientFactory: IdentityStoreClientFactory,
         private readonly identityStoreId: string,
     ) {
     }
@@ -33,7 +33,8 @@ export class DataAssetTasksService {
         this.validateWorkflow(asset.workflow);
 
         const cognitoUserId = securityContext.userId;
-        const identityStoreUserId = await this.identityStoreClient.send(
+        const identityStoreClient = await this.identityStoreClientFactory.create();
+        const identityStoreUserId = await identityStoreClient.send(
             new GetUserIdCommand({
               IdentityStoreId: this.identityStoreId,
               AlternateIdentifier: {
@@ -52,7 +53,8 @@ export class DataAssetTasksService {
             workflow: asset.workflow
         }
 
-        const domain = await this.dzClient.send(new GetDomainCommand({identifier: asset.catalog.domainId}));
+
+        const domain = await this.dataZoneClient.send(new GetDomainCommand({identifier: asset.catalog.domainId}));
         fullAsset.catalog.domainName = domain.name;
 
 

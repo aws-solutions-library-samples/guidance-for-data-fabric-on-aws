@@ -52,22 +52,22 @@ export class StartTask {
                 dataQualityProfile: {}
             }
         }
-
-        const openLineageEvent = new EventBridgeEventBuilder()
+        // Send the create event
+        const createEvent = new EventBridgeEventBuilder()
             .setEventBusName(this.eventBusName)
             .setSource(DATA_ASSET_HUB_EVENT_SOURCE)
             .setDetailType(DATA_ASSET_HUB_CREATE_REQUEST_EVENT)
             .setDetail(event);
 
-        // Send Job Start event
-        const publishEvent = new EventBridgeEventBuilder()
+        // Send the openLineage event
+        const openLineageEvent = new EventBridgeEventBuilder()
             .setEventBusName(this.eventBusName)
             .setSource(DATA_LINEAGE_HUB_EVENT_SOURCE)
             .setDetailType(DATA_LINEAGE_DIRECT_HUB_INGESTION_REQUEST_EVENT)
             .setDetail(lineageRunStartEventPayload);
 
         await Promise.all([
-            this.eventPublisher.publish(publishEvent),
+            this.eventPublisher.publish(createEvent),
             this.eventPublisher.publish(openLineageEvent)
         ])
 
