@@ -48,6 +48,7 @@ import { DataZoneEventProcessor } from '../events/hub/datazone.eventProcessor.js
 import { VerifyDataSourceTask } from '../stepFunction/tasks/hub/create/verifyDataSourceTask.js';
 import { RunDataSourceTask } from '../stepFunction/tasks/hub/create/runDataSourceTask.js';
 import { CreateProjectTask } from '../stepFunction/tasks/hub/create/createProjectTask.js';
+import { ConfiguredRetryStrategy } from '@aws-sdk/util-retry';
 
 const {captureAWSv3Client} = pkg;
 
@@ -252,7 +253,13 @@ export class DataZoneUserAuthClientFactory {
 
 class GlueClientFactory {
     public static create(region: string | undefined): GlueClient {
-        const glue = captureAWSv3Client(new GlueClient({region}));
+        const glue = captureAWSv3Client(new GlueClient({
+            region,
+            retryStrategy: new ConfiguredRetryStrategy(
+                4, // max attempts.
+                (attempt: number) => 100 + attempt * 1000 // backoff function.
+            )
+        }));
         return glue;
     }
 }
@@ -499,15 +506,15 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneUserAuthClientFactory, container.stepFunctionClient), {
+        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneClient, container.stepFunctionClient), {
             ...commonInjectionOptions
         }),
 
-        verifyDataSourceTask: asFunction((container: Cradle) => new VerifyDataSourceTask(app.log, container.dataZoneUserAuthClientFactory), {
+        verifyDataSourceTask: asFunction((container: Cradle) => new VerifyDataSourceTask(app.log, container.dataZoneClient), {
             ...commonInjectionOptions
         }),
 
-        runDataSourceTask: asFunction((container: Cradle) => new RunDataSourceTask(app.log, container.dataZoneUserAuthClientFactory, container.hubS3Utils), {
+        runDataSourceTask: asFunction((container: Cradle) => new RunDataSourceTask(app.log, container.dataZoneClient, container.hubS3Utils), {
             ...commonInjectionOptions
         }),
 

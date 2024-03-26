@@ -2,10 +2,10 @@ import * as fs from 'fs';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 import { dfEventBusName } from '@df/cdk-common';
 
-const { AWS_REGION } = process.env;
+const { AWS_REGION, IDENTITY_STORE_ID, IDENTITY_STORE_REGION, IDENTITY_STORE_ROLE_ARN } = process.env;
 
-if (!AWS_REGION) {
-	throw new Error(`Environment Variable  AWS_REGION is not being specified`);
+if (!AWS_REGION || !IDENTITY_STORE_ID || !IDENTITY_STORE_REGION || !IDENTITY_STORE_ROLE_ARN ) {
+	throw new Error(`Environment Variables  [AWS_REGION, IDENTITY_STORE_ID, IDENTITY_STORE_REGION, IDENTITY_STORE_ROLE_ARN ] is not being specified`);
 }
 
 const ssm = new SSMClient({ region: process.env['AWS_REGION'] });

@@ -9,6 +9,7 @@ export const DATA_LINEAGE_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.dataLin
 export const DATA_ASSET_SPOKE_EVENT_SOURCE: string = 'com.aws.df.spoke.dataAsset';
 
 export const DATA_ASSET_SPOKE_JOB_START_EVENT = `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>job>start`
+export const DATA_ASSET_SPOKE_CREATE_REQUEST_EVENT = `DF>${DATA_ASSET_SPOKE_EVENT_SOURCE}>create>request`
 export const DATA_BREW_JOB_STATE_CHANGE: string = 'DataBrew Job State Change';
 export const GLUE_CRAWLER_STATE_CHANGE: string = 'Glue Crawler State Change';
 
@@ -109,6 +110,23 @@ export interface createResponseEvent {
     detail: createResponseEventDetails,
 };
 
+export interface createRequestEventDetails {
+    idcUserId: string,
+    idcEmail:string,
+    catalog: DataAssetCatalog,
+    workflow: DataAssetWorkflow,
+}
+
+export interface spokeCreateRequestEvent {
+    id: string,
+    account: string,
+    region: string,
+    source: string,
+    'detail-type': string,
+    time: string,
+    detail: createRequestEventDetails,
+};
+
 export interface dataSourceRunStateChangeDetail {
     version: number,
     metadata: {
@@ -139,3 +157,4 @@ export type { crawlerStateChangeEvent as CrawlerStateChangeEvent };
 export type { createResponseEventDetails as CreateResponseEventDetails };
 export type { createResponseEvent as CreateResponseEvent };
 export type { dataSourceRunStateChangeEvent as DataSourceRunStateChangeEvent };
+export type { spokeCreateRequestEvent as SpokeCreateRequestEvent };

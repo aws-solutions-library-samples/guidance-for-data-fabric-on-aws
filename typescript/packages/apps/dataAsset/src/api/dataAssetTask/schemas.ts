@@ -65,10 +65,10 @@ export const catalog = Type.Object({
     assetName: Type.String({description: 'Data Zone asset name'}),
     assetId: Type.Optional(Type.String({description: 'Data Zone asset id'})),
     accountId: Type.String({description: 'The account id here the asset resides'}),
-    autoPublish: Type.Boolean({
+    autoPublish: Type.Optional(Type.Boolean({
         description: 'Publish the asset automatically.',
         default: true,
-    }),
+    })),
     revision: Type.Optional(Type.Number({description: 'specify the version number of the datazone asset'})),
 
 });
