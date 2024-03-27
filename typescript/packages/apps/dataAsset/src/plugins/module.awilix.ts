@@ -249,14 +249,16 @@ export class DataZoneUserAuthClientFactory {
     }
 }
 
+const retryStrategy = new ConfiguredRetryStrategy(
+    4, // max attempts.
+    (attempt: number) => 100 + attempt * (Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000) // backoff function.
+);
+
 class GlueClientFactory {
     public static create(region: string | undefined): GlueClient {
         const glue = captureAWSv3Client(new GlueClient({
             region,
-            retryStrategy: new ConfiguredRetryStrategy(
-                4, // max attempts.
-                (attempt: number) => 100 + attempt * (Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000) // backoff function.
-            )
+            retryStrategy
         }));
         return glue;
     }
@@ -264,7 +266,10 @@ class GlueClientFactory {
 
 class DataBrewClientFactory {
     public static create(region: string | undefined): DataBrewClient {
-        const db = captureAWSv3Client(new DataBrewClient({region}));
+        const db = captureAWSv3Client(new DataBrewClient({
+            region,
+            retryStrategy
+        }));
         return db;
     }
 }
