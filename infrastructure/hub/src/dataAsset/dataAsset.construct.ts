@@ -16,7 +16,7 @@ import { AnyPrincipal, ArnPrincipal, Effect, ManagedPolicy, PolicyStatement, Rol
 import { DATA_ASSET_HUB_EVENT_SOURCE, DATA_ASSET_SPOKE_CREATE_REQUEST_EVENT, DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, DATA_ZONE_DATA_SOURCE_RUN_FAILED, DATA_ZONE_DATA_SOURCE_RUN_SUCCEEDED, DATA_ZONE_EVENT_SOURCE } from '@df/events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput, Wait, WaitTime } from 'aws-cdk-lib/aws-stepfunctions';
+import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, StateMachine, TaskInput, Timeout, Wait, WaitTime } from 'aws-cdk-lib/aws-stepfunctions';
 import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 
@@ -31,7 +31,8 @@ export type DataAssetConstructProperties = {
     bucketName: string;
     identityStoreId: string;
     identityStoreRoleArn: string,
-    identityStoreRegion: string
+    identityStoreRegion: string,
+    taskTimeOutMinutes: number
 };
 
 
@@ -173,8 +174,6 @@ export class DataAsset extends Construct {
             resources: [`${startCreateFlowLambdaRole.roleArn}`]
         }));
 
-
-
         const startCreateFlowLambda = new NodejsFunction(this, 'StartCreateFlowLambda', {
             description: 'Asset Manager Handler for Start Asset Creation flow',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/hub/create/start.handler.ts'),
@@ -217,6 +216,7 @@ export class DataAsset extends Construct {
         const startTask = new LambdaInvoke(this, 'StartCreateFlowTask', {
             lambdaFunction: startCreateFlowLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -285,10 +285,21 @@ export class DataAsset extends Construct {
             resources: [`${createDataSourceRole.roleArn}`]
         });
         createDataSourceLambda.addToRolePolicy(createDataSourceDataZonePolicy);
+        createDataSourceRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this, 'CreateDataSourceExecutionPolicy', 'arn:aws:iam::aws:policy/service-role/AmazonDataZoneDomainExecutionRolePolicy'))
+        createDataSourceRole.addToPrincipalPolicy(new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: [
+                "iam:GetRole",
+                "iam:GetUser"],
+            resources: ['*']
+        }));
+
+
 
         const createDataSourceTask = new LambdaInvoke(this, 'CreateDataSourceTask', {
             lambdaFunction: createDataSourceLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -331,6 +342,7 @@ export class DataAsset extends Construct {
         const createProjectTask = new LambdaInvoke(this, 'CreateProjectTask', {
             lambdaFunction: createProjectLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -398,7 +410,15 @@ export class DataAsset extends Construct {
             ],
             resources: [`${verifyDataSourceRole.roleArn}`]
         });
-        createDataSourceLambda.addToRolePolicy(verifyDataSourceDataZonePolicy);
+        verifyDataSourceLambda.addToRolePolicy(verifyDataSourceDataZonePolicy);
+        verifyDataSourceRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this, 'VerifyDataSourceExecutionPolicy', 'arn:aws:iam::aws:policy/service-role/AmazonDataZoneDomainExecutionRolePolicy'))
+        verifyDataSourceRole.addToPrincipalPolicy(new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: [
+                "iam:GetRole",
+                "iam:GetUser"],
+            resources: ['*']
+        }));
 
 
         const verifyDataSourceTask = new LambdaInvoke(this, 'Verify Data Source is ready', {
@@ -420,7 +440,7 @@ export class DataAsset extends Construct {
         runDataSourceLambdaRole.addToPrincipalPolicy(XRayPutTelemetryPolicy);
         const runDataSourceRole = new Role(this, 'RunDataSourceRole', {
             assumedBy: new ArnPrincipal(createDataSourceLambdaRole.roleArn).withSessionTags(),
-            description: 'Custom Data Zone Role',
+            description: 'Run Data source Data Zone Role',
         });
 
         runDataSourceRole.addToPolicy(new PolicyStatement({
@@ -463,9 +483,28 @@ export class DataAsset extends Construct {
         runDataSourceLambda.addToRolePolicy(DataZoneDataSourcePolicy);
         bucket.grantPut(runDataSourceLambda);
 
+        const runDataSourceDataZonePolicy = new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: [
+                'sts:AssumeRole',
+                'sts:TagSession'
+            ],
+            resources: [`${runDataSourceRole.roleArn}`]
+        });
+        runDataSourceLambda.addToRolePolicy(runDataSourceDataZonePolicy);
+        runDataSourceRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this, 'RunDataSourceExecutionPolicy', 'arn:aws:iam::aws:policy/service-role/AmazonDataZoneDomainExecutionRolePolicy'))
+        runDataSourceRole.addToPrincipalPolicy(new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: [
+                "iam:GetRole",
+                "iam:GetUser"],
+            resources: ['*']
+        }));
+
         const runDataSourceTask = new LambdaInvoke(this, 'RunDataSourceTask', {
             lambdaFunction: runDataSourceLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -508,6 +547,7 @@ export class DataAsset extends Construct {
         const lineageTask = new LambdaInvoke(this, 'PublishLineageTask', {
             lambdaFunction: publishLineageLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -604,7 +644,7 @@ export class DataAsset extends Construct {
                 'sts:AssumeRole',
                 'sts:TagSession'
             ],
-            resources: [`${customDataZoneRole.roleArn}`]
+            resources: [`${customDataZoneRole.roleArn}`,props.identityStoreRoleArn]
         });
         apiLambda.addToRolePolicy(DataZoneAssumeCustomRolePolicy);
 
@@ -710,11 +750,21 @@ export class DataAsset extends Construct {
 
 
         /*
-            * Job Completion Listener
-            * Will update datazone once job completion is detected in the event bus
+            * Event Listiener
         */
+
+        const eventProcessorLambdaRole = new Role(this, 'EventProcessorLambdaRole', {
+            assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+        });
+        eventProcessorLambdaRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this, 'EventProcessorLambdaExecutionRole', 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'))
+        eventProcessorLambdaRole.addToPrincipalPolicy(XRayPutTelemetryPolicy);
+        const eventProcessorDataZoneRole = new Role(this, 'EventProcessorDataZoneRole', {
+            assumedBy: new ArnPrincipal(eventProcessorLambdaRole.roleArn).withSessionTags(),
+            description: 'Event Processor Data Zone Role',
+        });
         const hubEventProcessorLambda = new NodejsFunction(this, 'HubEventProcessorLambda', {
-            description: `Job Completion Event Handler`,
+            description: `Hub Event Handler`,
+            role: eventProcessorLambdaRole,
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/hub_lambda_eventbridge.ts'),
             runtime: Runtime.NODEJS_18_X,
             tracing: Tracing.ACTIVE,
@@ -728,7 +778,11 @@ export class DataAsset extends Construct {
                 EVENT_BUS_NAME: props.eventBusName,
                 TABLE_NAME: table.tableName,
                 WORKER_QUEUE_URL: 'not used',
-                HUB_CREATE_STATE_MACHINE_ARN: dataAssetCreateStateMachine.stateMachineArn
+                HUB_CREATE_STATE_MACHINE_ARN: dataAssetCreateStateMachine.stateMachineArn,
+                CUSTOM_DATAZONE_USER_EXECUTION_ROLE_ARN: eventProcessorDataZoneRole.roleArn,
+                IDENTITY_STORE_ID: props.identityStoreId,
+                IDENTITY_STORE_ROLE_ARN: props.identityStoreRoleArn,
+                IDENTITY_STORE_REGION: props.identityStoreRegion
             },
             bundling: {
                 minify: true,
@@ -743,6 +797,7 @@ export class DataAsset extends Construct {
             architecture: getLambdaArchitecture(scope)
         });
 
+        hubEventProcessorLambda.node.addDependency(table);
         table.grantReadWriteData(hubEventProcessorLambda);
         hubEventProcessorLambda.addToRolePolicy(DataZoneAssetReadPolicy);
         hubEventProcessorLambda.addToRolePolicy(DataZoneAssetWritePolicy);
@@ -750,8 +805,48 @@ export class DataAsset extends Construct {
         hubEventProcessorLambda.addToRolePolicy(DataZoneDataSourcePolicy);
         bucket.grantPut(hubEventProcessorLambda);
         bucket.grantRead(hubEventProcessorLambda);
-        hubEventProcessorLambda.node.addDependency(table);
-        dataAssetCreateStateMachine.grantStartExecution(hubEventProcessorLambda)
+        dataAssetCreateStateMachine.grantStartExecution(hubEventProcessorLambda);
+
+
+        hubEventProcessorLambda.addToRolePolicy(
+            new PolicyStatement({
+                effect: Effect.ALLOW,
+                actions: ["identitystore:IsMemberInGroups", "identitystore:GetUserId"],
+                resources: [
+                    `arn:aws:identitystore::${accountId}:identitystore/${props.identityStoreId}`,
+                    `arn:aws:identitystore:::user/*`,
+                    `arn:aws:identitystore:::group/*`,
+                    `arn:aws:identitystore:::membership/*`,
+                ],
+            })
+        );
+
+        const EventProcessorAssumeCustomRolePolicy = new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: [
+                'sts:AssumeRole',
+                'sts:TagSession'
+            ],
+            resources: [`${eventProcessorDataZoneRole.roleArn}`,props.identityStoreRoleArn]
+        });
+        hubEventProcessorLambda.addToRolePolicy(EventProcessorAssumeCustomRolePolicy);
+
+        eventProcessorDataZoneRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this, 'EventProcessorExecutionPolicy', 'arn:aws:iam::aws:policy/service-role/AmazonDataZoneDomainExecutionRolePolicy'))
+        eventProcessorDataZoneRole.addToPrincipalPolicy(new PolicyStatement({
+            effect: Effect.ALLOW,
+            actions: ["iam:GetRole",
+                "iam:GetUser"],
+            resources: ['*']
+        }));
+        eventProcessorDataZoneRole.assumeRolePolicy?.addStatements(
+            new PolicyStatement({
+                actions: [
+                    'sts:AssumeRole',
+                    'sts:TagSession'
+                ],
+                principals: [new ArnPrincipal(hubEventProcessorLambda.role?.roleArn!)]
+            })
+        )
 
         // Rule for Create Flow completion events
         const createFlowCompletionRule = new Rule(this, 'CreateFlowCompletionRule', {
@@ -867,11 +962,15 @@ export class DataAsset extends Construct {
         });
 
 
-        NagSuppressions.addResourceSuppressions([apiLambdaExecutionRole, customDataZoneRole, hubEventProcessorLambda, startCreateFlowLambdaRole, createDataSourceLambdaRole, verifyDataSourceLambdaRole, runDataSourceLambdaRole],
+        NagSuppressions.addResourceSuppressions([apiLambdaExecutionRole, customDataZoneRole, hubEventProcessorLambda, startCreateFlowLambdaRole, createDataSourceLambdaRole, verifyDataSourceLambdaRole, runDataSourceLambdaRole, eventProcessorLambdaRole, eventProcessorDataZoneRole, createDataSourceRole, verifyDataSourceRole, runDataSourceRole],
             [
                 {
                     id: 'AwsSolutions-IAM4',
-                    appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole', 'Policy::arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole', 'Policy::arn:aws:iam::aws:policy/service-role/AmazonDataZoneDomainExecutionRolePolicy'],
+                    appliesTo: [
+                        'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
+                        'Policy::arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
+                        'Policy::arn:aws:iam::aws:policy/service-role/AmazonDataZoneDomainExecutionRolePolicy'
+                    ],
                     reason: 'This policy is the one generated by CDK.'
 
                 },

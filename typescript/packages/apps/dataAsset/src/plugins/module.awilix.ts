@@ -506,15 +506,15 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneClient, container.stepFunctionClient), {
+        createDataSourceTask: asFunction((container: Cradle) => new CreateDataSourceTask(app.log, container.dataZoneUserAuthClientFactory, container.stepFunctionClient), {
             ...commonInjectionOptions
         }),
 
-        verifyDataSourceTask: asFunction((container: Cradle) => new VerifyDataSourceTask(app.log, container.dataZoneClient), {
+        verifyDataSourceTask: asFunction((container: Cradle) => new VerifyDataSourceTask(app.log, container.dataZoneUserAuthClientFactory), {
             ...commonInjectionOptions
         }),
 
-        runDataSourceTask: asFunction((container: Cradle) => new RunDataSourceTask(app.log, container.dataZoneClient, container.hubS3Utils), {
+        runDataSourceTask: asFunction((container: Cradle) => new RunDataSourceTask(app.log, container.dataZoneUserAuthClientFactory, container.hubS3Utils), {
             ...commonInjectionOptions
         }),
 

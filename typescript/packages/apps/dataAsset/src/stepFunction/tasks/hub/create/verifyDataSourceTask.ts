@@ -1,20 +1,20 @@
 import type { BaseLogger } from 'pino';
 import type { DataAssetTask } from '../../models.js';
-import { DataZoneClient, GetDataSourceCommand } from '@aws-sdk/client-datazone';
+import { GetDataSourceCommand } from '@aws-sdk/client-datazone';
+import type { DataZoneUserAuthClientFactory } from '../../../../plugins/module.awilix.js';
 
 export class VerifyDataSourceTask {
 
     constructor(
         private log: BaseLogger,
-        private dataZoneClient: DataZoneClient
-    ) {
-    }
+        private dataZoneClientFactory: DataZoneUserAuthClientFactory
+    ) {}
 
     public async process(event: DataAssetTask): Promise<any> {
         this.log.info(`VerifyDataSourceTask > process > in > event: ${JSON.stringify(event)}`);
 
-
-        const dataSource = await this.dataZoneClient.send(new GetDataSourceCommand({
+        const dataZoneClient = await this.dataZoneClientFactory.create(event.dataAsset.idcUserId, event.dataAsset.catalog.domainId);
+        const dataSource = await dataZoneClient.send(new GetDataSourceCommand({
             domainIdentifier: event.dataAsset.catalog.domainId,
             identifier: event.dataAsset.execution.dataSourceCreation.id
         }));

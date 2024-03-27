@@ -12,7 +12,8 @@ export type DataAssetStackProperties = StackProps & {
     orgPath: OrganizationUnitPath
     identityStoreId: string;
     identityStoreRoleArn: string,
-    identityStoreRegion: string
+    identityStoreRegion: string,
+    taskTimeOutMinutes: number
 };
 
 
@@ -38,7 +39,8 @@ export class DataAssetStack extends Stack {
             bucketName,
             identityStoreId: props.identityStoreId,
             identityStoreRoleArn: props.identityStoreRoleArn,
-            identityStoreRegion: props.identityStoreRegion
+            identityStoreRegion: props.identityStoreRegion,
+            taskTimeOutMinutes: props.taskTimeOutMinutes
         });
 
         new StringParameter(this, 'dataAssetFunctionNameParameter', {

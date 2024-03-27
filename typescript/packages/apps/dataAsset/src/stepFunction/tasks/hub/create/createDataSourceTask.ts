@@ -1,17 +1,19 @@
 import type { BaseLogger } from 'pino';
 // import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 import type { DataAssetTask } from '../../models.js';
-import { type DataZoneClient, ListDataSourcesCommand, CreateDataSourceCommand, CreateDataSourceCommandInput, DataSourceConfigurationInput } from '@aws-sdk/client-datazone';
+import { ListDataSourcesCommand, CreateDataSourceCommand, CreateDataSourceCommandInput, DataSourceConfigurationInput } from '@aws-sdk/client-datazone';
 import { getConnectionType, getResourceArn } from '../../../../common/utils.js';
 // import type { S3Utils } from '../../../../common/s3Utils.js';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
 import { OpenLineageBuilder } from '@df/events';
+import type { DataZoneUserAuthClientFactory } from '../../../../plugins/module.awilix.js';
 
 export class CreateDataSourceTask {
 
 	constructor(
 		private log: BaseLogger,
-        private dataZoneClient: DataZoneClient,
+        // private dataZoneClient: DataZoneClient,
+		private dataZoneUserAuthClientFactory: DataZoneUserAuthClientFactory ,
 		// private readonly s3Utils: S3Utils,
 		private readonly sfnClient: SFNClient
 	) {
@@ -26,7 +28,9 @@ export class CreateDataSourceTask {
 
 		const resourceName = getResourceArn(event.dataAsset.workflow);
 
-		const dataSources = await this.dataZoneClient.send(new ListDataSourcesCommand({
+		const dataZoneClient = await this.dataZoneUserAuthClientFactory.create(event.dataAsset.idcUserId,event.dataAsset.catalog.domainId);
+
+		const dataSources = await dataZoneClient.send(new ListDataSourcesCommand({
 			domainIdentifier: event.dataAsset.catalog.domainId,
 			environmentIdentifier: event.dataAsset.catalog.environmentId,
 			projectIdentifier: event.dataAsset.catalog.projectId,
@@ -41,7 +45,7 @@ export class CreateDataSourceTask {
 		// Create Data source if it does not exists
 		if (!existingDataSource) {
 			const params = await this.constructDataSourceCommand(event);
-			const dataSource = await this.dataZoneClient.send(new CreateDataSourceCommand(params));
+			const dataSource = await dataZoneClient.send(new CreateDataSourceCommand(params));
 			dataSourceId = dataSource.id;
 		} else {
 			dataSourceId = existingDataSource.dataSourceId

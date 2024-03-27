@@ -11,7 +11,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, Parallel, StateMachine, Succeed, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
+import { Choice, Condition, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, Parallel, StateMachine, Succeed, TaskInput, Timeout } from 'aws-cdk-lib/aws-stepfunctions';
 import {
     DATA_ASSET_HUB_CREATE_REQUEST_EVENT,
     DATA_ASSET_HUB_EVENT_SOURCE,
@@ -36,6 +36,7 @@ export type DataAssetSpokeConstructProperties = {
     bucketName: string;
     orgPath: OrganizationUnitPath;
     glueDatabaseArn: string;
+    taskTimeOutMinutes: number;
 };
 
 
@@ -517,6 +518,35 @@ export class DataAssetSpoke extends Construct {
         glueCrawlerLambda.addToRolePolicy(GluePolicy);
         bucket.grantPut(glueCrawlerLambda);
 
+        new CfnPermissions(this, 'GlueCrawlerLambdaLakeFormationDBPermissions', {
+            dataLakePrincipal: {
+                dataLakePrincipalIdentifier: glueCrawlerLambda.role?.roleArn,
+              },
+              resource: {
+                databaseResource: {
+                    catalogId: accountId,
+                    name: glueDatabase.databaseName
+                }
+              },
+              permissions:['ALTER', 'CREATE_TABLE', 'DESCRIBE', 'DROP'],
+              permissionsWithGrantOption:['CREATE_TABLE', 'ALTER', 'DROP', 'DESCRIBE']
+        });
+
+        new CfnPermissions(this, 'GlueCrawlerLambdaLakeFormationTablePermissions', {
+            dataLakePrincipal: {
+                dataLakePrincipalIdentifier: glueCrawlerLambda.role?.roleArn,
+              },
+              resource: {
+                tableResource: {
+                    catalogId: accountId,
+                    databaseName: glueDatabase.databaseName,
+                    tableWildcard: { }, // empty object === ALL_TABLES
+                }
+              },
+              permissions:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE'],
+              permissionsWithGrantOption:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE']
+        });
+
         const spokeLineageLambda = new NodejsFunction(this, 'SpokeLineageLambda', {
             description: 'Asset Manager Spoke Lineage Task Handler',
             entry: path.join(__dirname, '../../../../typescript/packages/apps/dataAsset/src/stepFunction/handlers/spoke/create/lineage.handler.ts'),
@@ -554,6 +584,7 @@ export class DataAssetSpoke extends Construct {
         const createStartTask = new LambdaInvoke(this, 'CreateStartTask', {
             lambdaFunction: createStartLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAssetEvent.$': '$.detail.dataAsset',
                 'execution': {
@@ -569,6 +600,7 @@ export class DataAssetSpoke extends Construct {
         const createConnectionTask = new LambdaInvoke(this, 'CreateConnectionTask', {
             lambdaFunction: createConnectionLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -584,6 +616,7 @@ export class DataAssetSpoke extends Construct {
         const recipeCreateDataSetTask = new LambdaInvoke(this, 'RecipeCreateDataSetTask', {
             lambdaFunction: createDataSetLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -599,6 +632,7 @@ export class DataAssetSpoke extends Construct {
         const profileCreateDataSetTask = new LambdaInvoke(this, 'ProfileCreateDataSetTask', {
             lambdaFunction: createProfileDataSetLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -614,6 +648,7 @@ export class DataAssetSpoke extends Construct {
         const recipeJobTask = new LambdaInvoke(this, 'RecipeJobTask', {
             lambdaFunction: recipeJobLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -629,6 +664,7 @@ export class DataAssetSpoke extends Construct {
         const profileJobTask = new LambdaInvoke(this, 'ProfileJobTask', {
             lambdaFunction: profileJobLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -644,6 +680,7 @@ export class DataAssetSpoke extends Construct {
         const dqProfileJobTask = new LambdaInvoke(this, 'DQProfileJobTask', {
             lambdaFunction: dqProfileJobLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -659,6 +696,7 @@ export class DataAssetSpoke extends Construct {
         const glueCrawlerTask = new LambdaInvoke(this, 'GlueCrawlerTask', {
             lambdaFunction: glueCrawlerLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAsset.$': '$',
                 'execution': {
@@ -675,6 +713,7 @@ export class DataAssetSpoke extends Construct {
         const lineageTask = new LambdaInvoke(this, 'LineageTask', {
             lambdaFunction: spokeLineageLambda,
             integrationPattern: IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+            taskTimeout: Timeout.duration(Duration.minutes(props.taskTimeOutMinutes)),
             payload: TaskInput.fromObject({
                 'dataAssets.$': '$',
                 'execution': {

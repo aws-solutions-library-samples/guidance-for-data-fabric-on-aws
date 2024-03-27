@@ -158,7 +158,7 @@ export const schedule = Type.Optional(Type.Object({
 }));
 
 export const workflow = Type.Object({
-    name: Type.String({description: 'The name of the workflow'}),
+    name: Type.String({description: 'The name of the workflow', maxLength:64, pattern: '[a-z|A-Z|0-9-_]'}),
     roleArn: Type.String({description: 'The Arn of the IAM Role to be used for the job execution'}),
     externalInputs: Type.Optional(Type.Union([Type.Array(dataZoneAssetInput), Type.Array(openLineageAssetInput)])),
     dataset,

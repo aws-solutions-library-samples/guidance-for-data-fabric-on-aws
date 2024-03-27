@@ -31,6 +31,9 @@ const orgPath: OrganizationUnitPath = {
 //Optional parameters
 const deleteBucket = tryGetBooleanContext(app, 'deleteBucket', false);
 
+// Optional parameters to configure the step function 
+const taskTimeOutMinutes =  (app.node.tryGetContext('taskTimeOutMinutes')as number ?? 1440);
+
 
 const stackNamePrefix = `df-spoke`;
 
@@ -62,6 +65,7 @@ const deploySpoke = (callerEnvironment?: { accountId?: string, region?: string }
     moduleName: 'dataAsset',
     hubAccountId: hubAccountId,
     orgPath: orgPath,
+    taskTimeOutMinutes,
     env: {
       // The DF_REGION domainId variable
       region: process.env?.['DF_REGION'] || callerEnvironment?.region,

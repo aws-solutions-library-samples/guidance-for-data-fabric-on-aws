@@ -13,6 +13,7 @@ export type DataAssetSpokeStackProperties = StackProps & {
     moduleName: string;
     orgPath: OrganizationUnitPath;
     hubAccountId: string;
+    taskTimeOutMinutes: number;
 };
 
 
@@ -32,6 +33,7 @@ export class DataAssetSpokeStack extends Stack {
             bucketName,
             orgPath: props.orgPath,
             glueDatabaseArn
+            taskTimeOutMinutes: props.taskTimeOutMinutes
         });
 
 

@@ -34,13 +34,21 @@ const orgPath: OrganizationUnitPath = {
 // user VPC config
 const useExistingVpc = tryGetBooleanContext(app, 'useExistingVpc', false);
 
-// Optional requirements to specify the cognito SAML provider
-const ssoInstanceArn = app.node.tryGetContext('ssoInstanceArn');
-const identityStoreId = app.node.tryGetContext('identityStoreId');
-const identityStoreRoleArn = app.node.tryGetContext('identityStoreRoleArn');
-const identityStoreRegion = app.node.tryGetContext('identityStoreRegion');
+
+
+// Identity Store parameters
+const identityStoreId = app.node.tryGetContext('identityStoreId'); 
+const identityStoreRoleArn = app.node.tryGetContext('identityStoreRoleArn'); // An assumable role that can be used to make API calls to Identity Store
+const identityStoreRegion = app.node.tryGetContext('identityStoreRegion'); 
+
 const ssoRegion = app.node.tryGetContext('ssoRegion');
 const adminEmail = app.node.tryGetContext('adminEmail');
+
+// Optional requirements to configure the step function 
+const taskTimeOutMinutes =  (app.node.tryGetContext('taskTimeOutMinutes')as number ?? 1440);
+
+// Optional requirements to specify the cognito SAML provider
+const ssoInstanceArn = app.node.tryGetContext('ssoInstanceArn');
 const samlMetaDataUrl = app.node.tryGetContext('samlMetaDataUrl');
 const callbackUrls = app.node.tryGetContext('callbackUrls');
 
@@ -133,7 +141,8 @@ const deployPlatform = (callerEnvironment?: { accountId?: string, region?: strin
             orgPath: orgPath,
             identityStoreId: identityStoreId,
             identityStoreRoleArn,
-            identityStoreRegion
+            identityStoreRegion,
+            taskTimeOutMinutes
         });
         dataAsset.node.addDependency(sharedStack);
     }

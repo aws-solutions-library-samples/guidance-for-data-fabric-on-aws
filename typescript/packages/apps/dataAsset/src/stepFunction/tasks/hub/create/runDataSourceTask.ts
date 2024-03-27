@@ -1,13 +1,14 @@
 import type { BaseLogger } from 'pino';
 import { TaskType, type DataAssetTask } from '../../models.js';
-import { type DataZoneClient, StartDataSourceRunCommand } from '@aws-sdk/client-datazone';
+import { StartDataSourceRunCommand } from '@aws-sdk/client-datazone';
 import type { S3Utils } from '../../../../common/s3Utils.js';
+import type { DataZoneUserAuthClientFactory } from '../../../../plugins/module.awilix.js';
 
 export class RunDataSourceTask {
 
 	constructor(
 		private log: BaseLogger,
-        private dataZoneClient: DataZoneClient,
+        private dataZoneClientFactory: DataZoneUserAuthClientFactory,
 		private readonly s3Utils: S3Utils
 	) {
 	}
@@ -20,7 +21,8 @@ export class RunDataSourceTask {
 		let dataSourceId = event.dataAsset.execution.dataSourceCreation.id;
 
 		// Run data source
-		const run = await this.dataZoneClient.send(new StartDataSourceRunCommand({
+		const dataZoneClient = await this.dataZoneClientFactory.create(event.dataAsset.idcUserId, event.dataAsset.catalog.domainId);
+		const run = await dataZoneClient.send(new StartDataSourceRunCommand({
 			dataSourceIdentifier: dataSourceId,
 			domainIdentifier: event.dataAsset.catalog.domainId,
 		}));
