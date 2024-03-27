@@ -64,7 +64,7 @@ declare module '@fastify/awilix' {
         glueCrawlerEventProcessor: GlueCrawlerEventProcessor;
         dataQualityProfileEventProcessor: DataQualityProfileEventProcessor;
         hubEventProcessor: HubEventProcessor;
-        dataZoneEventProcessor:DataZoneEventProcessor
+        dataZoneEventProcessor: DataZoneEventProcessor
         eventBridgeClient: EventBridgeClient;
         identityStoreClientFactory: IdentityStoreClientFactory;
         dynamoDbUtils: DynamoDbUtils;
@@ -149,7 +149,6 @@ class STSClientFactory {
 }
 
 
-
 class SecretsManagerClientFactory {
     public static create(region: string | undefined): SecretsManagerClient {
         const dz = captureAWSv3Client(new SecretsManagerClient({region}));
@@ -171,7 +170,7 @@ export class IdentityStoreClientFactory {
         this.IdentityStoreTargetRoleArn = IdentityStoreTargetRoleArn;
     }
 
-    public async create(): Promise <IdentitystoreClient> {
+    public async create(): Promise<IdentitystoreClient> {
         this.log.debug(`IdentityStoreClientFactory> create> in:`);
         const id = ulid().toLowerCase();
         const assumeRoleCommand = new AssumeRoleCommand({
@@ -250,14 +249,13 @@ export class DataZoneUserAuthClientFactory {
     }
 }
 
-
 class GlueClientFactory {
     public static create(region: string | undefined): GlueClient {
         const glue = captureAWSv3Client(new GlueClient({
             region,
             retryStrategy: new ConfiguredRetryStrategy(
                 4, // max attempts.
-                (attempt: number) => 100 + attempt * 1000 // backoff function.
+                (attempt: number) => 100 + attempt * (Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000) // backoff function.
             )
         }));
         return glue;
@@ -305,8 +303,7 @@ const registerContainer = (app?: FastifyInstance) => {
     const identityStoreId = process.env['IDENTITY_STORE_ID'];
     const identityStoreRoleArn = process.env['IDENTITY_STORE_ROLE_ARN'];
     const identityStoreRegion = process.env['IDENTITY_STORE_REGION'];
-    
-    
+
 
     diContainer.register({
 
@@ -370,7 +367,7 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions,
         }),
 
-        hubS3Utils: asFunction((container: Cradle) => new S3Utils(app.log, container.s3Client, hubBucketName , hubBucketPrefix, container.getSignedUrl), {
+        hubS3Utils: asFunction((container: Cradle) => new S3Utils(app.log, container.s3Client, hubBucketName, hubBucketPrefix, container.getSignedUrl), {
             ...commonInjectionOptions,
         }),
 
@@ -533,7 +530,7 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.spokeS3Utils,hubEventBusName,
+        profileJobTask: asFunction((container: Cradle) => new ProfileJobTask(app.log, container.dataBrewClient, container.spokeS3Utils, hubEventBusName,
             container.hubEventPublisher), {
             ...commonInjectionOptions
         }),
@@ -546,7 +543,7 @@ const registerContainer = (app?: FastifyInstance) => {
             ...commonInjectionOptions
         }),
 
-        dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.glueClient, GlueDatabaseName, container.spokeS3Utils,hubEventBusName,
+        dataQualityProfileJobTask: asFunction((container: Cradle) => new DataQualityProfileJobTask(app.log, container.glueClient, GlueDatabaseName, container.spokeS3Utils, hubEventBusName,
             container.hubEventPublisher), {
             ...commonInjectionOptions
         }),
