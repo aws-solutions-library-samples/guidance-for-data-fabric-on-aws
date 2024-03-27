@@ -439,7 +439,7 @@ export class DataAsset extends Construct {
         runDataSourceLambdaRole.addManagedPolicy(ManagedPolicy.fromManagedPolicyArn(this, 'RunDataSourcePolicy', 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'))
         runDataSourceLambdaRole.addToPrincipalPolicy(XRayPutTelemetryPolicy);
         const runDataSourceRole = new Role(this, 'RunDataSourceRole', {
-            assumedBy: new ArnPrincipal(createDataSourceLambdaRole.roleArn).withSessionTags(),
+            assumedBy: new ArnPrincipal(runDataSourceLambdaRole.roleArn).withSessionTags(),
             description: 'Run Data source Data Zone Role',
         });
 
