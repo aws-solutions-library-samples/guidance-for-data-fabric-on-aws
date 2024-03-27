@@ -32,7 +32,7 @@ export class DataAssetSpokeStack extends Stack {
             spokeEventBusName: dfSpokeEventBusName,
             bucketName,
             orgPath: props.orgPath,
-            glueDatabaseArn
+            glueDatabaseArn,
             taskTimeOutMinutes: props.taskTimeOutMinutes
         });
 
