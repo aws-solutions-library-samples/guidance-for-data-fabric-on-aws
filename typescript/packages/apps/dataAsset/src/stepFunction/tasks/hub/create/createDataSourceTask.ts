@@ -142,7 +142,6 @@ export class CreateDataSourceTask {
 			environmentIdentifier: event.dataAsset.catalog.environmentId,
 			projectIdentifier: event.dataAsset.catalog.projectId,
 			name: getResourceArn(event.dataAsset.workflow),
-			// TODO: has to see what is the valid option
 			type: connectionType === 'dataLake' ? 'GLUE' : connectionType,
 			configuration,
 			enableSetting: 'ENABLED',

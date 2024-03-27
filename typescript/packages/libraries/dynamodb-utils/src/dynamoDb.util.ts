@@ -50,7 +50,6 @@ export class DynamoDbUtils {
 			await this.dc.send(new UpdateCommand(command));
 		} catch (e) {
 			this.log.error(`dynamoDb.util update: error: ${JSON.stringify(e)}`);
-			// TODO: validate if need to retry only when certain errors happen ?
 			await this.update(command, ++attempt);
 		}
 
@@ -70,7 +69,6 @@ export class DynamoDbUtils {
 			await this.dc.send(new PutCommand(command));
 		} catch (e) {
 			this.log.error(`dynamoDb.util put: error: ${JSON.stringify(e)}`);
-			// TODO: validate if need to retry only when certain errors happen ?
 			await this.put(command, ++attempt);
 		}
 

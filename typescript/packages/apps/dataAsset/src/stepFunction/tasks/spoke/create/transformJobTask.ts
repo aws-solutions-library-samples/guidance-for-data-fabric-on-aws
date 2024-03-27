@@ -12,34 +12,11 @@ export class TransformJobTask {
     ) {
     }
 
-    // TODO John for the transform, you will need to:
-    // 1- Perform reciep creation
-    // 2- Create transform job
-    // 3- run job
-    // I have added the following code as a place holder its up to you to flush it out and cater for other scenarios such as redshift, etc
     public async process(event: DataAssetTask): Promise<any> {
         this.log.info(`TranformJobTask > process > in > event: ${JSON.stringify(event)}`);
 
         const id = (event.dataAsset?.catalog?.assetId) ? event.dataAsset.catalog.assetId : event.dataAsset.id;
-
-        // TODO add if condition to check for recipeId s exists before creating
-
-        // Create the recipe if none exist
-        const recipe = await this.dataBrewClient.send(new CreateRecipeCommand({
-            Name: `df-${id}`,
-            Steps: [], // TODO add recipe step
-            Tags: {
-                ...event.dataAsset.workflow?.tags,
-                // Default tags that are added for lineage and enrichment purposes
-                domainId: event.dataAsset.catalog.domainId,
-                projectId: event.dataAsset.catalog.projectId,
-                assetName: event.dataAsset.catalog.assetName,
-                assetId: event.dataAsset.catalog.assetId,
-                id: event.dataAsset.id,
-                executionId: event.execution.executionId,
-                executionToken: event.execution.taskToken
-            }
-        }));
+        const recipeName = `df-${id}`;
 
         const jobName = `${event.dataAsset.workflow.name}-${id}-profile`;
         const outputKey = `${this.jobsBucketPrefix}/${event.dataAsset.catalog.domainId}/${event.dataAsset.catalog.projectId}/${id}`;
@@ -50,7 +27,7 @@ export class TransformJobTask {
             DatasetName: id,
             RoleArn: event.dataAsset.workflow.roleArn,
             RecipeReference: {
-                Name: recipe.Name
+                Name: recipeName
             },
             Outputs: [
                 {
