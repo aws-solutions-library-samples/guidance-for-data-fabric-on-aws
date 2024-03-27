@@ -246,6 +246,9 @@ importers:
       '@aws-sdk/types':
         specifier: 3.370.0
         version: 3.370.0
+      '@aws-sdk/util-retry':
+        specifier: 3.370.0
+        version: 3.370.0
       '@df/cdk-common':
         specifier: workspace:*
         version: link:../../libraries/cdk-common
@@ -4891,6 +4894,11 @@ packages:
       - '@aws-sdk/signature-v4-crt'
     dev: false
 
+  /@aws-sdk/service-error-classification@3.370.0:
+    resolution: {integrity: sha512-aHW9Rt6IZtBopCiVL/6SBSTFkyfjjz8FRHD0EYQ15CcySzEXBSuhg2sSRc01ihi+K5CO0FZIMuDOxPyEWIPFig==}
+    engines: {node: '>=14.0.0'}
+    dev: false
+
   /@aws-sdk/service-error-classification@3.374.0:
     resolution: {integrity: sha512-7vFs0+zrP7Ni/t/e5kU/qZyLi7kRR375QWwvoR2ie3lD7cPAa+84IZqzKfcAkL2305Byb4RQrhogrsUh7ts9TA==}
     engines: {node: '>=14.0.0'}
@@ -5294,6 +5302,14 @@ packages:
     engines: {node: '>=14.0.0'}
     dependencies:
       tslib: 2.6.2
+
+  /@aws-sdk/util-retry@3.370.0:
+    resolution: {integrity: sha512-hpzO+wdFFCvVEBzjEejyH9hNWSFYZ/rXnnrcY1saMbRzxXJDbjF2C4UQ0yLHdwxHJREAn1EwvnGMGktNTa7LXQ==}
+    engines: {node: '>= 14.0.0'}
+    dependencies:
+      '@aws-sdk/service-error-classification': 3.370.0
+      tslib: 2.6.2
+    dev: false
 
   /@aws-sdk/util-stream@3.370.0:
     resolution: {integrity: sha512-ttwk09dbKyuiVAevXdmSJhL2o1aiQ6YGq2Yij8y0ZAp/5pTZdcocDDfVduUS6FISn6gXSBkrRGJtjsb+BlYvrA==}

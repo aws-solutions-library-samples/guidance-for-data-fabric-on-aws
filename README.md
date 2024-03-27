@@ -1,93 +1,170 @@
 # df-core
 
+df-core is a monorepo project that implements a data fabric on AWS. It is managed by Rush, and infrastructure is deployed using the AWS Cloud Development Kit (CDK).
 
+## Structure
 
-## Getting started
+The project is structured as a monorepo with the following folders:
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- `infrastructure`: Contains infrastructure-as-code (IaC) for deploying the data fabric.
+  - `hub`: CDK app for deploying resources in the hub account.
+  - `spoke`: CDK app for deploying resources in the spoke accounts.
+- `typescript/packages`: Contains the TypeScript code.
+  - `apps`: Applications and services.
+  - `libraries`: Shared libraries and utilities.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### Hub Account
 
-## Add your files
+The hub account is where the Amazon DataZone domain is deployed. It acts as a central management point for the data fabric.
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+### Spoke Accounts
 
-```
-cd existing_repo
-git remote add origin https://gitlab.aws.dev/wwso-cross-industry-prototyping/df/df-core.git
-git branch -M main
-git push -uf origin main
-```
+The spoke accounts are where the data assets reside. The spoke infrastructure needs to be deployed in each spoke account that will be used with the data fabric.
 
-## Integrate with your tools
+## Prerequisites
 
-- [ ] [Set up project integrations](https://gitlab.aws.dev/wwso-cross-industry-prototyping/df/df-core/-/settings/integrations)
+- [Rush](https://rushjs.io/): A monorepo manager for building and publishing JavaScript packages.
+- [AWS CDK](https://aws.amazon.com/cdk/): An infrastructure-as-code framework for deploying AWS resources.
+- [AWS Organizations](https://aws.amazon.com/organizations/): The hub and spoke account(s) must be part of the same AWS Organization.
 
-## Collaborate with your team
+## Account Setup
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+1. **IAM Identity Center**: Create an IAM Identity Center instance. This is required for authentication and authorization.
+   - If the IAM Identity Center instance is created in a different account than the hub account, create a role in the hub account to access it.
+      - TODO: Details of that role
 
-## Test and Deploy
+2. **SSL Certificate**: Upload an SSL certificate to AWS Certificate Manager (ACM) in the hub account. This is required for configuring the Application Load Balancer with Cognito.
+   - To generate a self-signed certificate and upload it to ACM, follow these steps:
+     1. Generate a private key:
+        ```
+        openssl genrsa 2048 > my-aws-private.key
+        ```
+     2. Generate the certificate using the private key from the previous step:
+        ```
+        openssl req -new -x509 -nodes -sha1 -days 3650 -extensions v3_ca -key my-aws-private.key > my-aws-public.crt
+        ```
+     3. Install the AWS CLI and set up your AWS credentials.
+     4. Upload the generated certificate and private key to ACM:
+        ```
+        aws acm import-certificate --certificate file://my-aws-public.crt --private-key file://my-aws-private.key --region <your-aws-region>
+        ```
 
-Use the built-in continuous integration in GitLab.
+3. **Organization Setup**: Ensure that the hub and spoke accounts are part of the same AWS Organization.
+   - Configure the necessary organizational units (OUs) and service control policies (SCPs) as needed.
+4. **DataZone**: An Amazon DataZone domain must be created in the hub account. It needs to be be linked to the same IAM Identity Center Identity Store as the one used with Cognito.
+   1. Users of in Amazon DataZone must be members of the projects that they intend to use with the API.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+5. TODO: Lakeformation setup
+6. TODO: Soft Limit increases
 
-***
+## Data Asset Prerequisites
 
-# Editing this README
+### Redshift
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+- Amazon Redshift Serverless is recommended.
+- TODO: Additional redshift requirements
+- Data assets will be stored as Redshift tables.
 
-## Suggestions for a good README
+### S3
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+- Amazon S3 objects can be used as data assets. They will be published as AWS Glue Table assets.
 
-## Name
-Choose a self-explaining name for your project.
+## Using the API
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Users who need to access the API must be registered as users with the IAM Identity Center instance.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+- TODO: Add token generation instructions
+- TODO: Add postman (or similar) collection info
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## Deployment
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+### Prerequisites
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+- Install the required dependencies by running `rush update`.
+- Set the necessary AWS credentials (access key, secret access key, session token, and region) in your environment.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### Building
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+- To rebuild all packages, run `rush rebuild`.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### Deploying the Hub
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+1. **Upload SSL Certificate to ACM**:
+   - Follow the provided instructions in Account Setup to generate a self-signed certificate and upload it to ACM in the hub account.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+2. **Deploy the Shared Hub Infrastructure**:
+   - Ensure your environment credentials are configured for the spoke account and run the following CDK command to deploy the shared infrastructure needed for integrating with IAM Identity Center:
+   
+     ```
+     cd infrastructure/hub
+     npm run cdk -- deploy \
+     --require-approval never --concurrency=10 \
+     -c identityStoreId=<Identity Store ID> \
+     -c orgId=<AWS Organization ID> \
+     -c orgRootId=<AWS Organization Root ID> \
+     -c orgOuId=<AWS Organization OU ID>
+     ```
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+3. **Configure IAM Identity Center**: Follow the provided steps to configure IAM Identity Center and set up a SAML 2.0 application.
+   Note: this step only needs to be performed once for the initial deployment    
 
-## License
-For open source projects, say how it is licensed.
+   1.    Open the IAM Identity Center console and then, from the navigation pane, choose Applications.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+   2.    Choose Add application and Add custom SAML 2.0 application, and then choose Next.
+
+   3.    On the Configure application page, enter a Display name and a Description.
+
+   4.    Copy the URL of the IAM Identity Center SAML metadata file. You use these resources in later steps to create an IdP in a user pool.
+
+   5.    Under Application metadata, choose Manually type your metadata values. Then provide the following values.
+
+   Important: Make sure to replace the domain, region, and userPoolId values with information ypu gather after the CDK deployment.
+   ```
+   Application Assertion Consumer Service (ACS) URL: https://<domain>.auth.<region>.amazoncognito.com/saml2/idpresponse
+   Application SAML audience: urn:amazon:cognito:sp:<userPoolId>
+   ```
+
+   6.    Choose Submit. Then, go to the Details page for the application that you added.
+
+   7.    Select the Actions dropdown list and choose Edit attribute mappings. Then, provide the following attributes.
+   ```
+   User attribute in the application: subject
+   Note: subject is prefilled.
+   Maps to this string value or user attribute in IAM Identity Center: ${user:subject}
+   Format: Persistent
+
+   User attribute in the application: email
+   Maps to this string value or user attribute in IAM Identity Center: ${user:email}
+   Format: Basic
+   ```
+
+4. **Redeploy the Hub Infrastructure**:
+   - Run the following CDK command to redeploy the hub infrastructure with the necessary parameters:
+   
+     ```
+     npm run cdk -- deploy \
+     --all --require-approval never --concurrency=10 \
+     -c ssoInstanceArn=<enter your IAM Identity center Instance ARN> \
+     -c samlMetaDataUrl=<enter your SAML 2.0 application metadata url> \
+     -c callbackUrls=<enter a comma separated list of urls> \
+     -c adminEmail=<enter the admin email you want to be used> \
+     -c identityStoreId=<Identity Store ID> \
+     -c orgId=<AWS Organization ID> \
+     -c orgRootId=<AWS Organization Root ID> \
+     -c orgOuId=<AWS Organization OU ID>
+     ```
+
+### Deploying the Spoke
+
+1. **Deploy the Spoke Infrastructure**:
+   - Ensure your environment credentials are configured for the spoke account and run the following CDK command to deploy the spoke infrastructure:
+   
+     ```
+     cd infrastructure/spoke
+     npm run cdk -- deploy \
+     -c hubAccountId=<AWS Account ID of Hub Account> \
+     -c orgId=<AWS Organization ID> \
+     -c orgRootId=<AWS Organization Root ID> \
+     -c orgOuId=<AWS Organization OU ID> \
+     --require-approval never --concurrency=10
+     ```
