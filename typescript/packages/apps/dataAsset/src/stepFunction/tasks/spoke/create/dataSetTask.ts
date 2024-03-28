@@ -41,10 +41,6 @@ export class DataSetTask {
 
     }
 
-    // TODO Edmund, you need to create a new data set for redshift here,
-    // once the data set is created the profileJobTask should be able to profile the redshift database
-    // Recipe jobs for Redshift are another story, I havent played around with that cordinate with John to figure how it should work
-
     private constructInputCommand(event: DataAssetTask): CreateDatasetCommandInput {
         this.log.debug(`DataSetTask > constructInputCommand > in > event: ${JSON.stringify(event)}`);
         const connectionType = getConnectionType(event.dataAsset.workflow);

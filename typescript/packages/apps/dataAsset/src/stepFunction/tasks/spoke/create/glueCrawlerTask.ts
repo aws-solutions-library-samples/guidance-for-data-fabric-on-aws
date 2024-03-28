@@ -115,7 +115,7 @@ export class GlueCrawlerTask {
                     }
                     break;
                 case 'glue':
-                    // TODO, NOT needed for demo
+                    // TODO
                     break;
                 case 'redshift':
                     targets = {

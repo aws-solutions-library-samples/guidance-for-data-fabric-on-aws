@@ -55,10 +55,6 @@ const deploySpoke = (callerEnvironment?: { accountId?: string, region?: string }
     },
   });
 
-// TODO Edmund: to support redshift we need to be able to deploy our stacks in VPC/Subnets
-// We might have the same data asset stack deployed in multiple VPCs in different VPC
-// One way to avoid naming collisions is to include the vpcId in the stack prefix if VPC id is supplied
-
   const dataAsset = new DataAssetSpokeStack(app, 'DataAssetStack', {
     stackName: stackName('dataAsset'),
     description: spokeStackDescription('DataAsset'),

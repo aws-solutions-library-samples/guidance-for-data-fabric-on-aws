@@ -5,18 +5,18 @@ import type { CreateResponseEventDetails, EventPublisher } from '@df/events';
 import { DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder } from '@df/events';
 import merge from 'merge';
 import type { S3Utils } from '../../../../common/s3Utils.js';
-import { DeleteDatasetCommand, type DataBrewClient, DeleteJobCommand} from '@aws-sdk/client-databrew';
+import { DeleteDatasetCommand, type DataBrewClient, DeleteJobCommand } from '@aws-sdk/client-databrew';
 
 
 export class LineageTask {
 
     constructor(
-				private log: BaseLogger,
-                private sfnClient: SFNClient,
-                private eventBusName: string,
-                private eventPublisher: EventPublisher,
-                private readonly s3Utils: S3Utils,
-				private dataBrewClient: DataBrewClient
+        private log: BaseLogger,
+        private sfnClient: SFNClient,
+        private eventBusName: string,
+        private eventPublisher: EventPublisher,
+        private readonly s3Utils: S3Utils,
+        private dataBrewClient: DataBrewClient
     ) {
     }
 
@@ -42,28 +42,46 @@ export class LineageTask {
             mergedExecution = profile.dataAsset.execution;
         }
 
-		// Start Cleanup stage
+        // Start Cleanup stage this will be a best of effort cleanup
 
-		if ( profile.dataAsset.workflow?.transforms) {
-			// Remove the recipe job
-			await this.dataBrewClient.send( new DeleteJobCommand({
-				Name:`${profile.dataAsset.workflow.name}-${id}-transform`
-			}));
-			// Remove the recipe data set
-			await this.dataBrewClient.send( new DeleteDatasetCommand({
-				Name:`${id}-recipeDataSet`
-			}));
-		}
+        if (profile.dataAsset.workflow?.transforms) {
+            // Remove the recipe job
+            try {
+                await this.dataBrewClient.send(new DeleteJobCommand({
+                    Name: `${profile.dataAsset.workflow.name}-${id}-transform`
+                }));
+            } catch (err) {
+                this.log.info(`LineageTask > process > DeleteRecipeJobFailed > error: ${JSON.stringify(err)}`);
+            }
 
-		
-		// Remove the profile job
-		await this.dataBrewClient.send( new DeleteJobCommand({
-			Name:`df-${id}-dataProfile`
-		}));
-		// Remove the profile data set
-		await this.dataBrewClient.send( new DeleteDatasetCommand({
-			Name: `${id}-profileDataSet`
-		}));
+            // Remove the recipe data set
+            try {
+                await this.dataBrewClient.send(new DeleteDatasetCommand({
+                    Name: `${id}-recipeDataSet`
+                }));
+            } catch (err) {
+                this.log.info(`LineageTask > process > DeleteRecipeDatasetFailed > error: ${JSON.stringify(err)}`);
+            }
+        }
+
+        // Remove the profile job
+        try {
+            await this.dataBrewClient.send(new DeleteJobCommand({
+                Name: `df-${id}-dataProfile`
+            }));
+        } catch (err) {
+            this.log.info(`LineageTask > process > DeleteProfileJobFailed > error: ${JSON.stringify(err)}`);
+        }
+
+        // Remove the profile data set
+        try {
+            await this.dataBrewClient.send(new DeleteDatasetCommand({
+                Name: `${id}-profileDataSet`
+            }));
+        } catch (err) {
+            this.log.info(`LineageTask > process > DeleteProfileDatasetFailed > error: ${JSON.stringify(err)}`);
+        }
+
 
         this.log.info(`LineageTask > process > in > lineage: ${JSON.stringify(mergedLineage)}`);
 
@@ -96,7 +114,7 @@ export class LineageTask {
         await this.eventPublisher.publish(publishEvent);
 
 
-        await this.sfnClient.send(new SendTaskSuccessCommand({output: JSON.stringify(event), taskToken: event.execution.taskToken}));
+        await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(event), taskToken: event.execution.taskToken }));
         this.log.info(`LineageTask > process > exit:`);
 
     }
