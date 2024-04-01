@@ -58,7 +58,8 @@ export class CreateProjectTask {
 				owningProjectIdentifier: projectId,
 				model: {
 					smithy: "@amazon.datazone#displayname(defaultName: \"DF_Profile_Form\")\n structure df_profile_form\n  {\n @amazon.datazone#displayname(defaultName: \"Asset namespace\")\nlineage_asset_namespace: String\n @documentation(\"The name of the data asset in OpenLineage\")\n@amazon.datazone#displayname(defaultName: \"Asset Name\")\nlineage_asset_name: String\n @amazon.datazone#displayname(defaultName: \"Data Quality Profile Location\")\ndata_quality_profile_location: String\n @required\n@amazon.datazone#displayname(defaultName: \"Task Id\")\n @amazon.datazone#searchable\ntask_id: String\n @amazon.datazone#displayname(defaultName: \"Data Profile Location\")\ndata_profile_location: String\n  } "
-				}
+				},
+				status: "ENABLED",
 		}));
 
 		}

@@ -66,7 +66,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     await app.register(cors, {});
     await app.register(authzPlugin);
     await app.register(fastifySensible);
-    // await app.register(swagger);
+    await app.register(swagger);
 
     // register all assets
     app.addSchema(dataAssetResource);
