@@ -420,12 +420,18 @@
 			"reviewCategory": "library",
 			"shouldPublish": true
 		},
-		  {
+		{
+			"packageName": "@df/integration-tests",
+			"projectFolder": "typescript/packages/integrationTests",
+			"reviewCategory": "library",
+			"shouldPublish": true
+		},
+		{
 			"packageName": "@df/discovery",
 			"projectFolder": "typescript/packages/apps/discovery",
 			"reviewCategory": "production",
 			"shouldPublish": true
-		  },	  
+		},	  
 		{
 			"packageName": "@df/dataLineage",
 			"projectFolder": "typescript/packages/apps/dataLineage",

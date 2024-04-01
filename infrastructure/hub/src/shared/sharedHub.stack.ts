@@ -7,6 +7,7 @@ import type { Construct } from 'constructs';
 import { Compute } from './compute.construct.js';
 import { S3, bucketArnParameter, bucketNameParameter } from './s3.construct.js';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import { NagSuppressions } from 'cdk-nag';
 
 
 export type SharedHubStackProperties = StackProps & {
@@ -52,6 +53,25 @@ export class SharedHubInfrastructureStack extends Stack {
         new Bus(this, 'EventBus', false);
 
         new SSM(this, 'ApiFunctionNameParameters');
+
+        NagSuppressions.addResourceSuppressionsByPath(this,'/SharedHubStack/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/Resource',
+        [
+            {
+                id: 'AwsSolutions-IAM4',
+                appliesTo:[
+                    `Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole`,
+                ],
+                reason: 'Lambda execution permissions.'
+            },
+            {
+                id: 'AwsSolutions-IAM5',
+                appliesTo:[
+                    `Resource::*`
+                ],
+                reason: 'Lambda execution permissions.'
+
+            }],
+        true);
 
     }
 }

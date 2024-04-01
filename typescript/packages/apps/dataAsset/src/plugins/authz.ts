@@ -71,8 +71,7 @@ export const authzPlugin = fp(async (app: any): Promise<void> => {
             }
             // extract the users claims from the ID token (provided by the COGNITO_USER_POOLS integration)
             email = lambdaEvent?.requestContext?.authorizer?.claims?.['email'] as string;
-            const identities = JSON.parse(lambdaEvent?.requestContext?.authorizer?.claims?.['identities'] as string);
-            userId = identities.userId;
+            userId = lambdaEvent?.requestContext?.authorizer?.claims?.['idcUserId'] as string;
         } else {
 
             // if in local mode, to simplify local development we extract from user provided headers
@@ -91,7 +90,7 @@ export const authzPlugin = fp(async (app: any): Promise<void> => {
              * ignore reason : JWT token is verified by APIGW in a prior step and this issue is invalid
             */
             email = decodedToken.email;  // nosemgrep
-            userId = decodedToken.identities[0].userId; // nosemgrep
+            userId = decodedToken.idcUserId; // nosemgrep
         }
 
         // place the group roles and email on the request in case a handler needs to perform finer grained access control
