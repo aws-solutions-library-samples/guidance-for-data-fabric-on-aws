@@ -66,7 +66,7 @@ export class GlueCrawlerTask {
             Targets: this.getCrawlerTargets(event),
             TablePrefix: `df-${event.dataAsset.catalog.assetName}-${id}-`,
             LakeFormationConfiguration: {
-                UseLakeFormationCredentials: false
+                UseLakeFormationCredentials: this.crawlerShouldUseLFCreds(event)
             },
             Tags: {
                 ...asset.workflow?.tags,
@@ -85,6 +85,22 @@ export class GlueCrawlerTask {
 
         return command;
 
+    }
+
+    private crawlerShouldUseLFCreds(event: DataAssetTask): boolean {
+        const connection = event.dataAsset.workflow.dataset.connection;
+        if (event.dataAsset.execution.recipeJob) {
+            return true;
+        } else {
+            switch (Object.keys(connection)[0]) {
+                case 'dataLake':
+                    return true;
+                case 'redshift':
+                    return false;
+                default:
+                    return false;
+            }
+        }
     }
 
 	private getCrawlerTargets(event: DataAssetTask): CrawlerTargets {

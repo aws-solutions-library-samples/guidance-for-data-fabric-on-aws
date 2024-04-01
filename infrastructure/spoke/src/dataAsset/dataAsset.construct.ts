@@ -206,20 +206,6 @@ export class DataAssetSpoke extends Construct {
 
         bucket.grantPut(createStartLambda);
         createStartLambda.addToRolePolicy(StateMachinePolicy);
-        new CfnPermissions(this, 'CreateStartLambdaLakeFormationPermissions', {
-            dataLakePrincipal: {
-                dataLakePrincipalIdentifier: createStartLambda.role?.roleArn,
-              },
-              resource: {
-                tableResource: {
-                    catalogId: accountId,
-                    databaseName: glueDatabase.databaseName,
-                    tableWildcard: { }, // empty object === ALL_TABLES
-                }
-              },
-              permissions:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE'],
-              permissionsWithGrantOption:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE']
-        });
 
         const createConnectionLambda = new NodejsFunction(this, 'CreateConnectionLambda', {
             description: 'Asset Manager Connection creator Task Handler',
@@ -283,6 +269,20 @@ export class DataAssetSpoke extends Construct {
         createDataSetLambda.addToRolePolicy(IAMPassRolePolicy);
         createDataSetLambda.addToRolePolicy(GluePolicy);
 
+        new CfnPermissions(this, 'CreateDataSetLambdaPermissions', {
+            dataLakePrincipal: {
+                dataLakePrincipalIdentifier: createDataSetLambda.role?.roleArn,
+              },
+              resource: {
+                tableResource: {
+                    catalogId: accountId,
+                    databaseName: glueDatabase.databaseName,
+                    tableWildcard: { }, // empty object === ALL_TABLES
+                }
+              },
+              permissions:['DESCRIBE'],
+        });
+
 
         const createProfileDataSetLambda = new NodejsFunction(this, 'CreateProfileDataSetLambda', {
             description: 'Asset Manager profile dataset creator Task Handler',
@@ -328,8 +328,7 @@ export class DataAssetSpoke extends Construct {
                     tableWildcard: { }, // empty object === ALL_TABLES
                 }
               },
-              permissions:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE'],
-              permissionsWithGrantOption:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE']
+              permissions:['DESCRIBE'],
         });
 
         const recipeJobLambda = new NodejsFunction(this, 'RecipeJobLambda', {
@@ -376,8 +375,7 @@ export class DataAssetSpoke extends Construct {
                     tableWildcard: { }, // empty object === ALL_TABLES
                 }
               },
-              permissions:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE'],
-              permissionsWithGrantOption:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE']
+              permissions:['DESCRIBE'],
         });
 
         const profileJobLambda = new NodejsFunction(this, 'ProfileJobLambda', {
@@ -427,8 +425,7 @@ export class DataAssetSpoke extends Construct {
                     tableWildcard: { }, // empty object === ALL_TABLES
                 }
               },
-              permissions:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE'],
-              permissionsWithGrantOption:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE']
+              permissions:['DESCRIBE'],
         });
 
         const dqProfileJobLambda = new NodejsFunction(this, 'DQProfileJobLambda', {
@@ -480,8 +477,7 @@ export class DataAssetSpoke extends Construct {
                     tableWildcard: { }, // empty object === ALL_TABLES
                 }
               },
-              permissions:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE'],
-              permissionsWithGrantOption:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE']
+              permissions:['DESCRIBE'],
         });
 
         const glueCrawlerLambda = new NodejsFunction(this, 'GlueCrawlerLambda', {
@@ -517,35 +513,6 @@ export class DataAssetSpoke extends Construct {
         glueCrawlerLambda.addToRolePolicy(IAMPassRolePolicy);
         glueCrawlerLambda.addToRolePolicy(GluePolicy);
         bucket.grantPut(glueCrawlerLambda);
-
-        new CfnPermissions(this, 'GlueCrawlerLambdaLakeFormationDBPermissions', {
-            dataLakePrincipal: {
-                dataLakePrincipalIdentifier: glueCrawlerLambda.role?.roleArn,
-              },
-              resource: {
-                databaseResource: {
-                    catalogId: accountId,
-                    name: glueDatabase.databaseName
-                }
-              },
-              permissions:['ALTER', 'CREATE_TABLE', 'DESCRIBE', 'DROP'],
-              permissionsWithGrantOption:['CREATE_TABLE', 'ALTER', 'DROP', 'DESCRIBE']
-        });
-
-        new CfnPermissions(this, 'GlueCrawlerLambdaLakeFormationTablePermissions', {
-            dataLakePrincipal: {
-                dataLakePrincipalIdentifier: glueCrawlerLambda.role?.roleArn,
-              },
-              resource: {
-                tableResource: {
-                    catalogId: accountId,
-                    databaseName: glueDatabase.databaseName,
-                    tableWildcard: { }, // empty object === ALL_TABLES
-                }
-              },
-              permissions:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE'],
-              permissionsWithGrantOption:['SELECT', 'INSERT', 'DELETE', 'ALTER', 'DROP', 'DESCRIBE']
-        });
 
         const spokeLineageLambda = new NodejsFunction(this, 'SpokeLineageLambda', {
             description: 'Asset Manager Spoke Lineage Task Handler',

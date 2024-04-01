@@ -604,6 +604,7 @@ export class DataAsset extends Construct {
             tracing: Tracing.ACTIVE,
             memorySize: 512,
             logRetention: RetentionDays.ONE_WEEK,
+            timeout: Duration.seconds(20),
             environment: {
                 EVENT_BUS_NAME: props.eventBusName,
                 TABLE_NAME: table.tableName,
@@ -612,7 +613,8 @@ export class DataAsset extends Construct {
                 CUSTOM_DATAZONE_USER_EXECUTION_ROLE_ARN: customDataZoneRole.roleArn,
                 IDENTITY_STORE_ID: props.identityStoreId,
                 IDENTITY_STORE_ROLE_ARN: props.identityStoreRoleArn,
-                IDENTITY_STORE_REGION: props.identityStoreRegion
+                IDENTITY_STORE_REGION: props.identityStoreRegion,
+                NODE_ENV: 'production',
             },
 
             bundling: {
