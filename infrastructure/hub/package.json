@@ -13,7 +13,7 @@
 		"cdk": "npm run predeploy && cdk"
 	},
 	"dependencies": {
-		"aws-cdk-lib": "2.94.0",
+		"aws-cdk-lib": "2.135.0",
 		"constructs": "10.2.69",
 		"@aws-sdk/client-iam": "3.496.0",
 		"@aws-sdk/client-sso-admin": "3.496.0",
@@ -41,7 +41,7 @@
 		"@types/prettier": "2.7.3",
 		"@typescript-eslint/eslint-plugin": "6.1.0",
 		"@typescript-eslint/parser": "6.1.0",
-		"aws-cdk": "2.94.0",
+		"aws-cdk": "2.135.0",
 		"esbuild": "0.18.14",
 		"eslint": "8.45.0",
 		"pnpm": "8.6.8",

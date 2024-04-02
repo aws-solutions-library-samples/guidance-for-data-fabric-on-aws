@@ -13,33 +13,30 @@
 
 import { container } from '../plugins/awilix';
 import type { Logger } from 'pino';
-import type { PreTokenGenerationEvent } from './event';
+import type { PreTokenGenerationEvent, Profile } from './event';
 
 const logger = container.resolve<Logger>('logger');
 
 const handler = async (event: PreTokenGenerationEvent, _context: any) => {
 	logger.info(`preTokenGeneration > handler > in:${JSON.stringify(event)}`);
 
-
 	// Integration test claims
 	if (event.request.userAttributes?.profile ){
-		logger.info(`preTokenGeneration > handler > in:${JSON.stringify(event.request.userAttributes?.profile)}`);
-		logger.info(`preTokenGeneration > handler > in:${event.request.userAttributes?.profile.isIntegrationTest}`);
-		if(event.request.userAttributes.profile?.isIntegrationTest === true){
+		const profile:Profile =JSON.parse(event.request.userAttributes.profile);
+		if(profile?.isIntegrationTest === true){
 			event.response = {
-				claimsOverrideDetails: {
-					claimsToAddOrOverride: { 
-						email: event.request.userAttributes.email,
-						userId: event.request.userAttributes.profile.idcUserId
-
-					 },
-				},
+				claimsAndScopeOverrideDetails: {
+					accessTokenGeneration: { 
+						claimsToAddOrOverride:{
+							email: event.request.userAttributes.email,
+							userId: profile.idcUserId
+						}
+					 }, 
+				}
 			};
 		}
-		
 	}
-
-
+	
 	logger.info(`preTokenGeneration > handler > exit:${JSON.stringify(event)}`);
 	return event;
 };

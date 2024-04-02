@@ -184,6 +184,10 @@ export class Discovery extends Construct {
         NagSuppressions.addResourceSuppressions([discoveryApiLambda],
             [
                 {
+                    id: 'AwsSolutions-L1',
+                    reason: 'Latest runtime not needed.'
+                },
+                {
                     id: 'AwsSolutions-IAM5',
                     appliesTo: ['Resource::*'],
                     reason: 'CloudWatch logs and X-Ray tracing allowed on * and DataZone GetListing must find all assets.'

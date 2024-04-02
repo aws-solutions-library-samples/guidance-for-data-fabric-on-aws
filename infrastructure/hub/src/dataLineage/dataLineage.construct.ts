@@ -133,6 +133,10 @@ export class DataLineage extends Construct {
         NagSuppressions.addResourceSuppressions([lineageIngestionEventLambda],
             [
                 {
+                    id: 'AwsSolutions-L1',
+                    reason: 'Latest runtime not needed.'
+                },
+                {
                     id: 'AwsSolutions-IAM4',
                     appliesTo: [
                         'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',

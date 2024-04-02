@@ -56,6 +56,7 @@ export class DataQualityProfileEventProcessor {
         const id = getTagsResponse.Tags['id'];
 
         const dataAssetTask = await this.s3Utils.getTaskData(TaskType.DataQualityProfileTask, id);
+        await this.s3Utils.putDataQualityProfilingResults(dataAssetTask.dataAsset.id, dataAssetTask.dataAsset.catalog.domainId, dataAssetTask.dataAsset.catalog.projectId, getResultResponse);
 
         const {rulesFailed, rulesSucceeded, rulesSkipped, score} = event.detail
         dataAssetTask.dataAsset.execution = {
@@ -66,6 +67,7 @@ export class DataQualityProfileEventProcessor {
                 stopTime: getEvaluationResponse.CompletedOn.toISOString(),
                 startTime: getEvaluationResponse.StartedOn.toISOString(),
                 message: `Rule Failed: ${rulesFailed}. Rule Skipped:${rulesSkipped}, Rule Succeeded: ${rulesSucceeded}, Score: ${score}`,
+                outputPath: this.s3Utils.getDataQualityProfilingJobOutputPath(id, dataAssetTask.dataAsset.catalog.domainId, dataAssetTask.dataAsset.catalog.projectId)
             }
         }
 

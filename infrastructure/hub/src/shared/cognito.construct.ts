@@ -95,9 +95,10 @@ export class Cognito extends Construct {
 			customAttributes: {
 				role: new StringAttribute({ mutable: true })
 			},
-			lambdaTriggers: {
-				preTokenGeneration: preTokenGenerationLambdaTrigger
-			},
+			// lambdaTriggers: {
+			// 	preTokenGeneration: preTokenGenerationLambdaTrigger,
+			// },
+			advancedSecurityMode: cognito.AdvancedSecurityMode.AUDIT,
 			passwordPolicy: {
 				minLength: 6,
 				requireLowercase: true,
@@ -108,6 +109,9 @@ export class Cognito extends Construct {
 			accountRecovery: AccountRecovery.EMAIL_ONLY,
 			removalPolicy: RemovalPolicy.DESTROY
 		});
+
+
+		userPool.addTrigger(cognito.UserPoolOperation.PRE_TOKEN_GENERATION_CONFIG, preTokenGenerationLambdaTrigger, cognito.LambdaVersion.V2_0 );
 
 		this.userPoolId = userPool.userPoolId;
 
@@ -148,6 +152,10 @@ export class Cognito extends Construct {
 
 			NagSuppressions.addResourceSuppressions([preTokenGenerationLambdaTrigger],
 				[
+					{
+						id: 'AwsSolutions-L1',
+						reason: 'Latest runtime not needed.'
+					},
 					{
 						id: 'AwsSolutions-IAM4',
 						appliesTo:[

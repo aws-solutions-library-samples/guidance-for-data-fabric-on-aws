@@ -2,6 +2,7 @@ import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3
 import type { DataAssetTask, TaskType } from "../stepFunction/tasks/models.js";
 import type { BaseLogger } from "pino";
 import type { GetSignedUrl } from "../plugins/module.awilix.js";
+import type { GetDataQualityResultCommandOutput } from "@aws-sdk/client-glue";
 
 
 export class S3Utils {
@@ -35,6 +36,7 @@ export class S3Utils {
         }))
         this.log.trace(`S3Utils > putTaskData > exit`)
     }
+
 
     public async getTaskData(taskName: string, id: string): Promise<DataAssetTask> {
         this.log.trace(`S3Utils > getTaskData > taskName: ${taskName}, id: ${id}`)
@@ -71,6 +73,28 @@ export class S3Utils {
 
     public getProfilingJobOutputPath(id: string, domainId: string, projectId: string): string {
         return `s3://${this.bucketName}/${this.bucketPrefix}/${domainId}/${projectId}/${id}/profilingJobOutput`;
+    }
+
+    public async putDataQualityProfilingResults(id: string, domainId: string, projectId: string, content: GetDataQualityResultCommandOutput): Promise<void> {
+        this.log.trace(`S3Utils > putDataQualityProfilingResults > id: ${id}, content: ${content}`);
+        const {Bucket, Key} = this.getDataQualityProfilingJobOutputLocation(id, domainId, projectId);
+        await this.s3Client.send(new PutObjectCommand({
+            Bucket: Bucket,
+            Key: Key,
+            Body: JSON.stringify(content)
+        }))
+        this.log.trace(`S3Utils > putDataQualityProfilingResults > exit`)
+    }
+
+    public getDataQualityProfilingJobOutputLocation(id: string, domainId: string, projectId: string): { Bucket: string, Key: string } {
+        return {
+            Bucket: this.bucketName,
+            Key: `${this.bucketPrefix}/${domainId}/${projectId}/${id}/dataQualityProfilingJobOutput/results.json`
+        }
+    }
+
+    public getDataQualityProfilingJobOutputPath(id: string, domainId: string, projectId: string): string {
+        return `s3://${this.bucketName}/${this.bucketPrefix}/${domainId}/${projectId}/${id}/dataQualityProfilingJobOutput/results.json`;
     }
     
 

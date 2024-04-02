@@ -2,7 +2,7 @@ import { Aspects, Duration, RemovalPolicy, } from 'aws-cdk-lib';
 import { InstanceType, IVpc, Port, SecurityGroup } from 'aws-cdk-lib/aws-ec2';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { AuroraPostgresEngineVersion, CfnDBCluster, DatabaseCluster, DatabaseClusterEngine, IDatabaseCluster, ParameterGroup, SubnetGroup } from 'aws-cdk-lib/aws-rds';
-import { HostedRotation, ISecret, Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { ISecret, Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 import { NagSuppressions } from 'cdk-nag';
 import { Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
@@ -94,11 +94,12 @@ export class AuroraDatabase extends Construct {
             }
         });
 
-        this.databaseSecret.addRotationSchedule('RotationSchedule', {
-            hostedRotation: HostedRotation.postgreSqlSingleUser({
-                functionName: `df-dataLineage-secret-rotation`
-            })
-        });
+        // this.databaseSecret.addRotationSchedule('RotationSchedule', {
+        //     hostedRotation: HostedRotation.postgreSqlSingleUser({
+        //         functionName: `df-dataLineage-secret-rotation`
+        //     })
+        // });
+
 
         const dbEngine = DatabaseClusterEngine.auroraPostgres({version: AuroraPostgresEngineVersion.VER_14_8});
 

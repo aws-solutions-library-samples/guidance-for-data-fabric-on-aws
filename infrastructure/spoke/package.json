@@ -12,7 +12,7 @@
 		"cdk": "npm run predeploy && cdk"
 	},
 	"dependencies": {
-		"aws-cdk-lib": "2.94.0",
+		"aws-cdk-lib": "2.135.0",
 		"@aws-cdk/aws-glue-alpha": "2.131.0-alpha.0",
 		"constructs": "10.2.69",
 		"source-map-support": "0.5.21",
@@ -32,7 +32,7 @@
 		"@types/prettier": "2.7.3",
 		"@typescript-eslint/eslint-plugin": "6.1.0",
 		"@typescript-eslint/parser": "6.1.0",
-		"aws-cdk": "2.94.0",
+		"aws-cdk": "2.135.0",
 		"esbuild": "0.18.14",
 		"eslint": "8.45.0",
 		"pnpm": "8.6.8",

@@ -77,7 +77,7 @@ These deployment instructions are intended for use on MacOS. Deployment using a 
                ]
             }
             ```
-    2. Create an IAM role to be used when creating assets in DF. You will pass the role’s Amazon Resource Name (ARN) to DF when you create assets. DF will pass this role to Glue and Glue DataBrew as needed.
+    2. In your Spoke account create an IAM role to be used when creating assets in DF. You will pass the role’s Amazon Resource Name (ARN) to DF when you create assets. DF will pass this role to Glue and Glue DataBrew as needed.
         1. The role name must be prefixed with `df-`. This enables the role to be passed by DF.
         2. The trust policy is as follows:
             ```
@@ -172,7 +172,10 @@ The hub and spoke accounts must be [bootstrapped](https://docs.aws.amazon.com/cd
         2. If you have previously used LakeFormation, add them under the **Administrative roles and tasks** section under the **Administration** section
 
 ### Deployment Steps
+We will need to deploy the hub stack in three separate steps
 
+#### Step 1: **Setup the shared stack**
+**_Note:_** this step only needs to be performed once for the initial deployment
 1. `git clone git@github.com:aws-solutions-library-samples/guidance-for-data-fabric-on-aws.git`
 2. `cd guidance-for-data-fabric-on-aws`
 3. Install dependencies `rush update --bypass-policy`
@@ -180,18 +183,18 @@ The hub and spoke accounts must be [bootstrapped](https://docs.aws.amazon.com/cd
 5. `cd infrastructure/hub`
 6. [Export credentials for the hub account and the AWS region to the environment](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html)
 7. Deploy `npm run cdk -- deploy --require-approval never --concurrency=10 -c identityStoreId=<IAM_IDENTITY_CENTER_IDENTITY_STORE_ID> -c identityStoreRoleArn=<IAM_IDENTITY_CENTER_ROLE_ARN> -c identityStoreRegion=<IDENTITY_STORE_REGION> -c ssoRegion=<SSO_REGION> -c orgId=<AWS_ORGANIZATIONS_ORG_ID> -c orgRootId=<AWS_ORGANIZATIONS_ROOT_ID> -c orgOuId=<AWS_ORGANIZATIONS_OU_ID> -c ssoInstanceArn=<AWS_IDENTITY_CENTER_INSTANCE_ARN> -c adminEmail=<ADMIN_EMAIL> -c --all`
-8. **Configure IAM Identity Center**: Follow the provided steps to configure IAM Identity Center and set up a SAML 2.0 application.
-    1. Note: this step only needs to be performed once for the initial deployment    
-    2. Open the IAM Identity Center console and then, from the navigation pane, choose Applications.
-    3. Choose Add application, I have an application I want to set up, and Add custom SAML 2.0 application, and then choose Next.
-    4. On the Configure application page, enter a Display name and a Description.
-    5. Copy the URL of the IAM Identity Center SAML metadata file. You use these resources in later steps to create an IdP in a user pool.
-    6. Under Application metadata, choose Manually type your metadata values. Then provide the following values.
-    7. Important: Make sure to replace the domain, region, and userPoolId values with information you gather after the CDK deployment.
+#### Step 2: **Configure IAM Identity Center**
+**_Note:_** this step only needs to be performed once for the initial deployment
+1. Open the IAM Identity Center console and then, from the navigation pane, choose Applications.
+    2. Choose Add application, I have an application I want to set up, and Add custom SAML 2.0 application, and then choose Next.
+    3. On the Configure application page, enter a Display name and a Description.
+    4. Copy the URL of the IAM Identity Center SAML metadata file. You use these resources in later steps to create an IdP in a user pool.
+    5. Under Application metadata, choose Manually type your metadata values. Then provide the following values.
+    6. Important: Make sure to replace the domain, region, and userPoolId values with information you gather after the CDK deployment.
          - Application Assertion Consumer Service (ACS) URL: `<userPoolDomain>/saml2/idpresponse`
          - Application SAML audience: `urn:amazon:cognito:sp:<userPoolId>`
-    8. Choose Submit. Then, go to the Details page for the application that you added.
-    9. Select the **Actions** dropdown list and choose **Edit attribute mappings**. Then, provide the following attributes.
+    7. Choose Submit. Then, go to the Details page for the application that you added.
+    8. Select the **Actions** dropdown list and choose **Edit attribute mappings**. Then, provide the following attributes.
          - User attribute in the application: `Subject`
             - Note: Subject is prefilled.
             - Maps to this string value or user attribute in IAM Identity Center: `${user:subject}`
@@ -200,10 +203,13 @@ The hub and spoke accounts must be [bootstrapped](https://docs.aws.amazon.com/cd
          - User attribute in the application: `email`
             - Maps to this string value or user attribute in IAM Identity Center: `${user:email}`
             - Format: `Basic`
-9. Redeploy `npm run cdk -- deploy --require-approval never --concurrency=10 -c identityStoreId=<IAM_IDENTITY_CENTER_IDENTITY_STORE_ID> -c identityStoreRoleArn=<IAM_IDENTITY_CENTER_ROLE_ARN> -c identityStoreRegion=<IDENTITY_STORE_REGION> -c ssoRegion=<SSO_REGION> -c orgId=<AWS_ORGANIZATIONS_ORG_ID> -c orgRootId=<AWS_ORGANIZATIONS_ROOT_ID> -c orgOuId=<AWS_ORGANIZATIONS_OU_ID> -c ssoInstanceArn=<AWS_IDENTITY_CENTER_INSTANCE_ARN> -c samlMetaDataUrl=<SAML_METADATA_URL> -c callbackUrls=[http://localhost:3000](http://localhost:3000/) -c adminEmail=<ADMIN_EMAIL> -c loadBalancerCertificateArn=<LOAD_BALANCER_CERTIFICATE_ARN> --all`
-10. `cd ../spoke`
-11. [Export credentials for the spoke account and the AWS region to the environment](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html)
-12. `npm run cdk -- deploy -c hubAccountId=<HUB_ACCOUNT_ID> -c orgId=<AWS_ORGANIZATIONS_ORG_ID> -c orgRootId=<AWS_ORGANIZATIONS_ROOT_ID> -c orgOuId=<AWS_ORGANIZATIONS_OU_ID> -c deleteBucket=true --require-approval never --concurrency=10 --all`
+#### Step 3: **Redeploy the hub stack**
+1. Redeploy `npm run cdk -- deploy --require-approval never --concurrency=10 -c identityStoreId=<IAM_IDENTITY_CENTER_IDENTITY_STORE_ID> -c identityStoreRoleArn=<IAM_IDENTITY_CENTER_ROLE_ARN> -c identityStoreRegion=<IDENTITY_STORE_REGION> -c ssoRegion=<SSO_REGION> -c orgId=<AWS_ORGANIZATIONS_ORG_ID> -c orgRootId=<AWS_ORGANIZATIONS_ROOT_ID> -c orgOuId=<AWS_ORGANIZATIONS_OU_ID> -c ssoInstanceArn=<AWS_IDENTITY_CENTER_INSTANCE_ARN> -c samlMetaDataUrl=<SAML_METADATA_URL> -c callbackUrls=[http://localhost:3000](http://localhost:3000/) -c adminEmail=<ADMIN_EMAIL> -c loadBalancerCertificateArn=<LOAD_BALANCER_CERTIFICATE_ARN> --all`
+
+#### Deploy the spoke stack
+1. `cd ../spoke`
+2. [Export credentials for the spoke account and the AWS region to the environment](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html)
+3. `npm run cdk -- deploy -c hubAccountId=<HUB_ACCOUNT_ID> -c orgId=<AWS_ORGANIZATIONS_ORG_ID> -c orgRootId=<AWS_ORGANIZATIONS_ROOT_ID> -c orgOuId=<AWS_ORGANIZATIONS_OU_ID> -c deleteBucket=true --require-approval never --concurrency=10 --all`
 
 ### Post-Deployment Steps
 

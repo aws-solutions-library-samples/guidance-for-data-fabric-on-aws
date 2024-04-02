@@ -967,6 +967,10 @@ export class DataAsset extends Construct {
         NagSuppressions.addResourceSuppressions([apiLambdaExecutionRole, customDataZoneRole, hubEventProcessorLambda, startCreateFlowLambdaRole, createDataSourceLambdaRole, verifyDataSourceLambdaRole, runDataSourceLambdaRole, eventProcessorLambdaRole, eventProcessorDataZoneRole, createDataSourceRole, verifyDataSourceRole, runDataSourceRole],
             [
                 {
+                    id: 'AwsSolutions-L1',
+                    reason: 'Latest runtime not needed.'
+                },
+                {
                     id: 'AwsSolutions-IAM4',
                     appliesTo: [
                         'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
@@ -1024,8 +1028,12 @@ export class DataAsset extends Construct {
             ],
             true);
 
-        NagSuppressions.addResourceSuppressions([startCreateFlowLambda, createDataSourceLambda, verifyDataSourceLambda, runDataSourceLambda, publishLineageLambda, createProjectLambda],
+        NagSuppressions.addResourceSuppressions([apiLambda, startCreateFlowLambda, createDataSourceLambda, verifyDataSourceLambda, runDataSourceLambda, publishLineageLambda, createProjectLambda],
             [
+                {
+                    id: 'AwsSolutions-L1',
+                    reason: 'Latest runtime not needed.'
+                },
                 {
                     id: 'AwsSolutions-IAM4',
                     appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],

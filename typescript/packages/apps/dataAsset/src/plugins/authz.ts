@@ -71,7 +71,7 @@ export const authzPlugin = fp(async (app: any): Promise<void> => {
             }
             // extract the users claims from the ID token (provided by the COGNITO_USER_POOLS integration)
             email = lambdaEvent?.requestContext?.authorizer?.claims?.['email'] as string;
-            userId = lambdaEvent?.requestContext?.authorizer?.claims?.['idcUserId'] as string;
+            userId = lambdaEvent?.requestContext?.authorizer?.claims?.['userId'] as string;
         } else {
 
             // if in local mode, to simplify local development we extract from user provided headers
@@ -84,13 +84,13 @@ export const authzPlugin = fp(async (app: any): Promise<void> => {
 
             let jws = req.headers.authorization?.replace('Bearer ', '');
             const decodedToken = jwt_decode<CognitoAuthToken>(jws);
-
+            app.log.warn('authz> onRequest> missing or malformed authorization token.');
             /*
              * Semgrep issue :  https://sg.run/wx8x
              * ignore reason : JWT token is verified by APIGW in a prior step and this issue is invalid
             */
             email = decodedToken.email;  // nosemgrep
-            userId = decodedToken.idcUserId; // nosemgrep
+            userId = decodedToken.userId; // nosemgrep
         }
 
         // place the group roles and email on the request in case a handler needs to perform finer grained access control

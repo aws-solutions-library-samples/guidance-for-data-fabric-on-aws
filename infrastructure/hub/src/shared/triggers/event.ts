@@ -24,7 +24,7 @@ export interface UserAttributes {
 	sub: string;
 	'cognito:user_status': string;
 	email: string;
-	profile?: Profile
+	profile?: string
 }
 
 export interface PrivateChallengeParameters {
@@ -58,10 +58,17 @@ export interface VerifyAuthEvent {
 }
 
 export interface PreTokenGenerationResponse {
-	claimsOverrideDetails?: {
-		claimsToAddOrOverride?: { [key: string]: string };
-		claimsToSuppress?: string[];
-	};
+	claimsAndScopeOverrideDetails?: {
+		idTokenGeneration?: {
+			claimsToAddOrOverride?: { [key: string]: string };
+			claimsToSuppress?: string[];
+		},
+		accessTokenGeneration?:{
+			claimsToAddOrOverride?: { [key: string]: string };
+			claimsToSuppress?: string[];
+		}
+	},
+	
 }
 
 export interface GroupConfiguration {

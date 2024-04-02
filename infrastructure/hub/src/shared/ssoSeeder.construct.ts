@@ -129,6 +129,10 @@ export class SsoSeeder extends Construct {
 
 		NagSuppressions.addResourceSuppressions([customResourceLambda], [
 			{
+				id: 'AwsSolutions-L1',
+				reason: 'Latest runtime not needed.'
+			},
+			{
 				id: 'AwsSolutions-IAM4',
 				reason: 'This only contains the policy the create and insert log to log group.',
 				appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole']
