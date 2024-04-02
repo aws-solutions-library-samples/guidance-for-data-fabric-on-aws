@@ -287,6 +287,8 @@ We will need to deploy the hub stack in three separate steps
 
 ### Creating Assets
 
+The following outlines steps to be done to create an asset using the Data Asset API. Below this are examples using a simple sample dataset.
+
 1. Generate a token
     1. Go to Amazon Cognito in the Hub account
     2. Select the `df` user pool
@@ -330,55 +332,88 @@ We will need to deploy the hub stack in three separate steps
             2. Go to the AWS Console in the spoke account and look at the `df-spoke-data-asset` State Machine in AWS Step Functions. You should see an execution running.
             3. Once the executions complete, you should be able to[find the new assets in the DataZone data catalog](https://docs.aws.amazon.com/datazone/latest/userguide/search-for-data.html).
 
+#### Sample Dataset
+
+A simple sample dataset file can be found [in docs/sample_data/sample_products.csv](./docs/sample_data/sample_products.csv). Below are a few sample rows:
+
+| sku     | units | weight | cost    |
+| ------- | ------| ------ | ------- |
+| Alpha   | 104   | 8      | 846.00  |
+| Bravo   | 102   | 5      | 961.00  |
+| Charlie | 155   | 4      | 472.00  |
+
+These rows represent a table of product names, the number of units in inventory, their weight, and their cost. Below we will add this data as assets in the data fabric using the Data Asset API. There is an example of creating a Glue table asset backed by S3 or a Redshift table. Both of these assets will be managed assets in DataZone meaning other users of DataZone can subscribe to and consume these when published.
+
 #### Glue Tables
 
-1. Load a CSV file into the `df-spoke-<SPOKE_ACCOUNT_ID>-<REGION>` S3 bucket
-2. Make an API request with the following request body `workflow`:
+1. Load the CSV file into the `df-spoke-<SPOKE_ACCOUNT_ID>-<REGION>` S3 bucket
+2. Make an API request replacing the request body `workflow` with:
    ```
-   {
-      "name": "my-csv-workflow",
-      "roleArn": "<SERVICE_ROLE_ARN",
-      "dataset": {
-         "name": "my-csv-dataset",
-         "format": "csv",
-         "connection": {
-            "dataLake": {
-               "s3": {
-                  "path": "s3://<PATH>.csv",
-                  "region": "<REGION>"
-               }
+    {
+        "name": "sample-products-workflow",
+        "roleArn": "<SERVICE_ROLE_ARN>",
+        "dataset": {
+            "name": "sample-products-dataset",
+            "format": "csv",
+            "connection": {
+                "dataLake": {
+                    "s3": {
+                    "path": "s3://<S3 PATH>/sample_products.csv",
+                    "region": "<REGION>"
+                    }
+                }
             }
-         }
-      }
-   }
+        },
+        "transforms": {
+            "recipe": {
+            "steps": [
+                {
+                    "Action": {
+                        "Operation": "LOWER_CASE",
+                        "Parameters": {
+                            "sourceColumn": "sku"
+                        }
+                    }
+                }
+            ]
+            }
+        },
+        "dataQuality": {
+            "ruleset": "Rules = [ (ColumnValues \"units\" >= 0) ]"
+        }
+    }
    ```
+
+After the data asset workflow completes a new data asset will be published in DataZone. You can search for it in the catalog by searching for `sample`. This workflow includes a transform and a user-defined data quality check. The transform takes the form of a Glue DataBrew recipe. In this case the transform converts the product names in the `sku` column to lowercase. The data quality check will define and run a Glue Data Quality check and include the results of the check in the metadata of the asset created in Data Zone. In this case the data quality check will ensure the `units` column contains non-negative values.
 
 #### Redshift Tables
 
 1. Load a table into your Redshift data warehouse.
 2. Make an API request with the following request body `workflow`:
    ```
-   {
-      "name": "my-redshift-workflow",
-      "roleArn": "<SERVICE_ROLE_ARN>",
-      "dataset": {
-         "name": "my-redshift-dataset",
-         "format": "csv",
-         "connection": {
-            "redshift": {
-               "secretArn": "<REDSHIFT_ADMIN_SECRET_ARN>",
-               "jdbcConnectionUrl": "<REDSHIFT_CONNECTION_URL>",
-               "subnetId": "<REDSHIFT_SUBNET_ID>",
-               "securityGroupIdList": ["<REDSHIFT_SG_ID>"],
-               "availabilityZone": "<REDSHIFT_AZ>",
-               "path": "<DB_NAME>/<SCHEMA_NAME>/<TABLE_NAME>",
-               "databaseTableName": "<SCHEMA_NAME>.<TABLE_NAME>",
-               "workgroupName": "<REDSHIFT_WORKGROUP_NAME>"
+    {
+        "name": "sample-products-redshift-workflow",
+        "roleArn": "<SERVICE_ROLE_ARN>",
+        "dataset": {
+            "name": "sample-products-redshift-dataset",
+            "format": "csv",
+            "connection": {
+                "redshift": {
+                    "secretArn": "REDSHIFT_ADMIN_SECRET_ARN",
+                    "jdbcConnectionUrl": "REDSHIFT_CONNECTION_URL",
+                    "subnetId": "REDSHIFT_SUBNET_ID",
+                    "securityGroupIdList": ["REDSHIFT_SG_ID"],
+                    "availabilityZone": "REDSHIFT_AZ",
+                    "path": "<DB_NAME>/<SCHEMA_NAME>/sample_product_table",
+                    "databaseTableName": "<SCHEMA_NAME>.sample_product_table",
+                    "workgroupName": "REDSHIFT_WORKGROUP_NAME"
+                }
             }
-         }
-      }
-   }
+        }
+    }
    ```
+
+After the data asset workflow completes a new data asset will be published in DataZone. You can search for it in the catalog by searching for `sample`. This workflow does not include a transform or user-defined data quality check as in the Glue Table example above. These can be added to the request if desired.
 
 ## Next Steps
 
