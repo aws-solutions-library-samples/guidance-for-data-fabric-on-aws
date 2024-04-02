@@ -71,7 +71,9 @@ export const authzPlugin = fp(async (app: any): Promise<void> => {
             }
             // extract the users claims from the ID token (provided by the COGNITO_USER_POOLS integration)
             email = lambdaEvent?.requestContext?.authorizer?.claims?.['email'] as string;
-            userId = lambdaEvent?.requestContext?.authorizer?.claims?.['userId'] as string;
+            // userId = lambdaEvent?.requestContext?.authorizer?.claims?.['userId'] as string;
+            const identities = JSON.parse(lambdaEvent?.requestContext?.authorizer?.claims?.['identities'] as string);
+            userId = identities.userId;
         } else {
 
             // if in local mode, to simplify local development we extract from user provided headers
