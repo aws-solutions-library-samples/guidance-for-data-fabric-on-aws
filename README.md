@@ -149,24 +149,7 @@ The hub and spoke accounts must be [bootstrapped](https://docs.aws.amazon.com/cd
             3. Databrew
         4. [Create a DataZone data warehouse environment](https://docs.aws.amazon.com/datazone/latest/userguide/create-new-environment.html) for the newly created Redshift resources.
     2. [Create a Data Lake Environment](https://docs.aws.amazon.com/datazone/latest/userguide/create-new-environment.html) in the newly created project
-3. Sign in to DataZone with the user that you will be making API calls with
-    1. Create a user in IAM Identity center in the Management account
-        1. Go to IAM Identity Center in the console in the Management account
-        2. Click Users
-        3. Click Add User and follow the prompts
-        4. You should get an email to set up your new user. Follow the prompts in the email to complete setup.
-    2. Assign the user you created to the custom application
-        1. Go to IAM Identity Center in the console in the Management account
-        2. Click Applications
-        3. Click Customer Managed
-        4. Click on the customer application that was created earlier
-        5. Click Assign users and groups and assign your user
-    3. Sign into DataZone with your SSO user
-        1. Go to IAM Identity Center in the Management account
-        2. Under **Settings summary**, open the **AWS access portal URL**
-        3. Sign in with your new user.
-        4. Click on the DataZone application to open the UI. Click **Sign in with SSO**. This step is needed to get DataZone to recognize your user ID.
-4. Go to AWS Lake Formation in the console of the spoke account
+3. Go to AWS Lake Formation in the console of the spoke account
     1. Make sure you are an Admin along with the CDK execution role.
         1. If this is your first time going to LakeFormation, there will be a prompt to “Add myself”, select that box. Also select the box that says “Add other AWS users or roles”. Select the CDK CloudFormation execution role. It will begin with: `cdk-<ID>cfn-exec-role` and click “Get Started”.
         2. If you have previously used LakeFormation, add them under the **Administrative roles and tasks** section under the **Administration** section
@@ -204,7 +187,7 @@ We will need to deploy the hub stack in three separate steps
             - Maps to this string value or user attribute in IAM Identity Center: `${user:email}`
             - Format: `Basic`
 #### Step 3: **Redeploy the hub stack**
-1. Redeploy `npm run cdk -- deploy --require-approval never --concurrency=10 -c identityStoreId=<IAM_IDENTITY_CENTER_IDENTITY_STORE_ID> -c identityStoreRoleArn=<IAM_IDENTITY_CENTER_ROLE_ARN> -c identityStoreRegion=<IDENTITY_STORE_REGION> -c ssoRegion=<SSO_REGION> -c orgId=<AWS_ORGANIZATIONS_ORG_ID> -c orgRootId=<AWS_ORGANIZATIONS_ROOT_ID> -c orgOuId=<AWS_ORGANIZATIONS_OU_ID> -c ssoInstanceArn=<AWS_IDENTITY_CENTER_INSTANCE_ARN> -c samlMetaDataUrl=<SAML_METADATA_URL> -c callbackUrls=[http://localhost:3000](http://localhost:3000/) -c adminEmail=<ADMIN_EMAIL> -c loadBalancerCertificateArn=<LOAD_BALANCER_CERTIFICATE_ARN> --all`
+1. Redeploy `npm run cdk -- deploy --require-approval never --concurrency=10 -c identityStoreId=<IAM_IDENTITY_CENTER_IDENTITY_STORE_ID> -c identityStoreRoleArn=<IAM_IDENTITY_CENTER_ROLE_ARN> -c identityStoreRegion=<IDENTITY_STORE_REGION> -c ssoRegion=<SSO_REGION> -c orgId=<AWS_ORGANIZATIONS_ORG_ID> -c orgRootId=<AWS_ORGANIZATIONS_ROOT_ID> -c orgOuId=<AWS_ORGANIZATIONS_OU_ID> -c ssoInstanceArn=<AWS_IDENTITY_CENTER_INSTANCE_ARN> -c samlMetaDataUrl=<SAML_METADATA_URL> -c callbackUrls=http://localhost:3000 -c adminEmail=<ADMIN_EMAIL> -c loadBalancerCertificateArn=<LOAD_BALANCER_CERTIFICATE_ARN> --all`
 
 #### Deploy the spoke stack
 1. `cd ../spoke`
@@ -270,6 +253,23 @@ We will need to deploy the hub stack in three separate steps
         3. Select the service role created earlier
         4. Enter the `df-spoke-<SPOKE_ACCOUNT_ID>-<REGION>` location for **Storage locations**
         5. Click **Grant**
+2. Sign in to DataZone with the user that you will be making API calls with
+    1. Create a user in IAM Identity center in the Management account
+        1. Go to IAM Identity Center in the console in the Management account
+        2. Click Users
+        3. Click Add User and follow the prompts
+        4. You should get an email to set up your new user. Follow the prompts in the email to complete setup.
+    2. Assign the user you created to the custom application
+        1. Go to IAM Identity Center in the console in the Management account
+        2. Click Applications
+        3. Click Customer Managed
+        4. Click on the customer application that was created earlier
+        5. Click Assign users and groups and assign your user
+    3. Sign into DataZone with your SSO user
+        1. Go to IAM Identity Center in the Management account
+        2. Under **Settings summary**, open the **AWS access portal URL**
+        3. Sign in with your new user.
+        4. Click on the DataZone application to open the UI. Click **Sign in with SSO**. This step is needed to get DataZone to recognize your user ID.
 
 ## Deployment Validation
 
