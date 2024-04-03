@@ -22,7 +22,7 @@
 		"@aws-sdk/client-kinesis": "3.370.0",
 		"@cucumber/cucumber": "9.3.0",
 		"awilix": "8.0.1",
-		"axios": "1.4.0",
+		"axios": "1.6.0",
 		"apickli": "3.0.2",
 		"form-data": "4.0.0",
 		"fast-glob": "3.3.0",
