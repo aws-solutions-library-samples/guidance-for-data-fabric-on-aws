@@ -1,9 +1,7 @@
 import type { BaseLogger } from 'pino';
-// import { SFNClient, SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 import type { DataAssetTask } from '../../models.js';
 import { ListDataSourcesCommand, CreateDataSourceCommand, CreateDataSourceCommandInput, DataSourceConfigurationInput } from '@aws-sdk/client-datazone';
 import { getConnectionType, getResourceArn } from '../../../../common/utils.js';
-// import type { S3Utils } from '../../../../common/s3Utils.js';
 import { SendTaskSuccessCommand, type SFNClient } from '@aws-sdk/client-sfn';
 import { OpenLineageBuilder } from '@df/events';
 import type { DataZoneUserAuthClientFactory } from '../../../../plugins/module.awilix.js';
@@ -12,9 +10,7 @@ export class CreateDataSourceTask {
 
 	constructor(
 		private log: BaseLogger,
-        // private dataZoneClient: DataZoneClient,
 		private dataZoneUserAuthClientFactory: DataZoneUserAuthClientFactory ,
-		// private readonly s3Utils: S3Utils,
 		private readonly sfnClient: SFNClient
 	) {
 	}

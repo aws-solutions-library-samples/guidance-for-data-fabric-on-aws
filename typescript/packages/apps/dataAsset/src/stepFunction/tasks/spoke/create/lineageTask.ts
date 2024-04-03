@@ -3,7 +3,7 @@ import { SendTaskSuccessCommand, SFNClient } from '@aws-sdk/client-sfn';
 import { DataAssetTask, DataAssetTasks, TaskType } from '../../models.js';
 import type { CreateResponseEventDetails, EventPublisher } from '@df/events';
 import { DATA_ASSET_SPOKE_CREATE_RESPONSE_EVENT, DATA_ASSET_SPOKE_EVENT_SOURCE, EventBridgeEventBuilder } from '@df/events';
-import merge from 'merge';
+import merge from 'deepmerge';
 import type { S3Utils } from '../../../../common/s3Utils.js';
 import { DeleteDatasetCommand, type DataBrewClient, DeleteJobCommand } from '@aws-sdk/client-databrew';
 
@@ -34,9 +34,8 @@ export class LineageTask {
         let mergedExecution;
         if (profile.dataAsset.workflow?.dataQuality) {
             const dataQualityProfile = await this.s3Utils.getTaskData(TaskType.DataQualityProfileTask, id);
-
-            mergedLineage = merge.recursive(profile.dataAsset.lineage, dataQualityProfile.dataAsset.lineage);
-            mergedExecution = merge.recursive(profile.dataAsset.execution, dataQualityProfile.dataAsset.execution);
+            mergedLineage = merge(profile.dataAsset.lineage, dataQualityProfile.dataAsset.lineage);
+            mergedExecution = merge(profile.dataAsset.execution, dataQualityProfile.dataAsset.execution);
         } else {
             mergedLineage = profile.dataAsset.lineage;
             mergedExecution = profile.dataAsset.execution;

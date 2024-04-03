@@ -56,6 +56,7 @@ export class DataQualityProfileEventProcessor {
         const id = getTagsResponse.Tags['id'];
 
         const dataAssetTask = await this.s3Utils.getTaskData(TaskType.DataQualityProfileTask, id);
+        
         await this.s3Utils.putDataQualityProfilingResults(dataAssetTask.dataAsset.id, dataAssetTask.dataAsset.catalog.domainId, dataAssetTask.dataAsset.catalog.projectId, getResultResponse);
 
         const {rulesFailed, rulesSucceeded, rulesSkipped, score} = event.detail
@@ -76,6 +77,8 @@ export class DataQualityProfileEventProcessor {
             throw new Error('No start lineage event for data quality.')
         }
         dataAssetTask.dataAsset.lineage.dataQualityProfile = this.constructDataLineage(dataQualityProfileLineageEvent, getResultResponse.RuleResults, rulesetArn);
+
+        await this.s3Utils.putTaskData(TaskType.DataQualityProfileTask, id, dataAssetTask);
 
         const openLineageEvent = new EventBridgeEventBuilder()
             .setEventBusName(this.hubEventBusName)

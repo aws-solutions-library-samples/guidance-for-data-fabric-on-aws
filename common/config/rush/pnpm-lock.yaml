@@ -303,6 +303,9 @@ importers:
       axios:
         specifier: 1.6.7
         version: 1.6.7
+      deepmerge:
+        specifier: 4.3.1
+        version: 4.3.1
       fastify:
         specifier: 4.24.2
         version: 4.24.2
@@ -312,9 +315,6 @@ importers:
       jwt-decode:
         specifier: 3.1.2
         version: 3.1.2
-      merge:
-        specifier: 2.1.1
-        version: 2.1.1
       ulid:
         specifier: 2.3.0
         version: 2.3.0
@@ -14210,10 +14210,6 @@ packages:
   /merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
-
-  /merge@2.1.1:
-    resolution: {integrity: sha512-jz+Cfrg9GWOZbQAnDQ4hlVnQky+341Yk5ru8bZSe6sIDTCIg8n9i/u7hSQGSVOF3C7lH6mGtqjkiT9G4wFLL0w==}
-    dev: false
 
   /methods@1.1.2:
     resolution: {integrity: sha512-iclAHeNqNm68zFtnZ0e+1L2yUIdvzNoauKU4WBA3VvH/vPFieF7qfRlwUZU+DA9P9bPXIS90ulxoUoCH23sV2w==}
