@@ -1,0 +1,1676 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "DF: Asset Management",
+    "description": "\nHas accountability for:\n- managing Assets in data zone\n\t- creating data brew jobs for profiling and data conversion \n\t- running data bre job for profiling and data quality\n",
+    "version": "0.0.1"
+  },
+  "components": {
+    "securitySchemes": {
+      "platformUserPool": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "def-0": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "the identifier of the Amazon DataZone inventory asset..",
+            "type": "string"
+          },
+          "domainId": {
+            "description": "The identifier of the Amazon DataZone domain in which the inventory asset exists.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The identifier of the Amazon DataZone domain in which the inventory asset.",
+            "type": "string"
+          },
+          "description": {
+            "description": "The description of an Amazon DataZone inventory asset.",
+            "type": "string"
+          },
+          "owningProjectId": {
+            "description": "The identifier of the Amazon DataZone project that owns the inventory asset.",
+            "type": "string"
+          },
+          "typeIdentifier": {
+            "description": "The identifier of the asset type of the specified Amazon DataZone inventory asset.",
+            "type": "string"
+          },
+          "typeRevision": {
+            "description": "The revision of the inventory asset type.",
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "The timestamp of when the Amazon DataZone inventory asset was created.",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "The Amazon DataZone user who created the inventory asset.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "owningProjectId",
+          "typeIdentifier",
+          "typeRevision"
+        ],
+        "title": "dataAssetResource"
+      },
+      "def-1": {
+        "type": "object",
+        "properties": {
+          "dataAssets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "description": "No. of results returned when pagination requested.",
+                "type": "integer"
+              },
+              "lastEvaluatedToken": {
+                "description": "Token used to paginate to the next page of search result.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "dataAssets"
+        ],
+        "title": "dataAssetResourceList"
+      },
+      "def-2": {
+        "type": "object",
+        "properties": {
+          "catalog": {
+            "type": "object",
+            "properties": {
+              "domainId": {
+                "description": "Data Zone domain id",
+                "type": "string"
+              },
+              "domainName": {
+                "description": "Data Zone domain name",
+                "type": "string"
+              },
+              "environmentId": {
+                "description": "Data Zone environment id",
+                "type": "string"
+              },
+              "projectId": {
+                "description": "Data Zone project id",
+                "type": "string"
+              },
+              "region": {
+                "description": "Data Zone environment region",
+                "type": "string"
+              },
+              "dataSourceId": {
+                "description": "Data Zone asset data source id",
+                "type": "string"
+              },
+              "assetName": {
+                "description": "Data Zone asset name",
+                "type": "string"
+              },
+              "assetId": {
+                "description": "Data Zone asset id",
+                "type": "string"
+              },
+              "accountId": {
+                "description": "The account id here the asset resides",
+                "type": "string"
+              },
+              "autoPublish": {
+                "description": "Publish the asset automatically.",
+                "default": true,
+                "type": "boolean"
+              },
+              "revision": {
+                "description": "specify the version number of the datazone asset",
+                "type": "number"
+              }
+            },
+            "required": [
+              "domainId",
+              "environmentId",
+              "assetName",
+              "accountId"
+            ]
+          },
+          "workflow": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "The name of the workflow",
+                "maxLength": 64,
+                "pattern": "[a-z|A-Z|0-9-_]",
+                "type": "string"
+              },
+              "roleArn": {
+                "description": "The Arn of the IAM Role to be used for the job execution",
+                "type": "string"
+              },
+              "externalInputs": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "assetListingId": {
+                          "description": "DataZone asset listing identifier",
+                          "type": "string"
+                        },
+                        "domainId": {
+                          "description": "DataZone domain identifier",
+                          "type": "string"
+                        },
+                        "revision": {
+                          "description": "DataZone asset listing revision",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "assetListingId",
+                        "domainId"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "assetName": {
+                          "description": "Asset name in OpenLineage",
+                          "type": "string"
+                        },
+                        "assetNamespace": {
+                          "description": "Asset namespace in OpenLineage",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "assetName",
+                        "assetNamespace"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "dataset": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "description": "The name of the workflow",
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "avro",
+                      "csv",
+                      "json",
+                      "parquet",
+                      "orc",
+                      "grok",
+                      "excel"
+                    ],
+                    "description": "The format of the data set."
+                  },
+                  "connection": {
+                    "type": "object",
+                    "properties": {
+                      "dataLake": {
+                        "type": "object",
+                        "properties": {
+                          "s3": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "description": "The uri of the source S3 file",
+                                "type": "string"
+                              },
+                              "region": {
+                                "description": "The region of the S3 bucket",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "path",
+                              "region"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "s3"
+                        ]
+                      },
+                      "glue": {
+                        "type": "object",
+                        "properties": {
+                          "accountId": {
+                            "description": "The account Id the glue table belongs to",
+                            "type": "string"
+                          },
+                          "region": {
+                            "description": "The region of the glue table",
+                            "type": "string"
+                          },
+                          "databaseName": {
+                            "description": "The database name the glue table belongs to",
+                            "type": "string"
+                          },
+                          "tableName": {
+                            "description": "The glue table name",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "accountId",
+                          "region",
+                          "databaseName",
+                          "tableName"
+                        ]
+                      },
+                      "redshift": {
+                        "type": "object",
+                        "properties": {
+                          "secretArn": {
+                            "description": "The ARN of the Secrets Manager secret containing redshift credentials.",
+                            "type": "string"
+                          },
+                          "jdbcConnectionUrl": {
+                            "description": "JDBC URL for the redshift cluster or workgroup.",
+                            "type": "string"
+                          },
+                          "subnetId": {
+                            "description": "Subnet ID for the Glue connection.",
+                            "type": "string"
+                          },
+                          "securityGroupIdList": {
+                            "description": "Security group Ids for the Glue connection.",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "availabilityZone": {
+                            "description": "Availability zone for the Glue connection.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)",
+                            "type": "string"
+                          },
+                          "databaseTableName": {
+                            "description": "The database table name for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          },
+                          "queryString": {
+                            "description": "The query string for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "serverless",
+                              "cluster"
+                            ],
+                            "description": "The type of the redshift db used."
+                          },
+                          "workgroupName": {
+                            "description": "The name of the serverless workgroup the DB belongs to(used by data zone).",
+                            "type": "string"
+                          },
+                          "clusterName": {
+                            "description": "The cluster name of the DB cluster to(used by data zone).",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "secretArn",
+                          "jdbcConnectionUrl",
+                          "subnetId",
+                          "securityGroupIdList",
+                          "availabilityZone",
+                          "path",
+                          "databaseTableName"
+                        ]
+                      }
+                    }
+                  },
+                  "connectionId": {
+                    "description": "Glue connection name",
+                    "type": "string"
+                  },
+                  "version": {
+                    "description": "The version of the dataset.",
+                    "type": "string"
+                  },
+                  "dataSource": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "Name of 3rd party source.",
+                        "type": "string"
+                      },
+                      "url": {
+                        "description": "Url of 3rd party source.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "url"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "format"
+                ]
+              },
+              "sampling": {
+                "type": "object",
+                "properties": {}
+              },
+              "transforms": {
+                "type": "object",
+                "properties": {
+                  "recipeReference": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "The name of the existing recipe",
+                        "type": "string"
+                      },
+                      "version": {
+                        "description": "The version of the existing recipe",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "version"
+                    ]
+                  },
+                  "recipe": {
+                    "type": "object",
+                    "properties": {
+                      "steps": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "required": [
+                      "steps"
+                    ]
+                  }
+                }
+              },
+              "dataQuality": {
+                "type": "object",
+                "properties": {
+                  "ruleset": {
+                    "description": "A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ruleset"
+                ]
+              },
+              "tags": {
+                "description": "tags to be added to our data brew constructs description etc.",
+                "type": "object",
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "name",
+              "roleArn",
+              "dataset"
+            ]
+          }
+        },
+        "required": [
+          "catalog",
+          "workflow"
+        ],
+        "title": "newDataAssetTaskResource"
+      },
+      "def-3": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique id of the request.",
+            "type": "string"
+          },
+          "idcUserId": {
+            "description": "The user's IAM Identity Center User ID.",
+            "type": "string"
+          },
+          "catalog": {
+            "type": "object",
+            "properties": {
+              "domainId": {
+                "description": "Data Zone domain id",
+                "type": "string"
+              },
+              "domainName": {
+                "description": "Data Zone domain name",
+                "type": "string"
+              },
+              "environmentId": {
+                "description": "Data Zone environment id",
+                "type": "string"
+              },
+              "projectId": {
+                "description": "Data Zone project id",
+                "type": "string"
+              },
+              "region": {
+                "description": "Data Zone environment region",
+                "type": "string"
+              },
+              "dataSourceId": {
+                "description": "Data Zone asset data source id",
+                "type": "string"
+              },
+              "assetName": {
+                "description": "Data Zone asset name",
+                "type": "string"
+              },
+              "assetId": {
+                "description": "Data Zone asset id",
+                "type": "string"
+              },
+              "accountId": {
+                "description": "The account id here the asset resides",
+                "type": "string"
+              },
+              "autoPublish": {
+                "description": "Publish the asset automatically.",
+                "default": true,
+                "type": "boolean"
+              },
+              "revision": {
+                "description": "specify the version number of the datazone asset",
+                "type": "number"
+              }
+            },
+            "required": [
+              "domainId",
+              "environmentId",
+              "assetName",
+              "accountId"
+            ]
+          },
+          "workflow": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "The name of the workflow",
+                "maxLength": 64,
+                "pattern": "[a-z|A-Z|0-9-_]",
+                "type": "string"
+              },
+              "roleArn": {
+                "description": "The Arn of the IAM Role to be used for the job execution",
+                "type": "string"
+              },
+              "externalInputs": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "assetListingId": {
+                          "description": "DataZone asset listing identifier",
+                          "type": "string"
+                        },
+                        "domainId": {
+                          "description": "DataZone domain identifier",
+                          "type": "string"
+                        },
+                        "revision": {
+                          "description": "DataZone asset listing revision",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "assetListingId",
+                        "domainId"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "assetName": {
+                          "description": "Asset name in OpenLineage",
+                          "type": "string"
+                        },
+                        "assetNamespace": {
+                          "description": "Asset namespace in OpenLineage",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "assetName",
+                        "assetNamespace"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "dataset": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "description": "The name of the workflow",
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "avro",
+                      "csv",
+                      "json",
+                      "parquet",
+                      "orc",
+                      "grok",
+                      "excel"
+                    ],
+                    "description": "The format of the data set."
+                  },
+                  "connection": {
+                    "type": "object",
+                    "properties": {
+                      "dataLake": {
+                        "type": "object",
+                        "properties": {
+                          "s3": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "description": "The uri of the source S3 file",
+                                "type": "string"
+                              },
+                              "region": {
+                                "description": "The region of the S3 bucket",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "path",
+                              "region"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "s3"
+                        ]
+                      },
+                      "glue": {
+                        "type": "object",
+                        "properties": {
+                          "accountId": {
+                            "description": "The account Id the glue table belongs to",
+                            "type": "string"
+                          },
+                          "region": {
+                            "description": "The region of the glue table",
+                            "type": "string"
+                          },
+                          "databaseName": {
+                            "description": "The database name the glue table belongs to",
+                            "type": "string"
+                          },
+                          "tableName": {
+                            "description": "The glue table name",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "accountId",
+                          "region",
+                          "databaseName",
+                          "tableName"
+                        ]
+                      },
+                      "redshift": {
+                        "type": "object",
+                        "properties": {
+                          "secretArn": {
+                            "description": "The ARN of the Secrets Manager secret containing redshift credentials.",
+                            "type": "string"
+                          },
+                          "jdbcConnectionUrl": {
+                            "description": "JDBC URL for the redshift cluster or workgroup.",
+                            "type": "string"
+                          },
+                          "subnetId": {
+                            "description": "Subnet ID for the Glue connection.",
+                            "type": "string"
+                          },
+                          "securityGroupIdList": {
+                            "description": "Security group Ids for the Glue connection.",
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "availabilityZone": {
+                            "description": "Availability zone for the Glue connection.",
+                            "type": "string"
+                          },
+                          "path": {
+                            "description": "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)",
+                            "type": "string"
+                          },
+                          "databaseTableName": {
+                            "description": "The database table name for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          },
+                          "queryString": {
+                            "description": "The query string for DataBrew dataset (used in recipe job data set).",
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "serverless",
+                              "cluster"
+                            ],
+                            "description": "The type of the redshift db used."
+                          },
+                          "workgroupName": {
+                            "description": "The name of the serverless workgroup the DB belongs to(used by data zone).",
+                            "type": "string"
+                          },
+                          "clusterName": {
+                            "description": "The cluster name of the DB cluster to(used by data zone).",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "secretArn",
+                          "jdbcConnectionUrl",
+                          "subnetId",
+                          "securityGroupIdList",
+                          "availabilityZone",
+                          "path",
+                          "databaseTableName"
+                        ]
+                      }
+                    }
+                  },
+                  "connectionId": {
+                    "description": "Glue connection name",
+                    "type": "string"
+                  },
+                  "version": {
+                    "description": "The version of the dataset.",
+                    "type": "string"
+                  },
+                  "dataSource": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "Name of 3rd party source.",
+                        "type": "string"
+                      },
+                      "url": {
+                        "description": "Url of 3rd party source.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "url"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "format"
+                ]
+              },
+              "sampling": {
+                "type": "object",
+                "properties": {}
+              },
+              "transforms": {
+                "type": "object",
+                "properties": {
+                  "recipeReference": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "The name of the existing recipe",
+                        "type": "string"
+                      },
+                      "version": {
+                        "description": "The version of the existing recipe",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "version"
+                    ]
+                  },
+                  "recipe": {
+                    "type": "object",
+                    "properties": {
+                      "steps": {
+                        "type": "array",
+                        "items": {}
+                      }
+                    },
+                    "required": [
+                      "steps"
+                    ]
+                  }
+                }
+              },
+              "dataQuality": {
+                "type": "object",
+                "properties": {
+                  "ruleset": {
+                    "description": "A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ruleset"
+                ]
+              },
+              "tags": {
+                "description": "tags to be added to our data brew constructs description etc.",
+                "type": "object",
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "name",
+              "roleArn",
+              "dataset"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "idcUserId",
+          "catalog",
+          "workflow"
+        ],
+        "title": "dataAssetTaskResource"
+      },
+      "def-4": {
+        "type": "object",
+        "properties": {
+          "dataAssetTasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/def-3"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "description": "No. of results returned when pagination requested.",
+                "type": "integer"
+              },
+              "lastEvaluatedToken": {
+                "description": "Token used to paginate to the next page of search result.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "dataAssetTasks"
+        ],
+        "title": "dataAssetTaskListResource"
+      }
+    }
+  },
+  "paths": {
+    "/domains/{domainId}/dataAssets/{assetId}": {
+      "get": {
+        "tags": [
+          "Data Assets"
+        ],
+        "description": "Retrieve details of a specific data asset.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "assetId",
+            "required": true,
+            "description": "the identifier of the Amazon DataZone inventory asset.."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "domainId",
+            "required": true,
+            "description": "the identifier of the Amazon DataZone inventory asset.."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "the identifier of the Amazon DataZone inventory asset..",
+                      "type": "string"
+                    },
+                    "domainId": {
+                      "description": "The identifier of the Amazon DataZone domain in which the inventory asset exists.",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "The identifier of the Amazon DataZone domain in which the inventory asset.",
+                      "type": "string"
+                    },
+                    "description": {
+                      "description": "The description of an Amazon DataZone inventory asset.",
+                      "type": "string"
+                    },
+                    "owningProjectId": {
+                      "description": "The identifier of the Amazon DataZone project that owns the inventory asset.",
+                      "type": "string"
+                    },
+                    "typeIdentifier": {
+                      "description": "The identifier of the asset type of the specified Amazon DataZone inventory asset.",
+                      "type": "string"
+                    },
+                    "typeRevision": {
+                      "description": "The revision of the inventory asset type.",
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "description": "The timestamp of when the Amazon DataZone inventory asset was created.",
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "description": "The Amazon DataZone user who created the inventory asset.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "owningProjectId",
+                    "typeIdentifier",
+                    "typeRevision"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domains/{domainId}/projects/{projectId}/dataAssets": {
+      "get": {
+        "tags": [
+          "Data Assets"
+        ],
+        "description": "Lists of data assets.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromToken",
+            "required": false,
+            "description": "Token used to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "domainId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "dataAssets": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/def-0"
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "description": "No. of results returned when pagination requested.",
+                          "type": "integer"
+                        },
+                        "lastEvaluatedToken": {
+                          "description": "Token used to paginate to the next page of search result.",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "dataAssets"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dataAssetTasks": {
+      "post": {
+        "tags": [
+          "Data Asset Task"
+        ],
+        "description": "Creates a new task to create data asset in DF(Data Foundation)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/def-2"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/def-3"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Service is unavailable.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Data Asset Tasks"
+        ],
+        "description": "Lists of data asset tasks.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromToken",
+            "required": false,
+            "description": "Token used to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "dataAssetTasks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/def-3"
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "description": "No. of results returned when pagination requested.",
+                          "type": "integer"
+                        },
+                        "lastEvaluatedToken": {
+                          "description": "Token used to paginate to the next page of search result.",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "dataAssetTasks"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dataAssetTasks/{taskId}": {
+      "get": {
+        "tags": [
+          "Data Asset Task"
+        ],
+        "description": "Get data asset task.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Unique id of the request.",
+                      "type": "string"
+                    },
+                    "idcUserId": {
+                      "description": "The user's IAM Identity Center User ID.",
+                      "type": "string"
+                    },
+                    "catalog": {
+                      "type": "object",
+                      "properties": {
+                        "domainId": {
+                          "description": "Data Zone domain id",
+                          "type": "string"
+                        },
+                        "domainName": {
+                          "description": "Data Zone domain name",
+                          "type": "string"
+                        },
+                        "environmentId": {
+                          "description": "Data Zone environment id",
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "description": "Data Zone project id",
+                          "type": "string"
+                        },
+                        "region": {
+                          "description": "Data Zone environment region",
+                          "type": "string"
+                        },
+                        "dataSourceId": {
+                          "description": "Data Zone asset data source id",
+                          "type": "string"
+                        },
+                        "assetName": {
+                          "description": "Data Zone asset name",
+                          "type": "string"
+                        },
+                        "assetId": {
+                          "description": "Data Zone asset id",
+                          "type": "string"
+                        },
+                        "accountId": {
+                          "description": "The account id here the asset resides",
+                          "type": "string"
+                        },
+                        "autoPublish": {
+                          "description": "Publish the asset automatically.",
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "revision": {
+                          "description": "specify the version number of the datazone asset",
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "domainId",
+                        "environmentId",
+                        "assetName",
+                        "accountId"
+                      ]
+                    },
+                    "workflow": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "description": "The name of the workflow",
+                          "maxLength": 64,
+                          "pattern": "[a-z|A-Z|0-9-_]",
+                          "type": "string"
+                        },
+                        "roleArn": {
+                          "description": "The Arn of the IAM Role to be used for the job execution",
+                          "type": "string"
+                        },
+                        "externalInputs": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "assetListingId": {
+                                    "description": "DataZone asset listing identifier",
+                                    "type": "string"
+                                  },
+                                  "domainId": {
+                                    "description": "DataZone domain identifier",
+                                    "type": "string"
+                                  },
+                                  "revision": {
+                                    "description": "DataZone asset listing revision",
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "assetListingId",
+                                  "domainId"
+                                ]
+                              }
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "assetName": {
+                                    "description": "Asset name in OpenLineage",
+                                    "type": "string"
+                                  },
+                                  "assetNamespace": {
+                                    "description": "Asset namespace in OpenLineage",
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "assetName",
+                                  "assetNamespace"
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        "dataset": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "description": "The name of the workflow",
+                              "type": "string"
+                            },
+                            "format": {
+                              "type": "string",
+                              "enum": [
+                                "avro",
+                                "csv",
+                                "json",
+                                "parquet",
+                                "orc",
+                                "grok",
+                                "excel"
+                              ],
+                              "description": "The format of the data set."
+                            },
+                            "connection": {
+                              "type": "object",
+                              "properties": {
+                                "dataLake": {
+                                  "type": "object",
+                                  "properties": {
+                                    "s3": {
+                                      "type": "object",
+                                      "properties": {
+                                        "path": {
+                                          "description": "The uri of the source S3 file",
+                                          "type": "string"
+                                        },
+                                        "region": {
+                                          "description": "The region of the S3 bucket",
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "path",
+                                        "region"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "s3"
+                                  ]
+                                },
+                                "glue": {
+                                  "type": "object",
+                                  "properties": {
+                                    "accountId": {
+                                      "description": "The account Id the glue table belongs to",
+                                      "type": "string"
+                                    },
+                                    "region": {
+                                      "description": "The region of the glue table",
+                                      "type": "string"
+                                    },
+                                    "databaseName": {
+                                      "description": "The database name the glue table belongs to",
+                                      "type": "string"
+                                    },
+                                    "tableName": {
+                                      "description": "The glue table name",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "accountId",
+                                    "region",
+                                    "databaseName",
+                                    "tableName"
+                                  ]
+                                },
+                                "redshift": {
+                                  "type": "object",
+                                  "properties": {
+                                    "secretArn": {
+                                      "description": "The ARN of the Secrets Manager secret containing redshift credentials.",
+                                      "type": "string"
+                                    },
+                                    "jdbcConnectionUrl": {
+                                      "description": "JDBC URL for the redshift cluster or workgroup.",
+                                      "type": "string"
+                                    },
+                                    "subnetId": {
+                                      "description": "Subnet ID for the Glue connection.",
+                                      "type": "string"
+                                    },
+                                    "securityGroupIdList": {
+                                      "description": "Security group Ids for the Glue connection.",
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "availabilityZone": {
+                                      "description": "Availability zone for the Glue connection.",
+                                      "type": "string"
+                                    },
+                                    "path": {
+                                      "description": "Path for the Glue Crawler data source (e.g. /dev/public/table_x) (used in glue crawler without recipe job)",
+                                      "type": "string"
+                                    },
+                                    "databaseTableName": {
+                                      "description": "The database table name for DataBrew dataset (used in recipe job data set).",
+                                      "type": "string"
+                                    },
+                                    "queryString": {
+                                      "description": "The query string for DataBrew dataset (used in recipe job data set).",
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "serverless",
+                                        "cluster"
+                                      ],
+                                      "description": "The type of the redshift db used."
+                                    },
+                                    "workgroupName": {
+                                      "description": "The name of the serverless workgroup the DB belongs to(used by data zone).",
+                                      "type": "string"
+                                    },
+                                    "clusterName": {
+                                      "description": "The cluster name of the DB cluster to(used by data zone).",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "secretArn",
+                                    "jdbcConnectionUrl",
+                                    "subnetId",
+                                    "securityGroupIdList",
+                                    "availabilityZone",
+                                    "path",
+                                    "databaseTableName"
+                                  ]
+                                }
+                              }
+                            },
+                            "connectionId": {
+                              "description": "Glue connection name",
+                              "type": "string"
+                            },
+                            "version": {
+                              "description": "The version of the dataset.",
+                              "type": "string"
+                            },
+                            "dataSource": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "description": "Name of 3rd party source.",
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "description": "Url of 3rd party source.",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "url"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "format"
+                          ]
+                        },
+                        "sampling": {
+                          "type": "object",
+                          "properties": {}
+                        },
+                        "transforms": {
+                          "type": "object",
+                          "properties": {
+                            "recipeReference": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "description": "The name of the existing recipe",
+                                  "type": "string"
+                                },
+                                "version": {
+                                  "description": "The version of the existing recipe",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "version"
+                              ]
+                            },
+                            "recipe": {
+                              "type": "object",
+                              "properties": {
+                                "steps": {
+                                  "type": "array",
+                                  "items": {}
+                                }
+                              },
+                              "required": [
+                                "steps"
+                              ]
+                            }
+                          }
+                        },
+                        "dataQuality": {
+                          "type": "object",
+                          "properties": {
+                            "ruleset": {
+                              "description": "A Data Quality Definition Language (DQDL) ruleset. For more information, see the Glue developer guide.</p>",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "ruleset"
+                          ]
+                        },
+                        "tags": {
+                          "description": "tags to be added to our data brew constructs description etc.",
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "roleArn",
+                        "dataset"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "idcUserId",
+                    "catalog",
+                    "workflow"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost"
+    }
+  ],
+  "security": [],
+  "tags": [
+    {
+      "name": "Asset Management",
+      "description": "Asset Management"
+    }
+  ]
+}
