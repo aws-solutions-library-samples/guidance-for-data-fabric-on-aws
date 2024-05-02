@@ -12,6 +12,16 @@
 ## Overview
 The Guidance for Data Fabric on AWS is an opinionated data fabric implementation on AWS.
 
+### Cost
+You are responsible for the cost of the AWS services used while running this Guidance. As of May 2024, the cost for running this Guidance with the default settings in the US West (Oregon) AWS Region is approximately $530 per month, using the following assumptions:
+
+ * Assume 10 DataZone users with metadata storage & requests under amount included in per user cost ([DataZone pricing](https://aws.amazon.com/datazone/pricing/))
+ * 50 data fabric create asset API requests per month
+ * Low (< 1k) lineage API/PUT requests per month
+ * Does not include estimates for existing S3, Glue, etc resources in the customer's data fabric spoke account
+
+A detailed cost breakdown estimate can be found at [this shared AWS Pricing Calculator estimate](https://calculator.aws/#/estimate?id=b1560b8587e9048fae318b247799f336d02453bd). This detailed estimate does not yet include DataZone pricing so adding \$9/month/user for our assumed 10 users gives us \$90 additional per month to add on to this estimate. This gives us the \$530/month estimate referenced above.
+
 ## Prerequisites
 
 ### Operating System
